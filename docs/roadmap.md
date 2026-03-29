@@ -7,10 +7,12 @@
 - Estado del proyecto
 - Contratos y documentación inicial
 
-## Slice 2 — Estaciones Bicimad en mapa
-- Capa de estaciones en mapa
-- Datos mock + contrato alineado
-- Estados de disponibilidad básicos
+## Slice 2 — Estaciones Bicimad en mapa (completado)
+- Capa de estaciones Bicimad en mapa
+- Carga real desde GBFS `station_information`
+- Fallback oficial EMT + snapshot local
+- Normalización a contrato interno estable
+- Estados de carga/error/fallback en UI
 
 ## Slice 3 — Backend mínimo
 - FastAPI inicial

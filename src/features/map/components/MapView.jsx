@@ -2,6 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 
+import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLayer';
 import { madridMapConfig } from '../../../mocks/madridMapConfig';
 import styles from './MapView.module.css';
 
@@ -16,7 +17,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-export function MapView({ selectedMode }) {
+export function MapView({ selectedMode, bicimadStations, showBicimadLayer }) {
   return (
     <div className={styles.wrapper}>
       <MapContainer center={madridMapConfig.center} zoom={madridMapConfig.zoom} className={styles.map} scrollWheelZoom>
@@ -36,6 +37,8 @@ export function MapView({ selectedMode }) {
             </Popup>
           </Marker>
         ))}
+
+        {showBicimadLayer && bicimadStations.length > 0 && <BicimadStationsLayer stations={bicimadStations} />}
       </MapContainer>
     </div>
   );

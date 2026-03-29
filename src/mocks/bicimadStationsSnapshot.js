@@ -1,0 +1,42 @@
+export const bicimadStationsSnapshot = [
+  {
+    station_id: '2255',
+    name: '319 - Valdesangil',
+    lat: 40.4684218,
+    lon: -3.7166729,
+    address: 'Calle Valdesangil, 34',
+    capacity: 44,
+  },
+  {
+    station_id: '2201',
+    name: '001a - Puerta del Sol A',
+    lat: 40.4172387,
+    lon: -3.7018224,
+    address: 'Puerta del Sol, 1',
+    capacity: 24,
+  },
+  {
+    station_id: '2202',
+    name: '027 - Huertas',
+    lat: 40.4132362,
+    lon: -3.6965336,
+    address: 'Calle de Huertas, 39',
+    capacity: 30,
+  },
+  {
+    station_id: '2203',
+    name: '147 - Doctor Esquerdo',
+    lat: 40.4240879,
+    lon: -3.6687547,
+    address: 'Calle Doctor Esquerdo, 160',
+    capacity: 36,
+  },
+  {
+    station_id: '2204',
+    name: '208 - Plaza de Castilla',
+    lat: 40.4662695,
+    lon: -3.6888979,
+    address: 'Paseo de la Castellana, 189',
+    capacity: 42,
+  },
+];

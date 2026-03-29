@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 
+import { BicimadStatusCard } from '../../features/bicimad/components/BicimadStatusCard';
+import { useBicimadStations } from '../../features/bicimad/hooks/useBicimadStations';
 import { MapView } from '../../features/map/components/MapView';
 import { ProjectExplainer } from '../../features/projectStatus/components/ProjectExplainer';
 import { ProjectStatusPanel } from '../../features/projectStatus/components/ProjectStatusPanel';
@@ -18,6 +20,9 @@ export function AppLayout() {
   const [formValues, setFormValues] = useState(INITIAL_FORM);
   const [selectedMode, setSelectedMode] = useState(ROUTE_MODES.BALANCED);
   const [infoMessage, setInfoMessage] = useState('El motor de rutas reales llegará en próximos slices.');
+
+  const bicimadLayerEnabled = featureFlags.enableBicimad && featureFlags.enableBicimadStationsLayer;
+  const bicimadState = useBicimadStations({ enabled: bicimadLayerEnabled });
 
   const canSubmit = useMemo(
     () => formValues.origin.trim().length > 0 && formValues.destination.trim().length > 0,
@@ -60,11 +65,28 @@ export function AppLayout() {
             </section>
           )}
 
+          <BicimadStatusCard
+            enabled={bicimadLayerEnabled}
+            loading={bicimadState.loading}
+            error={bicimadState.error}
+            source={bicimadState.source}
+            usedFallback={bicimadState.usedFallback}
+            stationsCount={bicimadState.stations.length}
+          />
+
           {featureFlags.enableProjectStatusPanel && <ProjectStatusPanel />}
         </aside>
 
         <section className={styles.mapContainer}>
-          {featureFlags.enableMap ? <MapView selectedMode={selectedMode} /> : <p>Mapa desactivado por feature flag.</p>}
+          {featureFlags.enableMap ? (
+            <MapView
+              selectedMode={selectedMode}
+              bicimadStations={bicimadState.stations}
+              showBicimadLayer={bicimadLayerEnabled}
+            />
+          ) : (
+            <p>Mapa desactivado por feature flag.</p>
+          )}
         </section>
       </main>
     </div>

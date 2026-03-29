@@ -4,7 +4,8 @@ export const featureFlags = {
   enableRealRouting: false,
   enableSafetyScore: false,
   enableNightMode: false,
-  enableBicimad: false,
+  enableBicimad: true,
+  enableBicimadStationsLayer: true,
   enableNeighborhoodScore: false,
   enableProjectStatusPanel: true,
 };

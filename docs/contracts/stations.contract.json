@@ -1,25 +1,34 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "BicimadStations",
+  "title": "BrisaBicimadStationCollection",
+  "description": "Contrato interno estable para estaciones Bicimad en frontend (Slice 2)",
   "type": "object",
-  "required": ["updated_at", "stations"],
+  "required": ["source", "stations"],
   "properties": {
-    "updated_at": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "string",
+      "enum": ["gbfs-station-information", "emt-geojson-fallback", "local-snapshot-fallback"]
+    },
     "stations": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["station_id", "name", "lat", "lng", "available_bikes", "available_docks"],
+        "required": ["id", "name", "lat", "lon"],
         "properties": {
-          "station_id": { "type": "string" },
+          "id": { "type": "string" },
           "name": { "type": "string" },
           "lat": { "type": "number" },
-          "lng": { "type": "number" },
-          "available_bikes": { "type": "integer" },
-          "available_docks": { "type": "integer" },
-          "status": { "type": "string", "enum": ["open", "closed", "maintenance"] }
-        }
+          "lon": { "type": "number" },
+          "address": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }]
+          },
+          "capacity": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }]
+          }
+        },
+        "additionalProperties": false
       }
     }
-  }
+  },
+  "additionalProperties": false
 }
