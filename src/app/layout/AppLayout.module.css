@@ -1,0 +1,71 @@
+.page {
+  min-height: 100vh;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, #f5f8ff 0%, #f7faf9 100%);
+  color: #14213d;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.header p {
+  margin-top: 0.35rem;
+  color: #3e4c6d;
+}
+
+.mainLayout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 1rem;
+  min-height: calc(100vh - 8rem);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panelCard {
+  background: #ffffff;
+  border: 1px solid #d8e1f2;
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(25, 52, 96, 0.07);
+}
+
+.panelCard h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.mapContainer {
+  min-height: 560px;
+  background: #ffffff;
+  border: 1px solid #d8e1f2;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(25, 52, 96, 0.07);
+}
+
+.infoText {
+  margin-bottom: 0;
+  color: #2e405f;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 1024px) {
+  .mainLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .mapContainer {
+    min-height: 420px;
+  }
+}

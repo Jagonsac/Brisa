@@ -1,0 +1,45 @@
+.panel {
+  background: #ffffff;
+  border: 1px solid #d8e1f2;
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(25, 52, 96, 0.07);
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.panel li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  color: #2f4263;
+}
+
+.badge {
+  font-size: 0.75rem;
+  border-radius: 99px;
+  padding: 0.15rem 0.55rem;
+  font-weight: 700;
+}
+
+.done {
+  color: #0f6d3f;
+  background: #daf5e7;
+}
+
+.pending {
+  color: #6e4f00;
+  background: #fff2ca;
+}
