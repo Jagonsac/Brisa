@@ -1,6 +1,6 @@
 # Arquitectura de Brisa
 
-## Arquitectura actual (Slice 1)
+## Arquitectura actual (Slice 2)
 Brisa usa una arquitectura frontend modular en React:
 
 - `app/`: app shell, layout y punto de entrada visual.
@@ -11,9 +11,18 @@ Brisa usa una arquitectura frontend modular en React:
 
 ## Separación por capas
 1. **Presentación**: componentes de UI y estilos (CSS Modules).
-2. **Estado local de feature**: formularios, selección de modo de ruta.
-3. **Configuración/flags**: toggles de funcionalidades futuras.
-4. **Contratos de integración**: JSON y documentación en `docs/contracts`.
+2. **Estado local de feature**: formularios y estado de carga de capas.
+3. **Servicios de datos**: acceso a proveedores externos (GBFS/GeoJSON) aislado por feature.
+4. **Normalización/contratos**: transformación a modelos internos estables.
+5. **Configuración/flags**: toggles de funcionalidades futuras.
+
+## Integración Bicimad en Slice 2
+- `src/features/bicimad/services`: estrategia de fuente principal y fallback.
+- `src/features/bicimad/utils`: normalización de payloads externos.
+- `src/features/bicimad/hooks`: carga encapsulada para UI (`loading`, `error`, `source`, `usedFallback`).
+- `src/features/bicimad/components`: capa de mapa y tarjeta de estado, sin lógica de fetch.
+
+Este diseño mantiene el mapa desacoplado de los formatos GBFS/GeoJSON y preparado para combinar `station_information` + `station_status` en slices siguientes.
 
 ## Por qué React + Vite
 - Inicio rápido y ejecutabilidad inmediata.
@@ -27,7 +36,7 @@ Brisa usa una arquitectura frontend modular en React:
 ## Conexión futura entre módulos
 - `search` emite solicitudes de ruta siguiendo `route-request.contract.json`.
 - `routing` consume respuesta normalizada de `route-response.contract.json`.
-- `bicimad` consumirá `stations.contract.json` para capas de estaciones.
+- `bicimad` ya consume `stations.contract.json` y queda listo para unir estado en tiempo real.
 - `neighborhoods` usará `neighborhood-score.contract.json` para paneles y mapa.
 - `safety` añadirá explicaciones sobre segmentos y puntos negros.
 

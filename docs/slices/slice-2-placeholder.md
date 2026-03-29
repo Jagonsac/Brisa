@@ -1,3 +1,5 @@
-# Slice 2 (placeholder)
+# Slice 2 (migrado)
 
-Objetivo: visualizar estaciones Bicimad en el mapa con estados básicos de disponibilidad.
+Este archivo se mantiene por compatibilidad histórica.
+
+La documentación vigente del Slice 2 está en `docs/slices/slice-2.md`.
