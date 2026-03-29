@@ -1,0 +1,31 @@
+.container {
+  margin-top: 1rem;
+}
+
+.title {
+  margin: 0 0 0.55rem;
+  font-size: 0.9rem;
+  color: #2f4263;
+}
+
+.buttonGroup {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.45rem;
+}
+
+.modeButton {
+  border: 1px solid #b4c3de;
+  border-radius: 10px;
+  padding: 0.55rem;
+  background: #f8fbff;
+  color: #1c2f4f;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modeButtonActive {
+  background: #dfeaff;
+  border-color: #5083eb;
+  color: #123986;
+}

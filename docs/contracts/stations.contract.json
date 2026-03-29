@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BicimadStations",
+  "type": "object",
+  "required": ["updated_at", "stations"],
+  "properties": {
+    "updated_at": { "type": "string", "format": "date-time" },
+    "stations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["station_id", "name", "lat", "lng", "available_bikes", "available_docks"],
+        "properties": {
+          "station_id": { "type": "string" },
+          "name": { "type": "string" },
+          "lat": { "type": "number" },
+          "lng": { "type": "number" },
+          "available_bikes": { "type": "integer" },
+          "available_docks": { "type": "integer" },
+          "status": { "type": "string", "enum": ["open", "closed", "maintenance"] }
+        }
+      }
+    }
+  }
+}

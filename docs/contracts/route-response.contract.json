@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RouteResponse",
+  "description": "Respuesta esperada para una ruta recomendada",
+  "type": "object",
+  "required": ["route_id", "mode", "summary", "geometry"],
+  "properties": {
+    "route_id": { "type": "string" },
+    "mode": { "type": "string", "enum": ["fast", "safe", "balanced", "night"] },
+    "summary": {
+      "type": "object",
+      "required": ["distance_m", "duration_min", "safety_score"],
+      "properties": {
+        "distance_m": { "type": "number" },
+        "duration_min": { "type": "number" },
+        "safety_score": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "geometry": {
+      "type": "array",
+      "description": "Lista de coordenadas [lat, lng]",
+      "items": {
+        "type": "array",
+        "items": { "type": "number" },
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "explanations": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RouteRequest",
+  "description": "Solicitud de cálculo de ruta ciclista",
+  "type": "object",
+  "required": ["origin", "destination", "mode"],
+  "properties": {
+    "origin": {
+      "type": "object",
+      "required": ["lat", "lng", "label"],
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "label": { "type": "string" }
+      }
+    },
+    "destination": {
+      "type": "object",
+      "required": ["lat", "lng", "label"],
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "label": { "type": "string" }
+      }
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["fast", "safe", "balanced", "night"]
+    },
+    "time_context": {
+      "type": "string",
+      "description": "Opcional: day | night | commute"
+    }
+  }
+}

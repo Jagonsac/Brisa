@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NeighborhoodCyclabilityScore",
+  "type": "object",
+  "required": ["city", "updated_at", "neighborhoods"],
+  "properties": {
+    "city": { "type": "string", "const": "Madrid" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "neighborhoods": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "score", "rank"],
+        "properties": {
+          "name": { "type": "string" },
+          "score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "rank": { "type": "integer", "minimum": 1 },
+          "notes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
