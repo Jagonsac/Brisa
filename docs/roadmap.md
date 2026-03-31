@@ -14,10 +14,12 @@
 - Normalización a contrato interno estable
 - Estados de carga/error/fallback en UI
 
-## Slice 3 — Backend mínimo
-- FastAPI inicial
-- Endpoint de salud
-- Endpoints mock alineados con contratos
+## Slice 3 — Backend mínimo (completado)
+- FastAPI inicial en `backend/`
+- Endpoint de salud `GET /health`
+- Endpoint de estaciones `GET /api/stations`
+- Normalización y fallback en backend
+- Integración frontend configurable por `VITE_API_BASE_URL`
 
 ## Slice 4 — Routing más corto
 - Cálculo de ruta mínima (MVP)

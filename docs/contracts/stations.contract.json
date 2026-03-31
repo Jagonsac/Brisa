@@ -1,15 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "BrisaBicimadStationCollection",
-  "description": "Contrato interno estable para estaciones Bicimad en frontend (Slice 2)",
+  "title": "BrisaBicimadStationsResponse",
+  "description": "Contrato de respuesta del backend para estaciones Bicimad (Slice 3)",
   "type": "object",
-  "required": ["source", "stations"],
+  "required": ["data", "meta"],
   "properties": {
-    "source": {
-      "type": "string",
-      "enum": ["gbfs-station-information", "emt-geojson-fallback", "local-snapshot-fallback"]
-    },
-    "stations": {
+    "data": {
       "type": "array",
       "items": {
         "type": "object",
@@ -19,15 +15,28 @@
           "name": { "type": "string" },
           "lat": { "type": "number" },
           "lon": { "type": "number" },
-          "address": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }]
-          },
-          "capacity": {
-            "anyOf": [{ "type": "number" }, { "type": "null" }]
-          }
+          "address": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "capacity": { "anyOf": [{ "type": "number" }, { "type": "null" }] }
         },
         "additionalProperties": false
       }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["count", "source", "fallbackUsed", "warnings"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "source": {
+          "type": "string",
+          "enum": ["gbfs-station-information", "emt-geojson-fallback", "local-snapshot-fallback"]
+        },
+        "fallbackUsed": { "type": "boolean" },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

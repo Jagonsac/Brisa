@@ -1,6 +1,6 @@
 import { bicimadStationsSnapshot } from '../../../mocks/bicimadStationsSnapshot';
 import { normalizeGbfsStations, normalizeGeoJsonStations, normalizeSnapshotStations } from '../utils/normalizeBicimadStations';
-import { bicimadEndpoints, bicimadRequestConfig } from './bicimadEndpoints';
+import { apiConfig, bicimadEndpoints, bicimadRequestConfig } from './bicimadEndpoints';
 
 const fetchJsonWithTimeout = async (url, timeoutMs) => {
   const controller = new AbortController();
@@ -18,7 +18,24 @@ const fetchJsonWithTimeout = async (url, timeoutMs) => {
   }
 };
 
-export async function getBicimadStations() {
+const getStationsFromBackend = async () => {
+  const endpoint = `${apiConfig.baseUrl.replace(/\/$/, '')}/api/stations`;
+  const payload = await fetchJsonWithTimeout(endpoint, bicimadRequestConfig.timeoutMs);
+
+  const stations = Array.isArray(payload?.data) ? normalizeSnapshotStations(payload.data) : [];
+
+  if (stations.length === 0) {
+    throw new Error('El backend respondió sin estaciones válidas.');
+  }
+
+  return {
+    stations,
+    source: payload?.meta?.source ?? 'backend-unknown',
+    usedFallback: Boolean(payload?.meta?.fallbackUsed),
+  };
+};
+
+const getStationsDirectlyFromProviders = async () => {
   const errors = [];
 
   try {
@@ -64,4 +81,20 @@ export async function getBicimadStations() {
   }
 
   throw new Error(errors.join(' | ') || 'No fue posible cargar estaciones Bicimad.');
+};
+
+export async function getBicimadStations() {
+  if (apiConfig.baseUrl) {
+    try {
+      return await getStationsFromBackend();
+    } catch (error) {
+      const fallbackResult = await getStationsDirectlyFromProviders();
+      return {
+        ...fallbackResult,
+        warning: `Fallback frontend activo: ${error instanceof Error ? error.message : 'error desconocido'}`,
+      };
+    }
+  }
+
+  return getStationsDirectlyFromProviders();
 }
