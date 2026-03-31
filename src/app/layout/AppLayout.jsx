@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BicimadStatusCard } from '../../features/bicimad/components/BicimadStatusCard';
 import { useBicimadStations } from '../../features/bicimad/hooks/useBicimadStations';
@@ -14,7 +14,7 @@ import { featureFlags } from '../../shared/config/featureFlags';
 import { ROUTE_MODES } from '../../shared/constants/routeModes';
 import styles from './AppLayout.module.css';
 
-const INITIAL_FORM = {
+const INITIAL_INPUT_VALUES = {
   origin: '',
   destination: '',
 };
@@ -29,8 +29,19 @@ const INITIAL_LOADING = {
   destination: false,
 };
 
+const INITIAL_SUGGESTION_OPEN = {
+  origin: false,
+  destination: false,
+};
+
+const INITIAL_SELECTED_PLACES = {
+  origin: null,
+  destination: null,
+};
+
 export function AppLayout() {
-  const [formValues, setFormValues] = useState(INITIAL_FORM);
+  const [inputValues, setInputValues] = useState(INITIAL_INPUT_VALUES);
+  const [selectedPlaces, setSelectedPlaces] = useState(INITIAL_SELECTED_PLACES);
   const [selectedMode, setSelectedMode] = useState(ROUTE_MODES.FAST);
   const [infoMessage, setInfoMessage] = useState('Selecciona origen y destino para calcular la ruta más corta.');
   const [routeData, setRouteData] = useState(null);
@@ -39,21 +50,28 @@ export function AppLayout() {
   const [showBicimadLayer, setShowBicimadLayer] = useState(false);
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const [suggestionLoading, setSuggestionLoading] = useState(INITIAL_LOADING);
+  const [suggestionOpen, setSuggestionOpen] = useState(INITIAL_SUGGESTION_OPEN);
+  const isProgrammaticSelectionRef = useRef({ origin: false, destination: false });
 
   const bicimadLayerEnabled = featureFlags.enableBicimad && featureFlags.enableBicimadStationsLayer;
   const bicimadState = useBicimadStations({ enabled: bicimadLayerEnabled });
 
   const canSubmit = useMemo(
-    () => formValues.origin.trim().length > 0 && formValues.destination.trim().length > 0,
-    [formValues.destination, formValues.origin],
+    () => inputValues.origin.trim().length > 0 && inputValues.destination.trim().length > 0,
+    [inputValues.destination, inputValues.origin],
   );
 
   useEffect(() => {
     const activeRequests = [];
 
     ['origin', 'destination'].forEach((field) => {
-      const value = formValues[field].trim();
-      if (value.length < 3) {
+      if (isProgrammaticSelectionRef.current[field]) {
+        isProgrammaticSelectionRef.current[field] = false;
+        return;
+      }
+
+      const value = inputValues[field].trim();
+      if (value.length < 3 || !suggestionOpen[field]) {
         setSuggestions((prev) => ({ ...prev, [field]: [] }));
         setSuggestionLoading((prev) => ({ ...prev, [field]: false }));
         return;
@@ -77,15 +95,34 @@ export function AppLayout() {
         clearTimeout(timerId);
       });
     };
-  }, [formValues]);
+  }, [inputValues, suggestionOpen]);
 
   const handleChange = (field, value) => {
-    setFormValues((previous) => ({ ...previous, [field]: value }));
+    setInputValues((previous) => ({ ...previous, [field]: value }));
+    setSuggestionOpen((prev) => ({ ...prev, [field]: true }));
+    setRouteData(null);
+
+    setSelectedPlaces((previous) => {
+      const selected = previous[field];
+      if (!selected) {
+        return previous;
+      }
+
+      if (value.trim() === selected.value.trim()) {
+        return previous;
+      }
+
+      return { ...previous, [field]: null };
+    });
   };
 
   const handleSelectSuggestion = (field, suggestion) => {
-    setFormValues((prev) => ({ ...prev, [field]: suggestion.value }));
+    isProgrammaticSelectionRef.current[field] = true;
+    setInputValues((prev) => ({ ...prev, [field]: suggestion.value }));
+    setSelectedPlaces((prev) => ({ ...prev, [field]: suggestion }));
     setSuggestions((prev) => ({ ...prev, [field]: [] }));
+    setSuggestionOpen((prev) => ({ ...prev, [field]: false }));
+    setRouteData(null);
   };
 
   const handleSubmit = async (event) => {
@@ -113,8 +150,16 @@ export function AppLayout() {
 
     try {
       const response = await createRoute({
-        originQuery: formValues.origin.trim(),
-        destinationQuery: formValues.destination.trim(),
+        origin: {
+          query: inputValues.origin.trim(),
+          lat: selectedPlaces.origin?.lat,
+          lon: selectedPlaces.origin?.lon,
+        },
+        destination: {
+          query: inputValues.destination.trim(),
+          lat: selectedPlaces.destination?.lat,
+          lon: selectedPlaces.destination?.lon,
+        },
         mode: selectedMode.apiMode,
       });
       setRouteData(response.data);
@@ -126,6 +171,18 @@ export function AppLayout() {
     } finally {
       setRouteLoading(false);
     }
+  };
+
+  const handleOpenSuggestions = (field) => {
+    setSuggestionOpen((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleCloseSuggestions = (field) => {
+    setSuggestionOpen((prev) => ({ ...prev, [field]: false }));
+  };
+
+  const handleCloseAllSuggestions = () => {
+    setSuggestionOpen(INITIAL_SUGGESTION_OPEN);
   };
 
   return (
@@ -143,12 +200,16 @@ export function AppLayout() {
             <section className={styles.panelCard}>
               <h2>Preparación de ruta</h2>
               <RouteSearchForm
-                formValues={formValues}
+                inputValues={inputValues}
                 onFieldChange={handleChange}
                 onSubmit={handleSubmit}
                 loading={routeLoading}
                 suggestions={suggestions}
                 suggestionLoading={suggestionLoading}
+                suggestionOpen={suggestionOpen}
+                onOpenSuggestions={handleOpenSuggestions}
+                onCloseSuggestions={handleCloseSuggestions}
+                onCloseAllSuggestions={handleCloseAllSuggestions}
                 onSelectSuggestion={handleSelectSuggestion}
               />
               <RouteModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} />
@@ -185,6 +246,8 @@ export function AppLayout() {
               bicimadStations={bicimadState.stations}
               showBicimadLayer={showBicimadLayer && bicimadLayerEnabled}
               routeData={routeData}
+              selectedOriginPlace={selectedPlaces.origin}
+              selectedDestinationPlace={selectedPlaces.destination}
             />
           ) : (
             <p>Mapa desactivado por feature flag.</p>

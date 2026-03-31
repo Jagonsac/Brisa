@@ -2,7 +2,7 @@ import networkx as nx
 import osmnx as ox
 
 from app.schemas.route_response import RouteResponse
-from app.services.geocoding_service import GeocodingError, GeocodingService
+from app.services.geocoding_service import GeocodedPoint, GeocodingError, GeocodingService
 from app.services.graph_service import GraphService
 from app.utils.geojson import build_route_geojson_feature
 
@@ -19,16 +19,29 @@ class RouteService:
         self.graph_service = graph_service or GraphService()
         self.geocoding_service = geocoding_service or GeocodingService()
 
-    async def build_fastest_route(self, origin_query: str, destination_query: str, mode: str) -> RouteResponse:
-        try:
-            origin = await self.geocoding_service.geocode(origin_query, point_label="origen")
-        except GeocodingError as error:
-            raise RouteServiceError(error.code, error.message) from error
-
-        try:
-            destination = await self.geocoding_service.geocode(destination_query, point_label="destino")
-        except GeocodingError as error:
-            raise RouteServiceError(error.code, error.message) from error
+    async def build_fastest_route(
+        self,
+        origin_query: str,
+        destination_query: str,
+        mode: str,
+        *,
+        origin_lat: float | None = None,
+        origin_lon: float | None = None,
+        destination_lat: float | None = None,
+        destination_lon: float | None = None,
+    ) -> RouteResponse:
+        origin = await self._resolve_point(
+            query=origin_query,
+            point_label="origen",
+            lat=origin_lat,
+            lon=origin_lon,
+        )
+        destination = await self._resolve_point(
+            query=destination_query,
+            point_label="destino",
+            lat=destination_lat,
+            lon=destination_lon,
+        )
 
         try:
             graph, graph_source = self.graph_service.get_graph()
@@ -114,3 +127,14 @@ class RouteService:
             },
         }
         return RouteResponse.model_validate(response_payload)
+
+    async def _resolve_point(self, *, query: str, point_label: str, lat: float | None, lon: float | None) -> GeocodedPoint:
+        clean_query = query.strip()
+        if lat is not None and lon is not None:
+            display_name = clean_query or f"{point_label.title()} seleccionado"
+            return GeocodedPoint(query=clean_query, display_name=display_name, lat=lat, lon=lon)
+
+        try:
+            return await self.geocoding_service.geocode(clean_query, point_label=point_label)
+        except GeocodingError as error:
+            raise RouteServiceError(error.code, error.message) from error

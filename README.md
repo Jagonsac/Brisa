@@ -11,17 +11,20 @@ Elegir rutas ciclistas en ciudad suele requerir equilibrio entre rapidez, seguri
 ✅ Integración de estaciones Bicimad en mapa (Slice 2).  
 ✅ Backend FastAPI con `GET /health` y `GET /api/stations` (Slice 3).  
 ✅ Routing real más corto con `POST /api/routes` usando OSMnx + Nominatim (Slice 4).  
-✅ Inputs de origen/destino con sugerencias vía backend (`GET /api/geocoding/suggest`).  
-✅ Control para mostrar/ocultar capa Bicimad (oculta por defecto).  
+✅ Inputs de origen/destino con sugerencias seleccionables y estado robusto (texto vs lugar real).  
+✅ Pins de origen/destino visibles antes de calcular ruta.  
+✅ Capa Bicimad opcional con toggle (oculta por defecto).  
 ✅ Manejo de errores de ruta en español sin mensaje opaco “Failed to fetch”.
 
 ## Qué incluye Slice 4
 - Formulario origen/destino conectado a backend.
 - Sugerencias de geocoding con debounce (sin llamar Nominatim directo desde frontend).
+- Selección estable de sugerencias (`onMouseDown`) sin pérdida por blur prematuro.
+- Contrato de rutas robusto con `origin/destination` (`query` + `lat/lon` opcionales).
 - Geocoding en backend (Nominatim), no en frontend.
 - Carga de red bike de Madrid por OSMnx con caché GraphML.
 - Cálculo shortest-path por longitud (`length`).
-- Render de ruta GeoJSON, markers de origen/destino y ajuste de bounds en mapa.
+- Render de ruta GeoJSON y markers de origen/destino con mapa limpio (sin pins demo).
 - Modos de ruta honestos: solo “Rápida” implementada; resto “Próximamente”.
 
 ## Stack tecnológico actual
@@ -73,11 +76,13 @@ Backend en `http://localhost:8000`.
 ## Verificar el flujo de routing
 1. Arranca backend y frontend.
 2. Escribe origen/destino (ej. `Plaza de Castilla` y `Matadero Madrid`) y selecciona sugerencias.
-3. Deja modo `Rápida` y pulsa “Calcular ruta”.
-4. Comprueba que:
+3. Comprueba que aparecen pins de origen/destino antes de calcular.
+4. Deja modo `Rápida` y pulsa “Calcular ruta”.
+5. Verifica que:
    - se dibuja la ruta en el mapa,
    - el mapa se ajusta automáticamente,
    - la tarjeta “Ruta actual” muestra distancia y estado.
+6. Activa/desactiva Bicimad para validar el toggle.
 
 ## Próximos pasos
 - Slice 5: score de seguridad + visualización.

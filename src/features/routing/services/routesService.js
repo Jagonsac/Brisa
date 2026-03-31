@@ -48,7 +48,7 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 30000) {
     }
 
     if (error instanceof TypeError) {
-      throw new Error('No se pudo conectar con el backend de rutas. Revisa que esté iniciado y CORS habilitado.');
+      throw new Error('No se pudo conectar con el servicio de rutas.');
     }
 
     throw error;
@@ -57,7 +57,19 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 30000) {
   }
 }
 
-export async function createRoute({ originQuery, destinationQuery, mode }) {
+export async function createRoute({ origin, destination, mode }) {
+  const body = {
+    origin: {
+      query: origin.query,
+      ...(origin.lat !== undefined && origin.lon !== undefined ? { lat: origin.lat, lon: origin.lon } : {}),
+    },
+    destination: {
+      query: destination.query,
+      ...(destination.lat !== undefined && destination.lon !== undefined ? { lat: destination.lat, lon: destination.lon } : {}),
+    },
+    mode,
+  };
+
   return fetchJsonWithTimeout(
     `${apiBaseUrl.replace(/\/$/, '')}/api/routes`,
     {
@@ -65,7 +77,7 @@ export async function createRoute({ originQuery, destinationQuery, mode }) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ originQuery, destinationQuery, mode }),
+      body: JSON.stringify(body),
     },
     45000,
   );
