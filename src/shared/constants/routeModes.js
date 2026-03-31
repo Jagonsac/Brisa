@@ -1,13 +1,8 @@
 export const ROUTE_MODES = {
-  FAST: { key: 'fast', label: 'Rápida' },
-  SAFE: { key: 'safe', label: 'Segura' },
-  BALANCED: { key: 'balanced', label: 'Equilibrada' },
-  NIGHT: { key: 'night', label: 'Nocturna' },
+  FAST: { key: 'fast', apiMode: 'fastest', label: 'Rápida', available: true },
+  SAFE: { key: 'safe', apiMode: 'safe', label: 'Segura', available: false },
+  BALANCED: { key: 'balanced', apiMode: 'balanced', label: 'Equilibrada', available: false },
+  NIGHT: { key: 'night', apiMode: 'night', label: 'Nocturna', available: false },
 };
 
-export const routeModeOptions = [
-  ROUTE_MODES.FAST,
-  ROUTE_MODES.SAFE,
-  ROUTE_MODES.BALANCED,
-  ROUTE_MODES.NIGHT,
-];
+export const routeModeOptions = [ROUTE_MODES.FAST, ROUTE_MODES.SAFE, ROUTE_MODES.BALANCED, ROUTE_MODES.NIGHT];

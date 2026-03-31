@@ -1,6 +1,6 @@
 import styles from './RouteSearchForm.module.css';
 
-export function RouteSearchForm({ formValues, onFieldChange, onSubmit }) {
+export function RouteSearchForm({ formValues, onFieldChange, onSubmit, loading }) {
   return (
     <form className={styles.form} onSubmit={onSubmit}>
       <label htmlFor="origin">Origen</label>
@@ -23,7 +23,9 @@ export function RouteSearchForm({ formValues, onFieldChange, onSubmit }) {
         onChange={(event) => onFieldChange('destination', event.target.value)}
       />
 
-      <button type="submit">Preparar ruta</button>
+      <button type="submit" disabled={loading}>
+        {loading ? 'Calculando...' : 'Calcular ruta'}
+      </button>
     </form>
   );
 }

@@ -1,35 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RouteRequest",
-  "description": "Solicitud de cálculo de ruta ciclista",
+  "description": "Solicitud para calcular una ruta ciclista en Madrid",
   "type": "object",
-  "required": ["origin", "destination", "mode"],
+  "required": ["originQuery", "destinationQuery", "mode"],
   "properties": {
-    "origin": {
-      "type": "object",
-      "required": ["lat", "lng", "label"],
-      "properties": {
-        "lat": { "type": "number" },
-        "lng": { "type": "number" },
-        "label": { "type": "string" }
-      }
+    "originQuery": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Texto libre del origen introducido por el usuario"
     },
-    "destination": {
-      "type": "object",
-      "required": ["lat", "lng", "label"],
-      "properties": {
-        "lat": { "type": "number" },
-        "lng": { "type": "number" },
-        "label": { "type": "string" }
-      }
+    "destinationQuery": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Texto libre del destino introducido por el usuario"
     },
     "mode": {
       "type": "string",
-      "enum": ["fast", "safe", "balanced", "night"]
-    },
-    "time_context": {
-      "type": "string",
-      "description": "Opcional: day | night | commute"
+      "enum": ["fastest", "safe", "balanced", "night"],
+      "description": "Slice 4 solo implementa 'fastest'"
     }
-  }
+  },
+  "additionalProperties": false
 }

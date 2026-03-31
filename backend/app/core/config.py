@@ -17,6 +17,12 @@ class Settings:
         "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.geojson",
     )
     frontend_origins_raw: str = getenv("FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    osmnx_place_query: str = getenv("OSMNX_PLACE_QUERY", "Madrid, Spain")
+    osmnx_network_type: str = getenv("OSMNX_NETWORK_TYPE", "bike")
+    osmnx_graph_filename: str = getenv("OSMNX_GRAPH_FILENAME", "madrid_bike.graphml")
+    nominatim_base_url: str = getenv("NOMINATIM_BASE_URL", "https://nominatim.openstreetmap.org/search")
+    nominatim_user_agent: str = getenv("NOMINATIM_USER_AGENT", "Brisa/0.1 (development)")
+    nominatim_country_codes: str = getenv("NOMINATIM_COUNTRY_CODES", "es")
 
     @property
     def frontend_origins(self) -> list[str]:

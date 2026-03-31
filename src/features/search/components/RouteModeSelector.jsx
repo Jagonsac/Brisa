@@ -16,6 +16,7 @@ export function RouteModeSelector({ selectedMode, onSelectMode }) {
               onClick={() => onSelectMode(mode)}
             >
               {mode.label}
+              {!mode.available && <span className={styles.comingSoon}>Próximamente</span>}
             </button>
           );
         })}

@@ -1,7 +1,7 @@
 export const featureFlags = {
   enableMap: true,
   enableSearchUi: true,
-  enableRealRouting: false,
+  enableRealRouting: true,
   enableSafetyScore: false,
   enableNightMode: false,
   enableBicimad: true,

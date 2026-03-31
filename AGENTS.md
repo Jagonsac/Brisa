@@ -4,7 +4,7 @@
 Brisa es una app web para movilidad ciclista segura en Madrid. El proyecto evoluciona por slices funcionales pequeños, visibles y documentados.
 
 ## Objetivo actual
-Slice 3: backend mínimo FastAPI integrado con frontend, contratos y fallback documentados.
+Slice 4: routing real más corto con backend FastAPI + OSMnx, contrato estable y demo visible en mapa.
 
 ## Reglas del repositorio
 1. Un slice = una vertical pequeña y funcional.
@@ -33,6 +33,12 @@ Slice 3: backend mínimo FastAPI integrado con frontend, contratos y fallback do
 - El consumo de proveedores externos debe ir en `backend/app/clients`.
 - La normalización de payloads externos debe ir en `backend/app/utils`.
 - Mantener estables los contratos JSON documentados en `docs/contracts`.
+
+## Reglas específicas de routing (Slice 4+)
+- No mover lógica GIS al frontend React.
+- Geocoding y shortest-path solo en backend.
+- Mantener `POST /api/routes` como contrato estable antes de ampliar endpoints.
+- Si cambia JSON de rutas, actualizar `docs/contracts` y `docs/slices` en el mismo slice.
 
 ## Contratos
 - Los contratos viven en `docs/contracts`.

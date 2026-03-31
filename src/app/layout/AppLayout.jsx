@@ -7,6 +7,8 @@ import { ProjectExplainer } from '../../features/projectStatus/components/Projec
 import { ProjectStatusPanel } from '../../features/projectStatus/components/ProjectStatusPanel';
 import { RouteModeSelector } from '../../features/search/components/RouteModeSelector';
 import { RouteSearchForm } from '../../features/search/components/RouteSearchForm';
+import { RouteSummaryCard } from '../../features/routing/components/RouteSummaryCard';
+import { createRoute } from '../../features/routing/services/routesService';
 import { featureFlags } from '../../shared/config/featureFlags';
 import { ROUTE_MODES } from '../../shared/constants/routeModes';
 import styles from './AppLayout.module.css';
@@ -18,8 +20,11 @@ const INITIAL_FORM = {
 
 export function AppLayout() {
   const [formValues, setFormValues] = useState(INITIAL_FORM);
-  const [selectedMode, setSelectedMode] = useState(ROUTE_MODES.BALANCED);
-  const [infoMessage, setInfoMessage] = useState('El motor de rutas reales llegará en próximos slices.');
+  const [selectedMode, setSelectedMode] = useState(ROUTE_MODES.FAST);
+  const [infoMessage, setInfoMessage] = useState('Selecciona origen y destino para calcular la ruta más corta.');
+  const [routeData, setRouteData] = useState(null);
+  const [routeError, setRouteError] = useState('');
+  const [routeLoading, setRouteLoading] = useState(false);
 
   const bicimadLayerEnabled = featureFlags.enableBicimad && featureFlags.enableBicimadStationsLayer;
   const bicimadState = useBicimadStations({ enabled: bicimadLayerEnabled });
@@ -33,16 +38,44 @@ export function AppLayout() {
     setFormValues((previous) => ({ ...previous, [field]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setRouteError('');
+
     if (!canSubmit) {
       setInfoMessage('Completa origen y destino para preparar la ruta.');
       return;
     }
 
-    setInfoMessage(
-      `Ruta ${selectedMode.label.toLowerCase()} preparada a nivel de interfaz. El cálculo real se activa en el Slice 4.`,
-    );
+    if (!selectedMode.available) {
+      setRouteData(null);
+      setInfoMessage(`El modo ${selectedMode.label.toLowerCase()} llegará en slices posteriores.`);
+      return;
+    }
+
+    if (!featureFlags.enableRealRouting) {
+      setInfoMessage('El cálculo real de rutas está desactivado por feature flag.');
+      return;
+    }
+
+    setRouteLoading(true);
+    setInfoMessage('Calculando ruta real sobre red ciclista de Madrid...');
+
+    try {
+      const response = await createRoute({
+        originQuery: formValues.origin.trim(),
+        destinationQuery: formValues.destination.trim(),
+        mode: selectedMode.apiMode,
+      });
+      setRouteData(response.data);
+      setInfoMessage(`Ruta ${selectedMode.label.toLowerCase()} calculada correctamente.`);
+    } catch (error) {
+      setRouteData(null);
+      setRouteError(error instanceof Error ? error.message : 'No fue posible calcular la ruta.');
+      setInfoMessage('Revisa los datos e inténtalo de nuevo.');
+    } finally {
+      setRouteLoading(false);
+    }
   };
 
   return (
@@ -59,9 +92,15 @@ export function AppLayout() {
           {featureFlags.enableSearchUi && (
             <section className={styles.panelCard}>
               <h2>Preparación de ruta</h2>
-              <RouteSearchForm formValues={formValues} onFieldChange={handleChange} onSubmit={handleSubmit} />
+              <RouteSearchForm formValues={formValues} onFieldChange={handleChange} onSubmit={handleSubmit} loading={routeLoading} />
               <RouteModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} />
               <p className={styles.infoText}>{infoMessage}</p>
+              <RouteSummaryCard
+                routeData={routeData}
+                loading={routeLoading}
+                error={routeError}
+                statusMessage={routeData ? 'Ruta calculada y dibujada en el mapa.' : 'Sin ruta calculada todavía.'}
+              />
             </section>
           )}
 
@@ -83,6 +122,7 @@ export function AppLayout() {
               selectedMode={selectedMode}
               bicimadStations={bicimadState.stations}
               showBicimadLayer={bicimadLayerEnabled}
+              routeData={routeData}
             />
           ) : (
             <p>Mapa desactivado por feature flag.</p>

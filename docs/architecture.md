@@ -1,6 +1,6 @@
 # Arquitectura de Brisa
 
-## Arquitectura actual (Slice 3)
+## Arquitectura actual (Slice 4)
 Brisa usa una arquitectura modular con frontend React + backend FastAPI:
 
 - `src/app/`: app shell, layout y entrada visual.
@@ -14,29 +14,28 @@ Brisa usa una arquitectura modular con frontend React + backend FastAPI:
 ### Frontend
 1. **Presentación**: componentes de UI y estilos (CSS Modules).
 2. **Estado local de feature**: formularios y estado de carga de capas.
-3. **Servicios de datos**: consumo de API backend (con fallback controlado).
-4. **Normalización/contratos**: transformación a modelos internos estables.
-5. **Configuración/flags**: toggles de funcionalidades futuras.
+3. **Servicios de datos**: consumo de API backend.
+4. **Contratos**: frontend consume respuestas estables (`data` + `meta`) del backend.
+5. **Configuración/flags**: toggles para activar valor incremental.
 
 ### Backend
 1. **Routers**: definición de endpoints y códigos HTTP.
-2. **Services**: lógica de dominio (estrategia de fuentes y fallback).
+2. **Services**: lógica de dominio (geocoding, grafo, shortest-path).
 3. **Clients**: acceso HTTP a proveedores externos.
-4. **Utils**: normalización de formatos externos al contrato Brisa.
-5. **Schemas**: contrato de respuesta y validación.
+4. **Utils**: serialización GeoJSON y normalizadores.
+5. **Schemas**: contratos request/response.
 6. **Core**: configuración y CORS.
 
-## Integración Bicimad en Slice 3
-- `backend/app/routers/stations.py`: endpoint `GET /api/stations`.
-- `backend/app/services/bicimad_service.py`: flujo principal + fallback.
-- `backend/app/clients/bicimad_client.py`: cliente HTTP externo.
-- `backend/app/utils/station_normalizer.py`: mapeo GBFS/GeoJSON/snapshot -> contrato Brisa.
-- `src/features/bicimad/services/bicimadService.js`: consumo backend configurable por `VITE_API_BASE_URL`.
-
-Este diseño mantiene frontend desacoplado de payloads crudos externos y prepara la API para añadir `station_status`, routing y lógica geoespacial en slices siguientes.
+## Slice 4: flujo de routing real
+- `backend/app/routers/routes.py`: endpoint `POST /api/routes`.
+- `backend/app/services/geocoding_service.py`: geocoding Nominatim.
+- `backend/app/services/graph_service.py`: carga/caché de grafo bike de Madrid.
+- `backend/app/services/route_service.py`: snapping + shortest-path + resumen.
+- `src/features/routing/services/routesService.js`: consumo de API de rutas.
+- `src/features/map/components/MapView.jsx`: pintado GeoJSON y ajuste de mapa.
 
 ## Criterios clave
-- Mantener contratos estables entre UI y API.
-- Evitar lógica de proveedor en componentes visuales.
-- Aumentar funcionalidad por slices sin reestructuras disruptivas.
-- Priorizar ejecutabilidad local y claridad sobre complejidad prematura.
+- Contratos estables entre frontend y backend.
+- Lógica GIS en backend, no en React.
+- Routers finos + servicios dedicados.
+- Escalabilidad por slices sin refactorizaciones grandes.
