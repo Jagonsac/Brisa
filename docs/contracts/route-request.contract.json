@@ -1,24 +1,48 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RouteRequest",
-  "description": "Solicitud para calcular una ruta ciclista en Madrid",
+  "description": "Solicitud para calcular una ruta ciclista en Madrid con prioridad a coordenadas seleccionadas",
   "type": "object",
-  "required": ["originQuery", "destinationQuery", "mode"],
+  "required": ["origin", "destination", "mode"],
   "properties": {
-    "originQuery": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Texto libre del origen introducido por el usuario"
-    },
-    "destinationQuery": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Texto libre del destino introducido por el usuario"
-    },
+    "origin": { "$ref": "#/$defs/routePoint" },
+    "destination": { "$ref": "#/$defs/routePoint" },
     "mode": {
       "type": "string",
       "enum": ["fastest", "safe", "balanced", "night"],
       "description": "Slice 4 solo implementa 'fastest'"
+    }
+  },
+  "$defs": {
+    "routePoint": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Texto visible en el input para trazabilidad"
+        },
+        "lat": {
+          "type": "number",
+          "description": "Latitud opcional cuando el usuario confirma una sugerencia"
+        },
+        "lon": {
+          "type": "number",
+          "description": "Longitud opcional cuando el usuario confirma una sugerencia"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["lat"] },
+          "then": { "required": ["lon"] }
+        },
+        {
+          "if": { "required": ["lon"] },
+          "then": { "required": ["lat"] }
+        }
+      ],
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

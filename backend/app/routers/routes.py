@@ -21,9 +21,13 @@ async def create_route(payload: RouteRequest) -> RouteResponse:
 
     try:
         return await service.build_fastest_route(
-            origin_query=payload.originQuery.strip(),
-            destination_query=payload.destinationQuery.strip(),
+            origin_query=payload.origin.query.strip(),
+            destination_query=payload.destination.query.strip(),
             mode=payload.mode,
+            origin_lat=payload.origin.lat,
+            origin_lon=payload.origin.lon,
+            destination_lat=payload.destination.lat,
+            destination_lon=payload.destination.lon,
         )
     except RouteServiceError as error:
         status_by_code = {

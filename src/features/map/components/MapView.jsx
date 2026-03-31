@@ -18,6 +18,14 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
+const originIcon = L.divIcon({ className: styles.originMarker, html: '<span>O</span>', iconSize: [24, 24], iconAnchor: [12, 12] });
+const destinationIcon = L.divIcon({
+  className: styles.destinationMarker,
+  html: '<span>D</span>',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
+
 function RouteBoundsController({ routeFeature }) {
   const map = useMap();
 
@@ -33,10 +41,12 @@ function RouteBoundsController({ routeFeature }) {
   return null;
 }
 
-export function MapView({ selectedMode, bicimadStations, showBicimadLayer, routeData }) {
+export function MapView({ selectedOriginPlace, selectedDestinationPlace, bicimadStations, showBicimadLayer, routeData }) {
   const routeFeature = routeData?.routeGeoJson ?? null;
-  const originPosition = routeData ? [routeData.origin.lat, routeData.origin.lon] : null;
-  const destinationPosition = routeData ? [routeData.destination.lat, routeData.destination.lon] : null;
+  const originPoint = selectedOriginPlace || routeData?.origin || null;
+  const destinationPoint = selectedDestinationPlace || routeData?.destination || null;
+  const originPosition = originPoint ? [originPoint.lat, originPoint.lon] : null;
+  const destinationPosition = destinationPoint ? [destinationPoint.lat, destinationPoint.lon] : null;
 
   return (
     <div className={styles.wrapper}>
@@ -46,33 +56,22 @@ export function MapView({ selectedMode, bicimadStations, showBicimadLayer, route
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {!routeFeature &&
-          madridMapConfig.demoMarkers.map((marker) => (
-            <Marker key={marker.id} position={marker.position}>
-              <Popup>
-                <strong>{marker.name}</strong>
-                <br />
-                {marker.description}
-                <br />
-                Modo actual: {selectedMode.label}
-              </Popup>
-            </Marker>
-          ))}
+        {originPosition && (
+          <Marker position={originPosition} icon={originIcon}>
+            <Popup>Origen: {originPoint.label || originPoint.displayName || originPoint.query}</Popup>
+          </Marker>
+        )}
+
+        {destinationPosition && (
+          <Marker position={destinationPosition} icon={destinationIcon}>
+            <Popup>Destino: {destinationPoint.label || destinationPoint.displayName || destinationPoint.query}</Popup>
+          </Marker>
+        )}
 
         {routeFeature && (
           <>
             <GeoJSON data={routeFeature} style={{ color: '#1f6feb', weight: 5, opacity: 0.9 }} />
             <RouteBoundsController routeFeature={routeFeature} />
-            {originPosition && (
-              <Marker position={originPosition}>
-                <Popup>Origen: {routeData.origin.displayName}</Popup>
-              </Marker>
-            )}
-            {destinationPosition && (
-              <Marker position={destinationPosition}>
-                <Popup>Destino: {routeData.destination.displayName}</Popup>
-              </Marker>
-            )}
           </>
         )}
 

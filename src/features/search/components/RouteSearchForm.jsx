@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 import styles from './RouteSearchForm.module.css';
 
 function SuggestionList({ id, suggestions, onSelect }) {
@@ -9,7 +11,14 @@ function SuggestionList({ id, suggestions, onSelect }) {
     <ul id={id} className={styles.suggestionList} role="listbox">
       {suggestions.map((item, index) => (
         <li key={`${item.label}-${index}`}>
-          <button type="button" onClick={() => onSelect(item)} className={styles.suggestionButton}>
+          <button
+            type="button"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              onSelect(item);
+            }}
+            className={styles.suggestionButton}
+          >
             {item.label}
           </button>
         </li>
@@ -19,28 +28,51 @@ function SuggestionList({ id, suggestions, onSelect }) {
 }
 
 export function RouteSearchForm({
-  formValues,
+  inputValues,
   onFieldChange,
   onSubmit,
   loading,
   suggestions,
   suggestionLoading,
+  suggestionOpen,
+  onOpenSuggestions,
+  onCloseSuggestions,
+  onCloseAllSuggestions,
   onSelectSuggestion,
 }) {
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    const handlePointerDownOutside = (event) => {
+      if (!formRef.current?.contains(event.target)) {
+        onCloseAllSuggestions();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDownOutside);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDownOutside);
+    };
+  }, [onCloseAllSuggestions]);
+
   return (
-    <form className={styles.form} onSubmit={onSubmit}>
+    <form ref={formRef} className={styles.form} onSubmit={onSubmit}>
       <label htmlFor="origin">Origen</label>
       <input
         id="origin"
         name="origin"
         placeholder="Ej. Plaza de Castilla"
         type="text"
-        value={formValues.origin}
+        value={inputValues.origin}
         autoComplete="off"
+        onFocus={() => onOpenSuggestions('origin')}
+        onBlur={() => onCloseSuggestions('origin')}
         onChange={(event) => onFieldChange('origin', event.target.value)}
       />
       {suggestionLoading.origin && <p className={styles.suggestionState}>Buscando sugerencias...</p>}
-      <SuggestionList id="origin-suggestions" suggestions={suggestions.origin} onSelect={(item) => onSelectSuggestion('origin', item)} />
+      {suggestionOpen.origin && (
+        <SuggestionList id="origin-suggestions" suggestions={suggestions.origin} onSelect={(item) => onSelectSuggestion('origin', item)} />
+      )}
 
       <label htmlFor="destination">Destino</label>
       <input
@@ -48,16 +80,20 @@ export function RouteSearchForm({
         name="destination"
         placeholder="Ej. Matadero Madrid"
         type="text"
-        value={formValues.destination}
+        value={inputValues.destination}
         autoComplete="off"
+        onFocus={() => onOpenSuggestions('destination')}
+        onBlur={() => onCloseSuggestions('destination')}
         onChange={(event) => onFieldChange('destination', event.target.value)}
       />
       {suggestionLoading.destination && <p className={styles.suggestionState}>Buscando sugerencias...</p>}
-      <SuggestionList
-        id="destination-suggestions"
-        suggestions={suggestions.destination}
-        onSelect={(item) => onSelectSuggestion('destination', item)}
-      />
+      {suggestionOpen.destination && (
+        <SuggestionList
+          id="destination-suggestions"
+          suggestions={suggestions.destination}
+          onSelect={(item) => onSelectSuggestion('destination', item)}
+        />
+      )}
 
       <button type="submit" disabled={loading}>
         {loading ? 'Calculando...' : 'Calcular ruta'}
