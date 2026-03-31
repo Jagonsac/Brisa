@@ -1,6 +1,22 @@
 const defaultApiBaseUrl = 'http://localhost:8000';
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || defaultApiBaseUrl;
 
+function buildApiUrl(path) {
+  const base = apiBaseUrl.replace(/\/$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  if (!base) {
+    return normalizedPath;
+  }
+
+  if (/\/api$/i.test(base) && normalizedPath.startsWith('/api/')) {
+    return `${base}${normalizedPath.slice(4)}`;
+  }
+
+  return `${base}${normalizedPath}`;
+}
+
+
 function normalizeSuggestion(item) {
   const label = typeof item?.label === 'string' ? item.label.trim() : '';
   const displayTextRaw = typeof item?.displayText === 'string' ? item.displayText : item?.value;
@@ -27,7 +43,7 @@ export async function getLocationSuggestions(query, { signal } = {}) {
     return [];
   }
 
-  const url = new URL(`${apiBaseUrl.replace(/\/$/, '')}/api/geocoding/suggest`);
+  const url = new URL(buildApiUrl('/api/geocoding/suggest'));
   url.searchParams.set('q', q);
 
   try {

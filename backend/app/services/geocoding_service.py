@@ -114,7 +114,7 @@ class GeocodingService:
             or address.get("path")
             or address.get("square")
         )
-        house_number = address.get("house_number")
+        house_number = address.get("house_number") or address.get("housenumber")
 
         if road and house_number:
             return f"{road}, {house_number}".strip()
@@ -122,19 +122,19 @@ class GeocodingService:
         if road:
             return str(road).strip()
 
+        label = item.get("display_name")
+        if label:
+            parts = [segment.strip() for segment in str(label).split(",") if segment.strip()]
+            if len(parts) >= 2:
+                if any(char.isdigit() for char in parts[0]):
+                    return parts[0]
+                if any(char.isdigit() for char in parts[1]):
+                    return f"{parts[0]}, {parts[1]}"
+            if parts:
+                return parts[0]
+
         name = item.get("name")
         if name:
             return str(name).strip()
 
-        label = item.get("display_name")
-        if not label:
-            return ""
-
-        parts = [segment.strip() for segment in str(label).split(",") if segment.strip()]
-        if not parts:
-            return ""
-
-        if len(parts) >= 2 and any(char.isdigit() for char in parts[0]):
-            return ", ".join(parts[:2])
-
-        return parts[0]
+        return ""
