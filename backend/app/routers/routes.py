@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Body, HTTPException, status
+from pydantic import ValidationError
 
 from app.schemas.route_request import RouteRequest
 from app.schemas.route_response import RouteResponse
@@ -9,7 +10,33 @@ service = RouteService()
 
 
 @router.post("", response_model=RouteResponse)
-async def create_route(payload: RouteRequest) -> RouteResponse:
+async def create_route(raw_payload: dict = Body(...)) -> RouteResponse:
+    try:
+        payload = RouteRequest.model_validate(raw_payload)
+    except ValidationError as error:
+        details = error.errors()
+        missing_mode = any(err.get("loc") == ("mode",) for err in details)
+        missing_origin = any(err.get("loc") == ("origin",) for err in details)
+        missing_destination = any(err.get("loc") == ("destination",) for err in details)
+
+        if missing_mode or missing_origin or missing_destination:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "code": "invalid_route_request",
+                    "message": "Faltan datos para calcular la ruta.",
+                },
+            ) from error
+
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "invalid_route_payload",
+                "message": "El formato del payload de ruta no es válido.",
+                "errors": details,
+            },
+        ) from error
+
     if payload.mode != "fastest":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -73,6 +73,11 @@ Backend en `http://localhost:8000`.
 - `POST /api/routes`
 - `GET /api/geocoding/suggest?q=<texto>`
 
+## Notas de contrato (Slice 4 hardening)
+- `POST /api/routes` prioriza coordenadas seleccionadas (`lat/lon`) y usa geocoding por `query` como fallback.
+- El backend acepta también el formato legacy `originQuery`/`destinationQuery` para evitar regresiones.
+- Las sugerencias de geocoding devuelven `label` (texto completo) y `displayText` (texto para el input), conservando número de portal cuando Nominatim lo aporta.
+
 ## Verificar el flujo de routing
 1. Arranca backend y frontend.
 2. Escribe origen/destino (ej. `Plaza de Castilla` y `Matadero Madrid`) y selecciona sugerencias.

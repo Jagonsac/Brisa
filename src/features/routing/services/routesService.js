@@ -10,6 +10,8 @@ function normalizeApiError(status, payload) {
     mode_not_available: 'El modo seleccionado aún no está disponible.',
     location_not_found: detailMessage || 'No hemos podido localizar el origen o destino indicado.',
     route_not_found: 'No hemos encontrado una ruta válida entre esos puntos.',
+    invalid_route_request: 'Faltan datos para calcular la ruta.',
+    invalid_route_payload: detailMessage || 'El formato enviado para calcular la ruta no es válido.',
     graph_warming_up: 'La red ciclista aún se está preparando. Inténtalo de nuevo en unos segundos.',
     internal_error: 'Se produjo un error interno al calcular la ruta.',
   };

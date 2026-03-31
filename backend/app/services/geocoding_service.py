@@ -58,11 +58,15 @@ class GeocodingService:
             if lat is None or lon is None or label is None:
                 continue
 
-            name_hint = item.get("name") or clean_query
+            display_text = self._build_display_text(item)
+            if display_text == "":
+                continue
+
             suggestions.append(
                 {
                     "label": str(label),
-                    "value": str(name_hint),
+                    "value": display_text,
+                    "displayText": display_text,
                     "lat": float(lat),
                     "lon": float(lon),
                 }
@@ -93,3 +97,32 @@ class GeocodingService:
         if "madrid" in query.lower():
             return query
         return f"{query}, Madrid, Spain"
+
+    @staticmethod
+    def _build_display_text(item: dict) -> str:
+        address = item.get("address") if isinstance(item.get("address"), dict) else {}
+
+        road = (
+            address.get("road")
+            or address.get("pedestrian")
+            or address.get("footway")
+            or address.get("residential")
+            or address.get("path")
+        )
+        house_number = address.get("house_number")
+
+        if road and house_number:
+            return f"{road}, {house_number}".strip()
+
+        if road:
+            return str(road).strip()
+
+        name = item.get("name")
+        if name:
+            return str(name).strip()
+
+        label = item.get("display_name")
+        if not label:
+            return ""
+
+        return str(label).split(",")[0].strip()

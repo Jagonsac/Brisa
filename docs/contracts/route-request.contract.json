@@ -1,18 +1,38 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RouteRequest",
-  "description": "Solicitud para calcular una ruta ciclista en Madrid con prioridad a coordenadas seleccionadas",
-  "type": "object",
-  "required": ["origin", "destination", "mode"],
-  "properties": {
-    "origin": { "$ref": "#/$defs/routePoint" },
-    "destination": { "$ref": "#/$defs/routePoint" },
-    "mode": {
-      "type": "string",
-      "enum": ["fastest", "safe", "balanced", "night"],
-      "description": "Slice 4 solo implementa 'fastest'"
+  "description": "Solicitud para calcular una ruta ciclista en Madrid. Acepta formato recomendado y legado por compatibilidad.",
+  "oneOf": [
+    {
+      "title": "RouteRequestV2",
+      "type": "object",
+      "required": ["origin", "destination", "mode"],
+      "properties": {
+        "origin": { "$ref": "#/$defs/routePoint" },
+        "destination": { "$ref": "#/$defs/routePoint" },
+        "mode": {
+          "type": "string",
+          "enum": ["fastest", "safe", "balanced", "night"],
+          "description": "Slice 4 solo implementa 'fastest'"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "RouteRequestLegacy",
+      "type": "object",
+      "required": ["originQuery", "destinationQuery", "mode"],
+      "properties": {
+        "originQuery": { "type": "string", "minLength": 1 },
+        "destinationQuery": { "type": "string", "minLength": 1 },
+        "mode": {
+          "type": "string",
+          "enum": ["fastest", "safe", "balanced", "night"]
+        }
+      },
+      "additionalProperties": false
     }
-  },
+  ],
   "$defs": {
     "routePoint": {
       "type": "object",
@@ -44,6 +64,5 @@
       ],
       "additionalProperties": false
     }
-  },
-  "additionalProperties": false
+  }
 }
