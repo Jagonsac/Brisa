@@ -21,9 +21,12 @@
 - Normalización y fallback en backend
 - Integración frontend configurable por `VITE_API_BASE_URL`
 
-## Slice 4 — Routing más corto
-- Cálculo de ruta mínima (MVP)
-- Pintado de ruta en mapa
+## Slice 4 — Routing más corto (completado)
+- Endpoint `POST /api/routes`
+- Geocoding backend con Nominatim
+- Grafo bike de Madrid cacheado (OSMnx GraphML)
+- Cálculo shortest-path por `length`
+- Pintado de ruta real en mapa + resumen de distancia
 
 ## Slice 5 — Score de seguridad + heatmap
 - Modelo inicial de seguridad

@@ -3,7 +3,7 @@ export const projectStatusData = [
   { id: 'map-ready', label: 'Mapa interactivo de Madrid funcionando', done: true },
   { id: 'modular-structure', label: 'Estructura modular preparada por features', done: true },
   { id: 'bicimad', label: 'Integración de estaciones Bicimad en mapa (Slice 2)', done: true },
-  { id: 'real-routing', label: 'Routing real ciclista', done: false },
+  { id: 'real-routing', label: 'Routing real más corto con backend FastAPI + OSMnx (Slice 4)', done: true },
   { id: 'safety-score', label: 'Índice de seguridad por calles/zonas', done: false },
   { id: 'neighborhoods', label: 'Índice de ciclabilidad por barrio', done: false },
 ];

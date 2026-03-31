@@ -1,34 +1,86 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RouteResponse",
-  "description": "Respuesta esperada para una ruta recomendada",
+  "description": "Respuesta de ruta más corta calculada sobre red OSM bike",
   "type": "object",
-  "required": ["route_id", "mode", "summary", "geometry"],
+  "required": ["data", "meta"],
   "properties": {
-    "route_id": { "type": "string" },
-    "mode": { "type": "string", "enum": ["fast", "safe", "balanced", "night"] },
-    "summary": {
+    "data": {
       "type": "object",
-      "required": ["distance_m", "duration_min", "safety_score"],
+      "required": ["routeGeoJson", "origin", "destination", "summary"],
       "properties": {
-        "distance_m": { "type": "number" },
-        "duration_min": { "type": "number" },
-        "safety_score": { "type": "number", "minimum": 0, "maximum": 100 }
+        "routeGeoJson": {
+          "type": "object",
+          "required": ["type", "geometry", "properties"],
+          "properties": {
+            "type": { "const": "Feature" },
+            "geometry": {
+              "type": "object",
+              "required": ["type", "coordinates"],
+              "properties": {
+                "type": { "const": "LineString" },
+                "coordinates": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": { "type": "number" }
+                  }
+                }
+              }
+            },
+            "properties": {
+              "type": "object",
+              "required": ["distanceMeters", "mode", "profile"],
+              "properties": {
+                "distanceMeters": { "type": "number" },
+                "mode": { "type": "string" },
+                "profile": { "type": "string" }
+              }
+            }
+          }
+        },
+        "origin": {
+          "type": "object",
+          "required": ["query", "displayName", "lat", "lon"],
+          "properties": {
+            "query": { "type": "string" },
+            "displayName": { "type": "string" },
+            "lat": { "type": "number" },
+            "lon": { "type": "number" }
+          }
+        },
+        "destination": {
+          "type": "object",
+          "required": ["query", "displayName", "lat", "lon"],
+          "properties": {
+            "query": { "type": "string" },
+            "displayName": { "type": "string" },
+            "lat": { "type": "number" },
+            "lon": { "type": "number" }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "required": ["distanceMeters", "distanceKm"],
+          "properties": {
+            "distanceMeters": { "type": "number" },
+            "distanceKm": { "type": "number" }
+          }
+        }
       }
     },
-    "geometry": {
-      "type": "array",
-      "description": "Lista de coordenadas [lat, lng]",
-      "items": {
-        "type": "array",
-        "items": { "type": "number" },
-        "minItems": 2,
-        "maxItems": 2
+    "meta": {
+      "type": "object",
+      "required": ["source", "graphSource", "weight", "networkType"],
+      "properties": {
+        "source": { "const": "osmnx" },
+        "graphSource": { "type": "string", "enum": ["cache", "download"] },
+        "weight": { "const": "length" },
+        "networkType": { "type": "string" }
       }
-    },
-    "explanations": {
-      "type": "array",
-      "items": { "type": "string" }
     }
-  }
+  },
+  "additionalProperties": false
 }
