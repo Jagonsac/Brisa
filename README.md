@@ -74,6 +74,8 @@ Backend en `http://localhost:8000`.
 - `GET /api/geocoding/suggest?q=<texto>`
 
 ## Notas de contrato (Slice 4 hardening)
+- `POST /api/routes` normaliza manualmente payloads flexibles (A/B/C) para evitar 422 por desajustes leves de forma.
+- Validación de negocio del request con errores `400` claros (datos insuficientes, lat/lon incompletos o modo inválido).
 - `POST /api/routes` prioriza coordenadas seleccionadas (`lat/lon`) y usa geocoding por `query` como fallback.
 - El backend acepta también el formato legacy `originQuery`/`destinationQuery` para evitar regresiones.
 - Las sugerencias de geocoding devuelven `label` (texto completo) y `displayText` (texto para el input), conservando número de portal cuando Nominatim lo aporta.

@@ -105,9 +105,14 @@ class GeocodingService:
         road = (
             address.get("road")
             or address.get("pedestrian")
+            or address.get("street")
+            or address.get("avenue")
+            or address.get("cycleway")
+            or address.get("living_street")
             or address.get("footway")
             or address.get("residential")
             or address.get("path")
+            or address.get("square")
         )
         house_number = address.get("house_number")
 
@@ -125,4 +130,11 @@ class GeocodingService:
         if not label:
             return ""
 
-        return str(label).split(",")[0].strip()
+        parts = [segment.strip() for segment in str(label).split(",") if segment.strip()]
+        if not parts:
+            return ""
+
+        if len(parts) >= 2 and any(char.isdigit() for char in parts[0]):
+            return ", ".join(parts[:2])
+
+        return parts[0]

@@ -1,68 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RouteRequest",
-  "description": "Solicitud para calcular una ruta ciclista en Madrid. Acepta formato recomendado y legado por compatibilidad.",
-  "oneOf": [
-    {
-      "title": "RouteRequestV2",
-      "type": "object",
-      "required": ["origin", "destination", "mode"],
-      "properties": {
-        "origin": { "$ref": "#/$defs/routePoint" },
-        "destination": { "$ref": "#/$defs/routePoint" },
-        "mode": {
-          "type": "string",
-          "enum": ["fastest", "safe", "balanced", "night"],
-          "description": "Slice 4 solo implementa 'fastest'"
-        }
-      },
-      "additionalProperties": false
+  "description": "Solicitud tolerante para calcular una ruta ciclista en Madrid. El backend normaliza varios formatos de entrada antes del cálculo.",
+  "type": "object",
+  "required": ["mode"],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["fastest", "safe", "balanced", "night"],
+      "description": "Slice 4 solo implementa 'fastest'."
     },
-    {
-      "title": "RouteRequestLegacy",
-      "type": "object",
-      "required": ["originQuery", "destinationQuery", "mode"],
-      "properties": {
-        "originQuery": { "type": "string", "minLength": 1 },
-        "destinationQuery": { "type": "string", "minLength": 1 },
-        "mode": {
-          "type": "string",
-          "enum": ["fastest", "safe", "balanced", "night"]
-        }
-      },
-      "additionalProperties": false
+    "origin": { "$ref": "#/$defs/routePoint" },
+    "destination": { "$ref": "#/$defs/routePoint" },
+    "originQuery": {
+      "type": "string",
+      "description": "Formato legacy: texto de origen cuando no se envía objeto origin."
+    },
+    "destinationQuery": {
+      "type": "string",
+      "description": "Formato legacy: texto de destino cuando no se envía objeto destination."
     }
+  },
+  "anyOf": [
+    { "required": ["origin", "destination"] },
+    { "required": ["originQuery", "destinationQuery"] }
   ],
   "$defs": {
     "routePoint": {
       "type": "object",
-      "required": ["query"],
       "properties": {
         "query": {
           "type": "string",
-          "minLength": 1,
-          "description": "Texto visible en el input para trazabilidad"
+          "description": "Texto visible del input para trazabilidad y fallback de geocoding."
         },
         "lat": {
-          "type": "number",
-          "description": "Latitud opcional cuando el usuario confirma una sugerencia"
+          "oneOf": [{ "type": "number" }, { "type": "string" }],
+          "description": "Latitud opcional; acepta number o string convertible."
         },
         "lon": {
-          "type": "number",
-          "description": "Longitud opcional cuando el usuario confirma una sugerencia"
+          "oneOf": [{ "type": "number" }, { "type": "string" }],
+          "description": "Longitud opcional; acepta number o string convertible."
         }
       },
-      "allOf": [
-        {
-          "if": { "required": ["lat"] },
-          "then": { "required": ["lon"] }
-        },
-        {
-          "if": { "required": ["lon"] },
-          "then": { "required": ["lat"] }
-        }
-      ],
-      "additionalProperties": false
+      "additionalProperties": true
     }
-  }
+  },
+  "additionalProperties": true
 }

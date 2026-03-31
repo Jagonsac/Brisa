@@ -14,8 +14,8 @@ function normalizeSuggestion(item) {
 
   return {
     label,
-    value: displayText,
     displayText,
+    value: displayText,
     lat,
     lon,
   };
