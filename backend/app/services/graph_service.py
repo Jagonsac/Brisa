@@ -23,8 +23,12 @@ class GraphService:
             self._graph_source = "cache"
             return self._graph, self._graph_source
 
-        graph = ox.graph_from_place(settings.osmnx_place_query, network_type=settings.osmnx_network_type, simplify=True)
-        ox.save_graphml(graph, self.graph_path)
+        try:
+            graph = ox.graph_from_place(settings.osmnx_place_query, network_type=settings.osmnx_network_type, simplify=True)
+            ox.save_graphml(graph, self.graph_path)
+        except Exception as error:
+            raise RuntimeError("No se pudo preparar el grafo de rutas.") from error
+
         self._graph = graph
         self._graph_source = "download"
         return self._graph, self._graph_source

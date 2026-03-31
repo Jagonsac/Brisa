@@ -12,21 +12,30 @@
 }
 
 .status {
-  margin: 0.4rem 0;
+  margin: 0.45rem 0;
   font-size: 0.88rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+}
+
+.info {
   color: #2e405f;
+  background: #f3f6fc;
 }
 
 .loading {
-  margin: 0;
-  font-size: 0.86rem;
   color: #1f6feb;
+  background: #eef4ff;
 }
 
-.error {
-  margin: 0;
-  font-size: 0.86rem;
-  color: #b42318;
+.warning {
+  color: #7a271a;
+  background: #fff4ef;
+}
+
+.success {
+  color: #0c5132;
+  background: #ebf9f0;
 }
 
 .summaryList {
@@ -44,4 +53,8 @@
 .summaryList dd {
   margin: 0.1rem 0 0;
   font-weight: 600;
+}
+
+.compact {
+  font-size: 0.8rem;
 }

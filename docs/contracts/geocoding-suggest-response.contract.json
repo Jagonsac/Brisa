@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GeocodingSuggestResponse",
+  "description": "Sugerencias de geocodificación para inputs de origen/destino",
+  "type": "object",
+  "required": ["data", "meta"],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "value", "lat", "lon"],
+        "properties": {
+          "label": { "type": "string" },
+          "value": { "type": "string" },
+          "lat": { "type": "number" },
+          "lon": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["count"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

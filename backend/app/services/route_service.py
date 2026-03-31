@@ -2,9 +2,16 @@ import networkx as nx
 import osmnx as ox
 
 from app.schemas.route_response import RouteResponse
-from app.services.geocoding_service import GeocodingService
+from app.services.geocoding_service import GeocodingError, GeocodingService
 from app.services.graph_service import GraphService
 from app.utils.geojson import build_route_geojson_feature
+
+
+class RouteServiceError(Exception):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
 
 
 class RouteService:
@@ -13,21 +20,37 @@ class RouteService:
         self.geocoding_service = geocoding_service or GeocodingService()
 
     async def build_fastest_route(self, origin_query: str, destination_query: str, mode: str) -> RouteResponse:
-        origin = await self.geocoding_service.geocode(origin_query)
-        destination = await self.geocoding_service.geocode(destination_query)
+        try:
+            origin = await self.geocoding_service.geocode(origin_query, point_label="origen")
+        except GeocodingError as error:
+            raise RouteServiceError(error.code, error.message) from error
 
-        graph, graph_source = self.graph_service.get_graph()
+        try:
+            destination = await self.geocoding_service.geocode(destination_query, point_label="destino")
+        except GeocodingError as error:
+            raise RouteServiceError(error.code, error.message) from error
 
-        origin_node = ox.distance.nearest_nodes(graph, X=origin.lon, Y=origin.lat)
-        destination_node = ox.distance.nearest_nodes(graph, X=destination.lon, Y=destination.lat)
+        try:
+            graph, graph_source = self.graph_service.get_graph()
+        except RuntimeError as error:
+            raise RouteServiceError(
+                "graph_warming_up",
+                "La red ciclista aún se está preparando. Inténtalo de nuevo en unos segundos.",
+            ) from error
+
+        try:
+            origin_node = ox.distance.nearest_nodes(graph, X=origin.lon, Y=origin.lat)
+            destination_node = ox.distance.nearest_nodes(graph, X=destination.lon, Y=destination.lat)
+        except Exception as error:
+            raise RouteServiceError("snap_failed", "No se pudo ajustar el origen o destino a la red ciclista.") from error
 
         try:
             path = nx.shortest_path(graph, origin_node, destination_node, weight="length")
         except nx.NetworkXNoPath as error:
-            raise ValueError("No encontramos una ruta ciclista entre los puntos indicados.") from error
+            raise RouteServiceError("route_not_found", "No hemos encontrado una ruta válida entre esos puntos.") from error
 
         if len(path) < 2:
-            raise ValueError("La ruta calculada no contiene segmentos válidos.")
+            raise RouteServiceError("route_not_found", "No hemos encontrado una ruta válida entre esos puntos.")
 
         coordinates: list[list[float]] = []
         distance_meters = 0.0
@@ -48,7 +71,7 @@ class RouteService:
             else:
                 source = graph.nodes[source_node]
                 target = graph.nodes[target_node]
-                segment_coords = [[float(source["x"]), float(source["y"])], [float(target["x"]), float(target["y"])]]
+                segment_coords = [[float(source["x"]), float(source["y"])], [float(target["x"]), float(target["y"])] ]
 
             if coordinates and coordinates[-1] == segment_coords[0]:
                 coordinates.extend(segment_coords[1:])
@@ -56,7 +79,7 @@ class RouteService:
                 coordinates.extend(segment_coords)
 
         if len(coordinates) < 2:
-            raise ValueError("La ruta calculada no pudo serializarse correctamente.")
+            raise RouteServiceError("route_not_found", "No hemos encontrado una ruta válida entre esos puntos.")
 
         response_payload = {
             "data": {
