@@ -5,26 +5,24 @@ Brisa es una aplicación web para ayudar a moverse por Madrid en bicicleta con m
 ## Problema que resuelve
 Elegir rutas ciclistas en ciudad suele requerir equilibrio entre rapidez, seguridad y contexto urbano. Brisa reduce esa fricción con rutas explicables y datos abiertos.
 
-## Estado actual (Slice 4)
+## Estado actual (Slice 4 corregido)
 ✅ Base React + Vite ejecutable.  
 ✅ UI principal en español con mapa Leaflet de Madrid.  
 ✅ Integración de estaciones Bicimad en mapa (Slice 2).  
 ✅ Backend FastAPI con `GET /health` y `GET /api/stations` (Slice 3).  
 ✅ Routing real más corto con `POST /api/routes` usando OSMnx + Nominatim (Slice 4).  
-✅ Ruta dibujada en mapa con resumen mínimo de distancia.
+✅ Inputs de origen/destino con sugerencias vía backend (`GET /api/geocoding/suggest`).  
+✅ Control para mostrar/ocultar capa Bicimad (oculta por defecto).  
+✅ Manejo de errores de ruta en español sin mensaje opaco “Failed to fetch”.
 
 ## Qué incluye Slice 4
 - Formulario origen/destino conectado a backend.
+- Sugerencias de geocoding con debounce (sin llamar Nominatim directo desde frontend).
 - Geocoding en backend (Nominatim), no en frontend.
 - Carga de red bike de Madrid por OSMnx con caché GraphML.
 - Cálculo shortest-path por longitud (`length`).
 - Render de ruta GeoJSON, markers de origen/destino y ajuste de bounds en mapa.
 - Modos de ruta honestos: solo “Rápida” implementada; resto “Próximamente”.
-
-## Qué NO incluye todavía
-- Score de seguridad real (Slice 5).
-- Rutas seguras/equilibradas/nocturnas (Slice 6).
-- Accidentes, tráfico o barrios en algoritmo de ruta.
 
 ## Stack tecnológico actual
 - Frontend: React + JavaScript (sin TypeScript), Vite, React Leaflet.
@@ -35,7 +33,6 @@ Elegir rutas ciclistas en ciudad suele requerir equilibrio entre rapidez, seguri
 ### 1) Frontend
 ```bash
 npm install
-cp .env.example .env
 npm run dev
 ```
 Frontend en `http://localhost:5173`.
@@ -46,7 +43,6 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 Backend en `http://localhost:8000`.
@@ -54,7 +50,7 @@ Backend en `http://localhost:8000`.
 > La primera petición a `POST /api/routes` puede tardar más por descarga y guardado inicial del grafo bike de Madrid.
 
 ## Variables de entorno clave
-### Frontend (`/.env`)
+### Frontend (`/.env` opcional)
 - `VITE_API_BASE_URL=http://localhost:8000`
 
 ### Backend (`/backend/.env`)
@@ -72,6 +68,16 @@ Backend en `http://localhost:8000`.
 - `GET /health`
 - `GET /api/stations?source=auto|remote|snapshot`
 - `POST /api/routes`
+- `GET /api/geocoding/suggest?q=<texto>`
+
+## Verificar el flujo de routing
+1. Arranca backend y frontend.
+2. Escribe origen/destino (ej. `Plaza de Castilla` y `Matadero Madrid`) y selecciona sugerencias.
+3. Deja modo `Rápida` y pulsa “Calcular ruta”.
+4. Comprueba que:
+   - se dibuja la ruta en el mapa,
+   - el mapa se ajusta automáticamente,
+   - la tarjeta “Ruta actual” muestra distancia y estado.
 
 ## Próximos pasos
 - Slice 5: score de seguridad + visualización.

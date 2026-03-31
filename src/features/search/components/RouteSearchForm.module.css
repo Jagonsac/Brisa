@@ -21,6 +21,36 @@
   outline-offset: 1px;
 }
 
+.suggestionState {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #35507b;
+}
+
+.suggestionList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #d8e1f2;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.suggestionButton {
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.suggestionButton:hover {
+  background: #f2f6ff;
+}
+
 .form button {
   margin-top: 0.6rem;
   border: none;

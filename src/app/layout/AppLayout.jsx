@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { BicimadStatusCard } from '../../features/bicimad/components/BicimadStatusCard';
 import { useBicimadStations } from '../../features/bicimad/hooks/useBicimadStations';
@@ -7,6 +7,7 @@ import { ProjectExplainer } from '../../features/projectStatus/components/Projec
 import { ProjectStatusPanel } from '../../features/projectStatus/components/ProjectStatusPanel';
 import { RouteModeSelector } from '../../features/search/components/RouteModeSelector';
 import { RouteSearchForm } from '../../features/search/components/RouteSearchForm';
+import { getLocationSuggestions } from '../../features/search/services/geocodingService';
 import { RouteSummaryCard } from '../../features/routing/components/RouteSummaryCard';
 import { createRoute } from '../../features/routing/services/routesService';
 import { featureFlags } from '../../shared/config/featureFlags';
@@ -18,6 +19,16 @@ const INITIAL_FORM = {
   destination: '',
 };
 
+const INITIAL_SUGGESTIONS = {
+  origin: [],
+  destination: [],
+};
+
+const INITIAL_LOADING = {
+  origin: false,
+  destination: false,
+};
+
 export function AppLayout() {
   const [formValues, setFormValues] = useState(INITIAL_FORM);
   const [selectedMode, setSelectedMode] = useState(ROUTE_MODES.FAST);
@@ -25,6 +36,9 @@ export function AppLayout() {
   const [routeData, setRouteData] = useState(null);
   const [routeError, setRouteError] = useState('');
   const [routeLoading, setRouteLoading] = useState(false);
+  const [showBicimadLayer, setShowBicimadLayer] = useState(false);
+  const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
+  const [suggestionLoading, setSuggestionLoading] = useState(INITIAL_LOADING);
 
   const bicimadLayerEnabled = featureFlags.enableBicimad && featureFlags.enableBicimadStationsLayer;
   const bicimadState = useBicimadStations({ enabled: bicimadLayerEnabled });
@@ -34,8 +48,44 @@ export function AppLayout() {
     [formValues.destination, formValues.origin],
   );
 
+  useEffect(() => {
+    const activeRequests = [];
+
+    ['origin', 'destination'].forEach((field) => {
+      const value = formValues[field].trim();
+      if (value.length < 3) {
+        setSuggestions((prev) => ({ ...prev, [field]: [] }));
+        setSuggestionLoading((prev) => ({ ...prev, [field]: false }));
+        return;
+      }
+
+      const controller = new AbortController();
+
+      setSuggestionLoading((prev) => ({ ...prev, [field]: true }));
+      const timerId = setTimeout(async () => {
+        const data = await getLocationSuggestions(value, { signal: controller.signal });
+        setSuggestions((prev) => ({ ...prev, [field]: data }));
+        setSuggestionLoading((prev) => ({ ...prev, [field]: false }));
+      }, 320);
+
+      activeRequests.push({ controller, timerId });
+    });
+
+    return () => {
+      activeRequests.forEach(({ controller, timerId }) => {
+        controller.abort();
+        clearTimeout(timerId);
+      });
+    };
+  }, [formValues]);
+
   const handleChange = (field, value) => {
     setFormValues((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const handleSelectSuggestion = (field, suggestion) => {
+    setFormValues((prev) => ({ ...prev, [field]: suggestion.value }));
+    setSuggestions((prev) => ({ ...prev, [field]: [] }));
   };
 
   const handleSubmit = async (event) => {
@@ -49,7 +99,7 @@ export function AppLayout() {
 
     if (!selectedMode.available) {
       setRouteData(null);
-      setInfoMessage(`El modo ${selectedMode.label.toLowerCase()} llegará en slices posteriores.`);
+      setInfoMessage(`El modo ${selectedMode.label.toLowerCase()} estará disponible en próximos slices.`);
       return;
     }
 
@@ -68,11 +118,11 @@ export function AppLayout() {
         mode: selectedMode.apiMode,
       });
       setRouteData(response.data);
-      setInfoMessage(`Ruta ${selectedMode.label.toLowerCase()} calculada correctamente.`);
+      setInfoMessage('Ruta rápida calculada correctamente.');
     } catch (error) {
       setRouteData(null);
       setRouteError(error instanceof Error ? error.message : 'No fue posible calcular la ruta.');
-      setInfoMessage('Revisa los datos e inténtalo de nuevo.');
+      setInfoMessage('No se pudo completar la ruta. Revisa origen/destino e inténtalo de nuevo.');
     } finally {
       setRouteLoading(false);
     }
@@ -92,15 +142,27 @@ export function AppLayout() {
           {featureFlags.enableSearchUi && (
             <section className={styles.panelCard}>
               <h2>Preparación de ruta</h2>
-              <RouteSearchForm formValues={formValues} onFieldChange={handleChange} onSubmit={handleSubmit} loading={routeLoading} />
-              <RouteModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} />
-              <p className={styles.infoText}>{infoMessage}</p>
-              <RouteSummaryCard
-                routeData={routeData}
+              <RouteSearchForm
+                formValues={formValues}
+                onFieldChange={handleChange}
+                onSubmit={handleSubmit}
                 loading={routeLoading}
-                error={routeError}
-                statusMessage={routeData ? 'Ruta calculada y dibujada en el mapa.' : 'Sin ruta calculada todavía.'}
+                suggestions={suggestions}
+                suggestionLoading={suggestionLoading}
+                onSelectSuggestion={handleSelectSuggestion}
               />
+              <RouteModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} />
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={showBicimadLayer}
+                  onChange={(event) => setShowBicimadLayer(event.target.checked)}
+                  disabled={!bicimadLayerEnabled}
+                />
+                Mostrar estaciones Bicimad
+              </label>
+              <p className={styles.infoText}>{infoMessage}</p>
+              <RouteSummaryCard routeData={routeData} loading={routeLoading} error={routeError} statusMessage={routeData ? 'Ruta lista en mapa.' : 'Sin ruta calculada todavía.'} />
             </section>
           )}
 
@@ -121,7 +183,7 @@ export function AppLayout() {
             <MapView
               selectedMode={selectedMode}
               bicimadStations={bicimadState.stations}
-              showBicimadLayer={bicimadLayerEnabled}
+              showBicimadLayer={showBicimadLayer && bicimadLayerEnabled}
               routeData={routeData}
             />
           ) : (

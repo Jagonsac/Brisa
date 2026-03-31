@@ -6,6 +6,7 @@ Backend FastAPI para desacoplar la app frontend de proveedores externos y resolv
 - `GET /health`: estado del servicio.
 - `GET /api/stations`: estaciones Bicimad normalizadas.
 - `POST /api/routes`: ruta más corta real entre origen y destino sobre red OSM bike.
+- `GET /api/geocoding/suggest`: sugerencias de origen/destino normalizadas para frontend.
 - CORS configurable por variable de entorno.
 - Caché de grafo OSMnx en disco (`backend/data/graphs/*.graphml`) y en memoria.
 
@@ -60,6 +61,9 @@ Estado del backend.
 
 ### `GET /api/stations?source=auto|remote|snapshot`
 Estaciones Bicimad normalizadas.
+
+### `GET /api/geocoding/suggest?q=<texto>`
+Devuelve hasta 5 sugerencias geocodificadas en Madrid para autocompletado.
 
 ### `POST /api/routes`
 Request:

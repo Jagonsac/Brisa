@@ -69,3 +69,18 @@
     min-height: 420px;
   }
 }
+
+
+.toggleLabel {
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: #2e405f;
+}
+
+.toggleLabel input {
+  width: 16px;
+  height: 16px;
+}

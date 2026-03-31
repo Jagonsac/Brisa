@@ -11,6 +11,6 @@ Estos contratos definen la interfaz de datos estable esperada por el frontend y 
 ## Relación feature -> contrato
 - `api/health`: `health-response.contract.json`.
 - `bicimad`: `stations.contract.json`.
-- `search` + `routing`: `route-request.contract.json`, `route-response.contract.json`.
+- `search` + `routing`: `route-request.contract.json`, `route-response.contract.json`, `geocoding-suggest-response.contract.json`.
 - `neighborhoods`: `neighborhood-score.contract.json`.
 - Estado local de UI: `ui-state.contract.md`.
