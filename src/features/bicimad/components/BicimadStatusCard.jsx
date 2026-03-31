@@ -4,6 +4,7 @@ const sourceLabels = {
   'gbfs-station-information': 'GBFS station_information',
   'emt-geojson-fallback': 'Fallback oficial EMT (GeoJSON)',
   'local-snapshot-fallback': 'Snapshot local de desarrollo',
+  'backend-unknown': 'Backend Brisa (fuente no especificada)',
 };
 
 export function BicimadStatusCard({ loading, error, source, usedFallback, stationsCount, enabled }) {

@@ -5,49 +5,45 @@ Brisa es una aplicación web para ayudar a moverse por Madrid en bicicleta con m
 ## Problema que resuelve
 Elegir rutas ciclistas en ciudad suele requerir equilibrio entre rapidez, seguridad y contexto urbano. Brisa busca reducir esa fricción con recomendaciones explicables y datos abiertos.
 
-## Estado actual (Slice 2)
+## Estado actual (Slice 3)
 ✅ Base React + Vite ejecutable.
-✅ UI principal en español con layout profesional.
-✅ Mapa interactivo Leaflet centrado en Madrid.
-✅ Formulario de origen/destino y selector visual de modo de ruta.
-✅ Integración de estaciones Bicimad en mapa con popups mínimos.
-✅ Carga real de estaciones desde GBFS con fallback oficial + snapshot local.
-✅ Panel de estado del proyecto y documentación de contratos actualizada.
+✅ UI principal en español con mapa Leaflet de Madrid.
+✅ Integración de estaciones Bicimad en mapa.
+✅ Backend mínimo FastAPI operativo para desacoplar proveedores externos.
+✅ API con `GET /health` y `GET /api/stations`.
+✅ CORS de desarrollo configurado y contrato de estaciones documentado.
 
-## Qué incluye Slice 2
-- Arquitectura frontend modular por capas (`app`, `features`, `shared`, `mocks`).
-- Sistema de feature flags (`enableBicimad`, `enableBicimadStationsLayer`).
-- Servicio de datos Bicimad con timeout y degradación elegante.
-- Hook de carga de estaciones con estados de UX (`loading`, `error`, `fallback`, `sin datos`).
-- Contrato interno estable en `docs/contracts/stations.contract.json`.
+## Qué incluye Slice 3
+- Arquitectura modular frontend + backend.
+- Servicio backend de estaciones con estrategia GBFS -> GeoJSON EMT -> snapshot local.
+- Frontend configurable por variable `VITE_API_BASE_URL`.
+- Fallback frontend mantenido para evitar regresiones de demo.
+- Documentación de slice y contratos actualizada.
 
 ## Qué NO incluye todavía
-- Backend real ni persistencia.
-- Cálculo de rutas reales.
-- Integración operativa de `station_status` (solo preparación estructural).
-- Recomendación de estaciones o predicción de disponibilidad.
+- Persistencia real en base de datos.
+- Integración operativa de `station_status`.
+- Routing real de calles o lógica GIS avanzada.
+- Seguridad por usuario, auth o panel de administración.
 
 ## Stack tecnológico actual
-- React + JavaScript (sin TypeScript)
-- Vite
-- React Leaflet + Leaflet
-- CSS Modules + CSS global limpio
-- ESLint (flat config)
-
-## Stack previsto para fases futuras
-- Backend: Python + FastAPI
-- Datos/geo: Supabase (Postgres + PostGIS)
+- Frontend: React + JavaScript (sin TypeScript), Vite, React Leaflet.
+- Backend: Python 3.11+, FastAPI, Uvicorn, HTTPX.
 
 ## Estructura del proyecto
 
 ```text
 Brisa/
+├─ backend/
+│  ├─ app/
+│  ├─ .env.example
+│  ├─ requirements.txt
+│  └─ README.md
 ├─ docs/
 │  ├─ architecture.md
 │  ├─ roadmap.md
 │  ├─ contracts/
 │  └─ slices/
-├─ public/
 ├─ src/
 │  ├─ app/
 │  ├─ features/
@@ -55,57 +51,60 @@ Brisa/
 │  ├─ mocks/
 │  ├─ styles/
 │  └─ assets/
+├─ .env.example
 ├─ AGENTS.md
 ├─ README.md
 └─ package.json
 ```
 
-## Filosofía de trabajo por slices
-Cada slice debe ser una vertical pequeña, visible y usable. Se prioriza entregar valor real incremental, sin mezclar demasiados objetivos en una sola iteración.
-
 ## Cómo ejecutar localmente
-1. `npm install`
-2. `npm run dev`
-3. Abrir la URL indicada por Vite (normalmente `http://localhost:5173`).
 
-Comandos extra:
-- `npm run lint`
-- `npm run build`
-- `npm run preview`
+### 1) Frontend
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+Frontend en `http://localhost:5173`.
 
-## Verificación manual de Slice 2
-1. Iniciar la app con `npm run dev`.
-2. Verificar que el mapa de Madrid se muestra con normalidad.
-3. Confirmar puntos Bicimad en el mapa (círculos azules).
-4. Pulsar una estación y revisar popup (`nombre`, `dirección`, `capacidad`).
-5. Revisar panel Bicimad en sidebar para estado/fuente/fallback.
+### 2) Backend
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload --port 8000
+```
+Backend en `http://localhost:8000`.
 
-## Fuente de datos de estaciones
-1. Fuente principal: GBFS `station_information`.
-2. Fallback oficial: GeoJSON EMT Madrid.
-3. Fallback local: snapshot en `src/mocks/bicimadStationsSnapshot.js`.
+## Variables de entorno clave
+### Frontend (`/.env`)
+- `VITE_API_BASE_URL=http://localhost:8000`
 
-Esta estrategia permite demos estables incluso ante problemas de red o CORS.
+### Backend (`/backend/.env`)
+- `PORT=8000`
+- `BRISA_ENV=development`
+- `BICIMAD_STATIONS_URL=...station_information`
+- `BICIMAD_FALLBACK_URL=...bikestationbicimad_geojson.geojson`
+- `FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
+
+## Endpoints disponibles en Slice 3
+- `GET /health`
+- `GET /api/stations?source=auto|remote|snapshot`
+
+## Verificación manual rápida
+1. Levantar backend y comprobar `GET /health`.
+2. Probar `GET /api/stations` y verificar `data + meta`.
+3. Levantar frontend con `VITE_API_BASE_URL` apuntando al backend.
+4. Confirmar estaciones visibles en mapa y estado de fuente/fallback en tarjeta Bicimad.
 
 ## Roadmap resumido
 - Slice 1: base técnica + UI + mapa + docs ✅
 - Slice 2: estaciones Bicimad en mapa ✅
-- Slice 3: backend mínimo + endpoint de salud
+- Slice 3: backend mínimo + API de estaciones ✅
 - Slice 4: routing más corto
 - Slice 5: score de seguridad + heatmap
 - Slice 6: rutas seguras y nocturnas
 - Slice 7: índice por barrio + panel
 - Slice 8: pulido concurso/portfolio
-
-## Qué hace cada feature principal
-- `map`: render de mapa y capas visuales.
-- `search`: formulario y modos de ruta.
-- `projectStatus`: estado del producto y narrativa actual.
-- `bicimad`: carga/normalización/render de estaciones.
-- `routing`, `safety`, `nightMode`, `neighborhoods`: evolución por slices futuros.
-
-## Cómo retomar el proyecto sin perderse
-1. Leer `docs/slices/slice-2.md` y `docs/roadmap.md`.
-2. Revisar `docs/contracts` antes de integrar APIs.
-3. Encender/apagar features solo mediante `featureFlags`.
-4. Implementar cambios dentro de la feature correspondiente.

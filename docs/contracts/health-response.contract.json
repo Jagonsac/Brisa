@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrisaHealthResponse",
+  "description": "Contrato del endpoint GET /health",
+  "type": "object",
+  "required": ["status", "service", "version", "environment"],
+  "properties": {
+    "status": { "type": "string", "const": "ok" },
+    "service": { "type": "string" },
+    "version": { "type": "string" },
+    "environment": { "type": "string" }
+  },
+  "additionalProperties": false
+}
