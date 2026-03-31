@@ -1,6 +1,26 @@
 const defaultApiBaseUrl = 'http://localhost:8000';
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || defaultApiBaseUrl;
 
+function normalizeSuggestion(item) {
+  const label = typeof item?.label === 'string' ? item.label.trim() : '';
+  const displayTextRaw = typeof item?.displayText === 'string' ? item.displayText : item?.value;
+  const displayText = typeof displayTextRaw === 'string' ? displayTextRaw.trim() : '';
+  const lat = Number(item?.lat);
+  const lon = Number(item?.lon);
+
+  if (!label || !displayText || Number.isNaN(lat) || Number.isNaN(lon)) {
+    return null;
+  }
+
+  return {
+    label,
+    value: displayText,
+    displayText,
+    lat,
+    lon,
+  };
+}
+
 export async function getLocationSuggestions(query, { signal } = {}) {
   const q = query.trim();
   if (q.length < 3) {
@@ -17,7 +37,8 @@ export async function getLocationSuggestions(query, { signal } = {}) {
       return [];
     }
 
-    return Array.isArray(payload?.data) ? payload.data : [];
+    const rows = Array.isArray(payload?.data) ? payload.data : [];
+    return rows.map(normalizeSuggestion).filter(Boolean);
   } catch {
     return [];
   }

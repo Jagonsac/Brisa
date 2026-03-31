@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "GeocodingSuggestResponse",
-  "description": "Sugerencias de geocodificación normalizadas para origen/destino con coordenadas seleccionables.",
+  "description": "Sugerencias de geocodificación normalizadas para origen/destino con coordenadas seleccionables y texto específico para el input.",
   "type": "object",
   "required": [
     "data",
@@ -15,16 +15,22 @@
         "required": [
           "label",
           "value",
+          "displayText",
           "lat",
           "lon"
         ],
         "properties": {
           "label": {
-            "type": "string"
+            "type": "string",
+            "description": "Texto completo informativo devuelto por Nominatim."
           },
           "value": {
             "type": "string",
-            "description": "Texto corto para rellenar el input al seleccionar."
+            "description": "Alias retrocompatible del texto a usar en el input."
+          },
+          "displayText": {
+            "type": "string",
+            "description": "Texto recomendado para rellenar el input conservando número de portal cuando exista."
           },
           "lat": {
             "type": "number"

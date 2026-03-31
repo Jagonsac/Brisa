@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class SuggestionItem(BaseModel):
     label: str
     value: str
+    displayText: str
     lat: float
     lon: float
 

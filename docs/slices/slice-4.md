@@ -77,3 +77,20 @@
 - Primera carga del grafo puede tardar por descarga inicial.
 - Dependencia externa de Nominatim para sugerencias/geocoding.
 - Modos segura/equilibrada/nocturna pendientes de slices posteriores.
+
+## Ajustes de contrato y coordenadas (hardening)
+- `POST /api/routes` ahora acepta dos formatos de entrada:
+  - **Recomendado**: `origin/destination` con `query` y `lat/lon` opcionales.
+  - **Legado**: `originQuery/destinationQuery` para mantener compatibilidad.
+- El router transforma ambos formatos a una estructura interna única antes del cálculo.
+- Política de errores afinada:
+  - `400` para datos de negocio incompletos (por ejemplo, faltan origen/destino/modo).
+  - `404` cuando origen o destino no se puede localizar o no existe ruta válida.
+  - `422` solo cuando el payload es realmente inconsistente (p. ej. `lat` sin `lon`).
+- Sugerencias conservan direcciones específicas con número:
+  - `displayText` prioriza `road + house_number` cuando Nominatim lo devuelve.
+  - Se mantiene `label` completo para contexto y `value` como alias retrocompatible.
+- Orden de coordenadas verificado de extremo a extremo:
+  - Selección/markers en Leaflet: `[lat, lon]`.
+  - Snap en OSMnx `nearest_nodes`: `X=lon`, `Y=lat`.
+  - GeoJSON `LineString`: `[lon, lat]`.
