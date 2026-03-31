@@ -86,7 +86,7 @@
 - Política de errores afinada:
   - `400` para datos de negocio incompletos (por ejemplo, faltan origen/destino/modo).
   - `404` cuando origen o destino no se puede localizar o no existe ruta válida.
-  - `422` solo cuando el payload es realmente inconsistente (p. ej. `lat` sin `lon`).
+  - `400` para payload inconsistente o datos insuficientes (por ejemplo, `lat` sin `lon`).
 - Sugerencias conservan direcciones específicas con número:
   - `displayText` prioriza `road + house_number` cuando Nominatim lo devuelve.
   - Se mantiene `label` completo para contexto y `value` como alias retrocompatible.
@@ -94,3 +94,14 @@
   - Selección/markers en Leaflet: `[lat, lon]`.
   - Snap en OSMnx `nearest_nodes`: `X=lon`, `Y=lat`.
   - GeoJSON `LineString`: `[lon, lat]`.
+
+## Hardening adicional del request de rutas (fix 422 definitivo)
+- El router ya **no valida el body con un schema rígido en la firma**.
+- `POST /api/routes` recibe `payload: dict` y ejecuta `parse_route_payload(payload)` en backend para normalizar.
+- Formatos soportados: 
+  - A: `origin/destination` con `query` + `lat/lon` opcionales.
+  - B: `originQuery/destinationQuery`.
+  - C: `origin/destination` con solo `query`.
+- `lat/lon` aceptan `number` o `string` convertible.
+- Validación de negocio devuelve `400` con mensaje útil cuando faltan datos; evita `422` en payloads razonables.
+- El parseo interno genera una estructura única estable para el servicio de rutas.

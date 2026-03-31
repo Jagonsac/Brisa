@@ -1,52 +1,37 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "GeocodingSuggestResponse",
-  "description": "Sugerencias de geocodificación normalizadas para origen/destino con coordenadas seleccionables y texto específico para el input.",
+  "description": "Sugerencias normalizadas para origen/destino. label conserva el texto completo y displayText mantiene calle + número cuando exista.",
   "type": "object",
-  "required": [
-    "data",
-    "meta"
-  ],
+  "required": ["data", "meta"],
   "properties": {
     "data": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "label",
-          "value",
-          "displayText",
-          "lat",
-          "lon"
-        ],
+        "required": ["label", "displayText", "lat", "lon"],
         "properties": {
           "label": {
             "type": "string",
             "description": "Texto completo informativo devuelto por Nominatim."
           },
-          "value": {
-            "type": "string",
-            "description": "Alias retrocompatible del texto a usar en el input."
-          },
           "displayText": {
             "type": "string",
-            "description": "Texto recomendado para rellenar el input conservando número de portal cuando exista."
+            "description": "Texto para rellenar el input, preservando número de portal cuando esté disponible."
           },
-          "lat": {
-            "type": "number"
+          "value": {
+            "type": "string",
+            "description": "Alias retrocompatible. Debe ser igual a displayText."
           },
-          "lon": {
-            "type": "number"
-          }
+          "lat": { "type": "number" },
+          "lon": { "type": "number" }
         },
         "additionalProperties": false
       }
     },
     "meta": {
       "type": "object",
-      "required": [
-        "count"
-      ],
+      "required": ["count"],
       "properties": {
         "count": {
           "type": "integer",

@@ -108,7 +108,7 @@ export function AppLayout() {
         return previous;
       }
 
-      const selectedInputValue = (selected.displayText || selected.value || '').trim();
+      const selectedInputValue = (selected.displayText || '').trim();
       if (value.trim() === selectedInputValue) {
         return previous;
       }
@@ -119,7 +119,7 @@ export function AppLayout() {
 
   const handleSelectSuggestion = (field, suggestion) => {
     isProgrammaticSelectionRef.current[field] = true;
-    setInputValues((prev) => ({ ...prev, [field]: suggestion.displayText || suggestion.value }));
+    setInputValues((prev) => ({ ...prev, [field]: suggestion.displayText }));
     setSelectedPlaces((prev) => ({ ...prev, [field]: suggestion }));
     setSuggestions((prev) => ({ ...prev, [field]: [] }));
     setSuggestionOpen((prev) => ({ ...prev, [field]: false }));
