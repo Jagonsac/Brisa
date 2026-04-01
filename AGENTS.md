@@ -70,3 +70,10 @@ Slice 4: routing real más corto con backend FastAPI + OSMnx, contrato estable y
 - [ ] Documentación del slice actualizada.
 - [ ] README actualizado si cambia experiencia de uso.
 - [ ] Lint/build ejecutados (o limitación documentada).
+
+
+## Reglas específicas de safety (Slice 5+)
+- Mantener el score de seguridad explicable y parametrizable (sin “caja negra”).
+- No mover lógica GIS/scoring al frontend; solo render y UX.
+- Cachear preprocesados pesados en `backend/data/safety/processed`.
+- Cambios de contrato en safety requieren actualizar `docs/contracts` y `docs/slices/slice-5.md`.

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SafetySummaryResponse",
+  "type": "object",
+  "required": ["data", "meta"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "required": [
+        "version",
+        "cellCount",
+        "scoreMin",
+        "scoreMax",
+        "scoreAvg",
+        "weights",
+        "sources",
+        "trafficFallbackUsed"
+      ]
+    },
+    "meta": {
+      "type": "object",
+      "required": ["ready"],
+      "properties": {
+        "ready": { "type": "boolean" }
+      }
+    }
+  }
+}

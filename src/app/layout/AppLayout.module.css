@@ -84,3 +84,15 @@
   width: 16px;
   height: 16px;
 }
+
+.warningText {
+  margin: 0.5rem 0 0;
+  color: #8a2c2a;
+  font-size: 0.82rem;
+}
+
+.subtleNote {
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+  color: #5f6f8e;
+}

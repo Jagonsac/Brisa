@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SafetyGridResponse",
+  "type": "object",
+  "required": ["data", "meta"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "required": ["type", "features"],
+      "properties": {
+        "type": { "const": "FeatureCollection" },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "geometry", "properties"],
+            "properties": {
+              "type": { "const": "Feature" },
+              "geometry": {
+                "type": "object",
+                "required": ["type", "coordinates"],
+                "properties": {
+                  "type": { "const": "Polygon" },
+                  "coordinates": { "type": "array" }
+                }
+              },
+              "properties": {
+                "type": "object",
+                "required": [
+                  "cellId",
+                  "safetyScore",
+                  "riskScore",
+                  "accidentCount",
+                  "weightedAccidentScore",
+                  "trafficExposure",
+                  "hostileRoadExposure",
+                  "bikeInfraScore",
+                  "explanation"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["version", "cellSizeMeters", "sources", "trafficFallbackUsed"],
+      "properties": {
+        "version": { "type": "string" },
+        "cellSizeMeters": { "type": "integer" },
+        "sources": { "type": "object" },
+        "trafficFallbackUsed": { "type": "boolean" }
+      }
+    }
+  }
+}
