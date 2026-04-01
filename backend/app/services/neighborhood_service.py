@@ -20,8 +20,12 @@ class NeighborhoodService:
     def __init__(self) -> None:
         self.raw_dir = Path(__file__).resolve().parents[2] / "data" / "safety" / "raw"
         self.boundaries_path = self.raw_dir / safety_config.neighborhoods_cache_filename
+        self._cached_boundaries: tuple[list[NeighborhoodArea], dict] | None = None
 
     def load_boundaries(self) -> tuple[list[NeighborhoodArea], dict]:
+        if self._cached_boundaries is not None:
+            return self._cached_boundaries
+
         payload, source = self._load_geojson_payload()
         features = payload.get("features", [])
         neighborhoods: list[NeighborhoodArea] = []
@@ -51,7 +55,8 @@ class NeighborhoodService:
             "neighborhoodCount": len(neighborhoods),
             "url": safety_config.neighborhoods_geojson_url,
         }
-        return neighborhoods, metadata
+        self._cached_boundaries = (neighborhoods, metadata)
+        return self._cached_boundaries
 
     def _load_geojson_payload(self) -> tuple[dict, str]:
         if self.boundaries_path.exists():
