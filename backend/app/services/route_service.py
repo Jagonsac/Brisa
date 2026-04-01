@@ -1,4 +1,5 @@
 import networkx as nx
+import numpy as np
 import osmnx as ox
 
 from app.schemas.route_response import RouteResponse
@@ -52,8 +53,8 @@ class RouteService:
             ) from error
 
         try:
-            origin_node = ox.distance.nearest_nodes(graph, X=origin.lon, Y=origin.lat)
-            destination_node = ox.distance.nearest_nodes(graph, X=destination.lon, Y=destination.lat)
+            origin_node = self._resolve_nearest_node(graph, lat=origin.lat, lon=origin.lon)
+            destination_node = self._resolve_nearest_node(graph, lat=destination.lat, lon=destination.lon)
         except Exception as error:
             raise RouteServiceError("snap_failed", "No se pudo ajustar el origen o destino a la red ciclista.") from error
 
@@ -138,3 +139,21 @@ class RouteService:
             return await self.geocoding_service.geocode(clean_query, point_label=point_label)
         except GeocodingError as error:
             raise RouteServiceError(error.code, error.message) from error
+
+    def _resolve_nearest_node(self, graph, *, lat: float, lon: float):
+        try:
+            return ox.distance.nearest_nodes(graph, X=lon, Y=lat)
+        except (ImportError, ModuleNotFoundError):
+            return self._resolve_nearest_node_fallback(graph, lat=lat, lon=lon)
+
+    def _resolve_nearest_node_fallback(self, graph, *, lat: float, lon: float):
+        node_ids = list(graph.nodes)
+        if not node_ids:
+            raise ValueError("El grafo no contiene nodos.")
+
+        node_coordinates = np.array([[float(graph.nodes[node]["y"]), float(graph.nodes[node]["x"])] for node in node_ids])
+        target = np.array([lat, lon], dtype=float)
+        deltas = node_coordinates - target
+        squared_distances = np.einsum("ij,ij->i", deltas, deltas)
+        nearest_index = int(np.argmin(squared_distances))
+        return node_ids[nearest_index]
