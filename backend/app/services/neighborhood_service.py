@@ -60,15 +60,49 @@ class NeighborhoodService:
 
     def _load_geojson_payload(self) -> tuple[dict, str]:
         if self.boundaries_path.exists():
-            return json.loads(self.boundaries_path.read_text(encoding="utf-8")), "cache"
+            cached_payload = json.loads(self.boundaries_path.read_text(encoding="utf-8"))
+            if self._is_valid_geojson(cached_payload):
+                return cached_payload, "cache"
 
         self.raw_dir.mkdir(parents=True, exist_ok=True)
-        request = Request(safety_config.neighborhoods_geojson_url, headers={"User-Agent": "Brisa/0.1 (safety neighborhoods)"})
-        with urlopen(request, timeout=safety_config.download_timeout_seconds) as response:
-            raw_bytes = response.read()
+        urls = [safety_config.neighborhoods_geojson_url, *safety_config.neighborhoods_geojson_fallback_urls]
+        errors: list[str] = []
+        for url in urls:
+            request = Request(url, headers={"User-Agent": "Brisa/0.1 (safety neighborhoods)"})
+            try:
+                with urlopen(request, timeout=safety_config.download_timeout_seconds) as response:
+                    raw_bytes = response.read()
+                payload = json.loads(raw_bytes.decode("utf-8", errors="ignore"))
+                if not self._is_valid_geojson(payload):
+                    errors.append(f"{url}: GeoJSON inválido o sin features")
+                    continue
+                self.boundaries_path.write_bytes(raw_bytes)
+                return payload, f"download:{url}"
+            except Exception as error:
+                errors.append(f"{url}: {error}")
 
-        self.boundaries_path.write_bytes(raw_bytes)
-        return json.loads(raw_bytes.decode("utf-8", errors="ignore")), "download"
+        if self.boundaries_path.exists():
+            cached_payload = json.loads(self.boundaries_path.read_text(encoding="utf-8"))
+            if self._is_valid_geojson(cached_payload):
+                return cached_payload, "cache-stale"
+
+        joined_errors = " | ".join(errors) if errors else "Sin detalles"
+        raise RuntimeError(f"No se pudo cargar GeoJSON de barrios. Errores: {joined_errors}")
+
+    @staticmethod
+    def _is_valid_geojson(payload: dict) -> bool:
+        if payload.get("type") != "FeatureCollection":
+            return False
+        features = payload.get("features", [])
+        if not isinstance(features, list) or not features:
+            return False
+        has_polygon = False
+        for feature in features:
+            geometry = feature.get("geometry", {}) if isinstance(feature, dict) else {}
+            if geometry.get("type") in {"Polygon", "MultiPolygon"}:
+                has_polygon = True
+                break
+        return has_polygon
 
     @staticmethod
     def contains(geometry: dict, lon: float, lat: float) -> bool:

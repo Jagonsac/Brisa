@@ -65,7 +65,7 @@ Regla:
 - El recurso mensual de aforos puede cambiar estructura/campos y forzar fallback parcial.
 - La severidad de accidentes usa un mapping simple inicial (recalibrable).
 - Esta slice no modifica todavía `POST /api/routes`.
-- Si no se puede descargar/cargar el GeoJSON de barrios, la capa agregada no estará disponible hasta regenerar caché.
+- La carga de barrios ahora prioriza ArcGIS REST (`MapServer/25/query?f=geojson`) y usa URLs de fallback + caché local válida; solo se degrada a celdas si todas las fuentes fallan.
 
 ## Criterios de aceptación de Slice 5
 - API de safety operativa (`grid` + `summary`).

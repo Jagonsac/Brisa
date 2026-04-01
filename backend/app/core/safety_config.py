@@ -32,7 +32,11 @@ class SafetyConfig:
     )
     neighborhoods_geojson_url: str = getenv(
         "SAFETY_NEIGHBORHOODS_GEOJSON_URL",
+        "https://sigma.madrid.es/hosted/rest/services/CARTOGRAFIA/LIMITES_ADMINISTRATIVOS/MapServer/25/query?where=1%3D1&outFields=COD_BAR%2CNOMBRE%2CNOMDIS&outSR=4326&f=geojson",
+    )
+    neighborhoods_geojson_fallback_urls: tuple[str, ...] = (
         "https://datos.madrid.es/egob/catalogo/212070-0-barrios.geojson",
+        "https://datos.madrid.es/egob/catalogo/200078-1-barrios.geojson",
     )
     neighborhoods_cache_filename: str = getenv("SAFETY_NEIGHBORHOODS_CACHE_FILENAME", "madrid_barrios.geojson")
     traffic_influence_radius_meters: int = int(getenv("SAFETY_TRAFFIC_RADIUS_METERS", "450"))
