@@ -56,8 +56,11 @@ def _parse_point(payload: dict[str, Any], *, point_key: str, query_key: str, poi
     if query == "":
         query = _clean_query(payload.get(query_key))
 
-    lat = _coerce_float(point_dict.get("lat"), field_name=f"{point_key}.lat")
-    lon = _coerce_float(point_dict.get("lon"), field_name=f"{point_key}.lon")
+    lat_raw = point_dict.get("lat", point_dict.get("latitude"))
+    lon_raw = point_dict.get("lon", point_dict.get("lng", point_dict.get("longitude")))
+
+    lat = _coerce_float(lat_raw, field_name=f"{point_key}.lat")
+    lon = _coerce_float(lon_raw, field_name=f"{point_key}.lon")
 
     if (lat is None) != (lon is None):
         raise RoutePayloadError(f"{point_label.title()}: lat y lon deben enviarse juntos.")

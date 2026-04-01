@@ -22,7 +22,7 @@ function normalizeSuggestion(item) {
   const displayTextRaw = typeof item?.displayText === 'string' ? item.displayText : item?.value;
   const displayText = typeof displayTextRaw === 'string' ? displayTextRaw.trim() : '';
   const lat = Number(item?.lat);
-  const lon = Number(item?.lon);
+  const lon = Number(item?.lon ?? item?.lng ?? item?.longitude);
 
   if (!label || !displayText || Number.isNaN(lat) || Number.isNaN(lon)) {
     return null;

@@ -40,6 +40,18 @@
         "lon": {
           "oneOf": [{ "type": "number" }, { "type": "string" }],
           "description": "Longitud opcional; acepta number o string convertible."
+        },
+        "lng": {
+          "oneOf": [{ "type": "number" }, { "type": "string" }],
+          "description": "Alias tolerado para longitud por compatibilidad con payloads de Leaflet/Google Maps."
+        },
+        "longitude": {
+          "oneOf": [{ "type": "number" }, { "type": "string" }],
+          "description": "Alias tolerado para longitud en integraciones externas."
+        },
+        "latitude": {
+          "oneOf": [{ "type": "number" }, { "type": "string" }],
+          "description": "Alias tolerado para latitud en integraciones externas."
         }
       },
       "additionalProperties": true

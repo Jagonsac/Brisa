@@ -103,5 +103,6 @@
   - B: `originQuery/destinationQuery`.
   - C: `origin/destination` con solo `query`.
 - `lat/lon` aceptan `number` o `string` convertible.
+- Tolerancia de coordenadas ampliada en request de rutas: además de `lat/lon`, backend acepta alias `latitude/longitude` y `lng` para evitar errores por diferencias entre librerías de mapas.
 - Validación de negocio devuelve `400` con mensaje útil cuando faltan datos; evita `422` en payloads razonables.
 - El parseo interno genera una estructura única estable para el servicio de rutas.
