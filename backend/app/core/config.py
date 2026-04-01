@@ -18,7 +18,7 @@ class Settings:
     )
     frontend_origins_raw: str = getenv("FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
     osmnx_place_query: str = getenv("OSMNX_PLACE_QUERY", "Madrid, Spain")
-    osmnx_network_type: str = getenv("OSMNX_NETWORK_TYPE", "bike")
+    osmnx_network_type: str = getenv("OSMNX_NETWORK_TYPE", "all")
     osmnx_graph_filename: str = getenv("OSMNX_GRAPH_FILENAME", "madrid_bike.graphml")
     nominatim_base_url: str = getenv("NOMINATIM_BASE_URL", "https://nominatim.openstreetmap.org/search")
     nominatim_user_agent: str = getenv("NOMINATIM_USER_AGENT", "Brisa/0.1 (development)")
