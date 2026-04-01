@@ -19,7 +19,13 @@ export function useSafetyLayer({ enabled }) {
       try {
         const [gridPayload, summaryPayload] = await Promise.all([getSafetyGrid(), getSafetySummary()]);
         if (!active) return;
-        setGrid(gridPayload?.data ?? null);
+        const nextGrid = gridPayload?.data ?? null;
+        const gridFeatures = Array.isArray(nextGrid?.features) ? nextGrid.features : null;
+        if (!gridFeatures || gridFeatures.length === 0) {
+          throw new Error('La API de seguridad respondió sin celdas para pintar el heatmap.');
+        }
+
+        setGrid(nextGrid);
         setSummary(summaryPayload?.data ?? null);
       } catch (err) {
         if (!active) return;
