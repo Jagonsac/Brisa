@@ -74,7 +74,7 @@
 7. Activar/desactivar toggle Bicimad y verificar capa condicional.
 
 ## Limitaciones actuales
-- Primera carga del grafo puede tardar por descarga inicial.
+- El backend ahora precarga el grafo al arrancar para evitar timeouts en la primera búsqueda, pero el arranque inicial puede tardar mientras descarga/cachea OSM.
 - Dependencia externa de Nominatim para sugerencias/geocoding.
 - Modos segura/equilibrada/nocturna pendientes de slices posteriores.
 

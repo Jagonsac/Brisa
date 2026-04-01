@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Body, HTTPException, status
 
 from app.schemas.route_response import RouteResponse
@@ -6,6 +8,10 @@ from app.utils.route_payload_parser import RoutePayloadError, parse_route_payloa
 
 router = APIRouter(prefix="/api/routes", tags=["routes"])
 service = RouteService()
+
+
+async def warmup_route_graph() -> None:
+    await asyncio.to_thread(service.graph_service.get_graph)
 
 
 @router.post("", response_model=RouteResponse)

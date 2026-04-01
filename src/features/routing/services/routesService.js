@@ -47,7 +47,9 @@ function normalizeApiError(status, payload) {
   return detailMessage || 'No se pudo calcular la ruta con los datos indicados.';
 }
 
-async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 30000) {
+const ROUTE_REQUEST_TIMEOUT_MS = 90000;
+
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = ROUTE_REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -101,6 +103,6 @@ export async function createRoute({ origin, destination, mode }) {
       },
       body: JSON.stringify(body),
     },
-    45000,
+    ROUTE_REQUEST_TIMEOUT_MS,
   );
 }
