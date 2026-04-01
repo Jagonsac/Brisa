@@ -30,6 +30,11 @@ class SafetyConfig:
         "SAFETY_TRAFFIC_MONTHLY_API_URL",
         "https://datos.madrid.es/api/3/action/datastore_search?resource_id=300233-6-aforo-trafico-permanentes-xlsx&limit=50000",
     )
+    neighborhoods_geojson_url: str = getenv(
+        "SAFETY_NEIGHBORHOODS_GEOJSON_URL",
+        "https://datos.madrid.es/egob/catalogo/212070-0-barrios.geojson",
+    )
+    neighborhoods_cache_filename: str = getenv("SAFETY_NEIGHBORHOODS_CACHE_FILENAME", "madrid_barrios.geojson")
     traffic_influence_radius_meters: int = int(getenv("SAFETY_TRAFFIC_RADIUS_METERS", "450"))
     hostile_highway_classes: tuple[str, ...] = (
         "trunk",

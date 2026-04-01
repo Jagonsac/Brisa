@@ -25,8 +25,8 @@ async function fetchJson(path) {
   return payload;
 }
 
-export function getSafetyGrid() {
-  return fetchJson('/api/safety/grid');
+export function getSafetyGrid(aggregation = 'neighborhood') {
+  return fetchJson(`/api/safety/grid?aggregation=${encodeURIComponent(aggregation)}`);
 }
 
 export function getSafetySummary() {
