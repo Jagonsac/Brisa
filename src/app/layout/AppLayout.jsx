@@ -9,6 +9,7 @@ import { RouteModeSelector } from '../../features/search/components/RouteModeSel
 import { RouteSearchForm } from '../../features/search/components/RouteSearchForm';
 import { getLocationSuggestions } from '../../features/search/services/geocodingService';
 import { RouteSummaryCard } from '../../features/routing/components/RouteSummaryCard';
+import { useSafetyLayer } from '../../features/safety/hooks/useSafetyLayer';
 import { createRoute } from '../../features/routing/services/routesService';
 import { featureFlags } from '../../shared/config/featureFlags';
 import { ROUTE_MODES } from '../../shared/constants/routeModes';
@@ -48,13 +49,17 @@ export function AppLayout() {
   const [routeError, setRouteError] = useState('');
   const [routeLoading, setRouteLoading] = useState(false);
   const [showBicimadLayer, setShowBicimadLayer] = useState(false);
+  const [showSafetyLayer, setShowSafetyLayer] = useState(true);
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const [suggestionLoading, setSuggestionLoading] = useState(INITIAL_LOADING);
   const [suggestionOpen, setSuggestionOpen] = useState(INITIAL_SUGGESTION_OPEN);
   const isProgrammaticSelectionRef = useRef({ origin: false, destination: false });
 
   const bicimadLayerEnabled = featureFlags.enableBicimad && featureFlags.enableBicimadStationsLayer;
+  const safetyLayerEnabled = featureFlags.enableSafetyLayer;
+  const safetySummaryEnabled = featureFlags.enableSafetySummary;
   const bicimadState = useBicimadStations({ enabled: bicimadLayerEnabled });
+  const safetyState = useSafetyLayer({ enabled: safetyLayerEnabled || safetySummaryEnabled });
 
   const canSubmit = useMemo(
     () => inputValues.origin.trim().length > 0 && inputValues.destination.trim().length > 0,
@@ -223,6 +228,25 @@ export function AppLayout() {
                 />
                 Mostrar estaciones Bicimad
               </label>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={showSafetyLayer}
+                  onChange={(event) => setShowSafetyLayer(event.target.checked)}
+                  disabled={!safetyLayerEnabled || Boolean(safetyState.error)}
+                />
+                Mostrar capa de seguridad ciclista v1
+              </label>
+              {safetyState.error && <p className={styles.warningText}>Capa de seguridad no disponible: {safetyState.error}</p>}
+              {safetySummaryEnabled && safetyState.summary && (
+                <p className={styles.infoText}>
+                  Índice actual: {safetyState.summary.cellCount} celdas · score medio {safetyState.summary.scoreAvg}.
+                  {safetyState.summary.trafficFallbackUsed
+                    ? ' Tráfico en modo fallback v1.'
+                    : ' Tráfico integrado con aforos.'}
+                </p>
+              )}
+              <p className={styles.subtleNote}>La capa de seguridad aún no modifica el cálculo de ruta; llegará en Slice 6.</p>
               <p className={styles.infoText}>{infoMessage}</p>
               <RouteSummaryCard routeData={routeData} loading={routeLoading} error={routeError} statusMessage={routeData ? 'Ruta lista en mapa.' : 'Sin ruta calculada todavía.'} />
             </section>
@@ -249,6 +273,9 @@ export function AppLayout() {
               routeData={routeData}
               selectedOriginPlace={selectedPlaces.origin}
               selectedDestinationPlace={selectedPlaces.destination}
+              safetyGrid={safetyState.grid}
+              showSafetyLayer={showSafetyLayer && safetyLayerEnabled}
+              safetySummary={safetyState.summary}
             />
           ) : (
             <p>Mapa desactivado por feature flag.</p>

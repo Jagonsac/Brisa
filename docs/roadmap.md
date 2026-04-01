@@ -28,9 +28,10 @@
 - Cálculo shortest-path por `length`
 - Pintado de ruta real en mapa + resumen de distancia
 
-## Slice 5 — Score de seguridad + heatmap
-- Modelo inicial de seguridad
-- Visualización por segmentos/áreas
+## Slice 5 — Score de seguridad + heatmap (completado)
+- Grid de seguridad ciclista v1 por celdas
+- API `GET /api/safety/grid` y `GET /api/safety/summary`
+- Visualización choropleth con leyenda y popups
 
 ## Slice 6 — Rutas seguras y nocturnas
 - Perfil seguro y nocturno

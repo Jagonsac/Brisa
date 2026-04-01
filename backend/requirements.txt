@@ -3,3 +3,5 @@ uvicorn[standard]==0.35.0
 httpx==0.28.1
 osmnx==2.0.6
 networkx==3.5
+
+pyproj==3.7.2

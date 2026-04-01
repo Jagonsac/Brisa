@@ -4,6 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 
 import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLayer';
+import { SafetyLegend } from '../../safety/components/SafetyLegend';
+import { getSafetyColor } from '../../safety/utils/safetyColors';
 import { madridMapConfig } from '../../../mocks/madridMapConfig';
 import styles from './MapView.module.css';
 
@@ -41,7 +43,34 @@ function RouteBoundsController({ routeFeature }) {
   return null;
 }
 
-export function MapView({ selectedOriginPlace, selectedDestinationPlace, bicimadStations, showBicimadLayer, routeData }) {
+function styleSafetyFeature(feature) {
+  const score = feature?.properties?.safetyScore ?? 0;
+  return {
+    color: '#ffffff',
+    weight: 0.25,
+    fillOpacity: 0.42,
+    fillColor: getSafetyColor(score),
+  };
+}
+
+function bindSafetyPopup(feature, layer) {
+  const properties = feature?.properties ?? {};
+  const explanation = Array.isArray(properties.explanation) ? properties.explanation.join('<br/>') : '';
+  layer.bindPopup(
+    `<strong>Seguridad: ${properties.safetyScore ?? '-'} / 100</strong><br/>Accidentes: ${properties.accidentCount ?? 0}<br/>${explanation}`,
+  );
+}
+
+export function MapView({
+  selectedOriginPlace,
+  selectedDestinationPlace,
+  bicimadStations,
+  showBicimadLayer,
+  routeData,
+  safetyGrid,
+  showSafetyLayer,
+  safetySummary,
+}) {
   const routeFeature = routeData?.routeGeoJson ?? null;
   const originPoint = selectedOriginPlace || routeData?.origin || null;
   const destinationPoint = selectedDestinationPlace || routeData?.destination || null;
@@ -58,6 +87,8 @@ export function MapView({ selectedOriginPlace, selectedDestinationPlace, bicimad
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {showSafetyLayer && safetyGrid && <GeoJSON data={safetyGrid} style={styleSafetyFeature} onEachFeature={bindSafetyPopup} />}
 
         {originPosition && (
           <Marker position={originPosition} icon={originIcon}>
@@ -80,6 +111,7 @@ export function MapView({ selectedOriginPlace, selectedDestinationPlace, bicimad
 
         {showBicimadLayer && bicimadStations.length > 0 && <BicimadStationsLayer stations={bicimadStations} />}
       </MapContainer>
+      <SafetyLegend visible={showSafetyLayer} summary={safetySummary} />
     </div>
   );
 }

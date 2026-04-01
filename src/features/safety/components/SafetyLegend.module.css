@@ -1,0 +1,41 @@
+.legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #d7e1f3;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  min-width: 220px;
+  box-shadow: 0 6px 16px rgba(22, 43, 79, 0.15);
+  font-size: 0.78rem;
+}
+
+.legend h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.84rem;
+}
+
+.scale {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.scale span {
+  padding: 0.2rem 0.25rem;
+  border-radius: 6px;
+  color: #10233f;
+  text-align: center;
+}
+
+.low { background: #f46d43; }
+.mid { background: #fee08b; }
+.high { background: #66bd63; }
+
+.legend p {
+  margin: 0;
+  color: #334c71;
+}

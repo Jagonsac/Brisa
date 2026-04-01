@@ -5,7 +5,7 @@ Brisa es una aplicación web para ayudar a moverse por Madrid en bicicleta con m
 ## Problema que resuelve
 Elegir rutas ciclistas en ciudad suele requerir equilibrio entre rapidez, seguridad y contexto urbano. Brisa reduce esa fricción con rutas explicables y datos abiertos.
 
-## Estado actual (Slice 4 corregido)
+## Estado actual (Slice 5)
 ✅ Base React + Vite ejecutable.  
 ✅ UI principal en español con mapa Leaflet de Madrid.  
 ✅ Integración de estaciones Bicimad en mapa (Slice 2).  
@@ -15,6 +15,14 @@ Elegir rutas ciclistas en ciudad suele requerir equilibrio entre rapidez, seguri
 ✅ Pins de origen/destino visibles antes de calcular ruta.  
 ✅ Capa Bicimad opcional con toggle (oculta por defecto).  
 ✅ Manejo de errores de ruta en español sin mensaje opaco “Failed to fetch”.
+✅ Capa de seguridad ciclista v1 con grid GeoJSON, score explicable y leyenda.
+
+## Qué incluye Slice 5 (además de Slice 4)
+- Score de seguridad ciclista v1 (0..100) por celdas de 250m.
+- Cálculo backend con accidentes bici + proxy tráfico + contexto vial OSM.
+- Capa choropleth activable/desactivable con popup explicativo.
+- Caché local de preprocesado en `backend/data/safety/processed`.
+- Endpoints `GET /api/safety/grid` y `GET /api/safety/summary`.
 
 ## Qué incluye Slice 4
 - Formulario origen/destino conectado a backend.
@@ -72,6 +80,8 @@ Backend en `http://localhost:8000`.
 - `GET /api/stations?source=auto|remote|snapshot`
 - `POST /api/routes`
 - `GET /api/geocoding/suggest?q=<texto>`
+- `GET /api/safety/grid`
+- `GET /api/safety/summary`
 
 ## Notas de contrato (Slice 4 hardening)
 - `POST /api/routes` normaliza manualmente payloads flexibles (A/B/C) para evitar 422 por desajustes leves de forma.
@@ -90,7 +100,7 @@ Backend en `http://localhost:8000`.
    - el mapa se ajusta automáticamente,
    - la tarjeta “Ruta actual” muestra distancia y estado.
 6. Activa/desactiva Bicimad para validar el toggle.
+7. Activa/desactiva la capa de seguridad v1, revisa leyenda y popup de celdas.
 
 ## Próximos pasos
-- Slice 5: score de seguridad + visualización.
-- Slice 6: rutas seguras/equilibradas/nocturnas reales.
+- Slice 6: rutas seguras/equilibradas/nocturnas reales (la capa v1 aún no modifica routing).
