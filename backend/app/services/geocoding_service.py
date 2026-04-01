@@ -46,7 +46,7 @@ class GeocodingService:
         if len(clean_query) < 3:
             return []
 
-        payload = await self._search_nominatim(clean_query, limit=5)
+        payload = await self._search_nominatim(clean_query, limit=5, dedupe=0)
         if not isinstance(payload, list):
             raise GeocodingError("invalid_provider_payload", "No hemos podido obtener sugerencias en este momento.")
 
@@ -74,7 +74,7 @@ class GeocodingService:
 
         return suggestions
 
-    async def _search_nominatim(self, query: str, *, limit: int) -> list[dict]:
+    async def _search_nominatim(self, query: str, *, limit: int, dedupe: int = 1) -> list[dict]:
         enriched_query = self._to_madrid_query(query)
         params = {
             "format": "jsonv2",
@@ -82,7 +82,7 @@ class GeocodingService:
             "limit": limit,
             "countrycodes": settings.nominatim_country_codes,
             "addressdetails": 1,
-            "dedupe": 1,
+            "dedupe": dedupe,
         }
 
         payload = await self.client.fetch_json(
@@ -121,6 +121,19 @@ class GeocodingService:
 
         if road:
             return str(road).strip()
+
+        if house_number:
+            label = item.get("display_name")
+            if label:
+                parts = [segment.strip() for segment in str(label).split(",") if segment.strip()]
+                if len(parts) >= 2:
+                    first_part = parts[0]
+                    second_part = parts[1]
+                    clean_house_number = str(house_number).strip()
+                    if first_part == clean_house_number:
+                        return f"{second_part}, {clean_house_number}".strip()
+                    if second_part == clean_house_number and len(parts) >= 3:
+                        return f"{parts[0]}, {clean_house_number}".strip()
 
         label = item.get("display_name")
         if label:
