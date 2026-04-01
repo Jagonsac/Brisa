@@ -16,6 +16,17 @@ function buildApiUrl(path) {
   return `${base}${normalizedPath}`;
 }
 
+function withQueryParam(url, key, value) {
+  const hasProtocol = /^https?:\/\//i.test(url);
+  const parsedUrl = hasProtocol ? new URL(url) : new URL(url, window.location.origin);
+  parsedUrl.searchParams.set(key, value);
+
+  if (hasProtocol) {
+    return parsedUrl.toString();
+  }
+
+  return `${parsedUrl.pathname}${parsedUrl.search}`;
+}
 
 function normalizeSuggestion(item) {
   const label = typeof item?.label === 'string' ? item.label.trim() : '';
@@ -43,11 +54,10 @@ export async function getLocationSuggestions(query, { signal } = {}) {
     return [];
   }
 
-  const url = new URL(buildApiUrl('/api/geocoding/suggest'));
-  url.searchParams.set('q', q);
+  const url = withQueryParam(buildApiUrl('/api/geocoding/suggest'), 'q', q);
 
   try {
-    const response = await fetch(url.toString(), { signal });
+    const response = await fetch(url, { signal });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       return [];
