@@ -9,7 +9,10 @@ service = SafetyService()
 
 
 @router.get("/grid", response_model=SafetyGridResponse)
-def get_safety_grid(bbox: str | None = Query(default=None, description="minLon,minLat,maxLon,maxLat")) -> SafetyGridResponse:
+def get_safety_grid(
+    bbox: str | None = Query(default=None, description="minLon,minLat,maxLon,maxLat"),
+    aggregation: str = Query(default="neighborhood", description="neighborhood|cell"),
+) -> SafetyGridResponse:
     try:
         parsed_bbox = None
         if bbox:
@@ -18,13 +21,19 @@ def get_safety_grid(bbox: str | None = Query(default=None, description="minLon,m
                 raise ValueError("BBox inválido")
             parsed_bbox = (values[0], values[1], values[2], values[3])
 
-        collection, metadata = service.get_grid(parsed_bbox)
+        if aggregation == "cell":
+            collection, metadata = service.get_grid(parsed_bbox)
+        elif aggregation == "neighborhood":
+            collection, metadata = service.get_neighborhood_grid(parsed_bbox)
+        else:
+            raise ValueError("Aggregation inválida")
         return SafetyGridResponse.model_validate(
             {
                 "data": collection,
                 "meta": {
                     "version": metadata.get("version", "v1"),
                     "cellSizeMeters": metadata.get("cellSizeMeters", 250),
+                    "aggregationLevel": metadata.get("aggregationLevel", "cell"),
                     "sources": metadata.get("sources", {}),
                     "trafficFallbackUsed": metadata.get("trafficFallbackUsed", True),
                 },

@@ -7,8 +7,10 @@ Entregar una primera superficie de seguridad ciclista para Madrid, visible en el
 - Backend FastAPI con dos endpoints nuevos:
   - `GET /api/safety/grid`
   - `GET /api/safety/summary`
+- `GET /api/safety/grid` soporta agregación por `aggregation=neighborhood` (default) para visualización, y `aggregation=cell` para detalle técnico.
 - Pipeline de construcción de grid por celdas cuadradas (250m configurable).
 - Score v1 de seguridad `0..100` por celda.
+- Mapeo del score del grid a polígonos de barrio de Madrid para choropleth más legible.
 - Caché local del preprocesado en `backend/data/safety/processed`.
 - Capa visual choropleth en frontend con toggle, popup y leyenda.
 
@@ -63,6 +65,7 @@ Regla:
 - El recurso mensual de aforos puede cambiar estructura/campos y forzar fallback parcial.
 - La severidad de accidentes usa un mapping simple inicial (recalibrable).
 - Esta slice no modifica todavía `POST /api/routes`.
+- Si no se puede descargar/cargar el GeoJSON de barrios, la capa agregada no estará disponible hasta regenerar caché.
 
 ## Criterios de aceptación de Slice 5
 - API de safety operativa (`grid` + `summary`).

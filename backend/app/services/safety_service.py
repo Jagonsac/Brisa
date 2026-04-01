@@ -5,12 +5,14 @@ import threading
 from pathlib import Path
 
 from app.core.safety_config import safety_config
+from app.services.neighborhood_service import NeighborhoodService
 from app.services.safety_grid_builder import SafetyGridBuilder
 
 
 class SafetyService:
     def __init__(self) -> None:
         self.builder = SafetyGridBuilder()
+        self.neighborhood_service = NeighborhoodService()
         self.data_dir = Path(__file__).resolve().parents[2] / "data" / "safety" / "processed"
         self.grid_path = self.data_dir / "madrid_safety_grid_v1.geojson"
         self.meta_path = self.data_dir / "safety_metadata_v1.json"
@@ -32,6 +34,14 @@ class SafetyService:
                 features.append(feature)
             collection = {"type": "FeatureCollection", "features": features}
         return collection, metadata
+
+    def get_neighborhood_grid(self, bbox: tuple[float, float, float, float] | None = None) -> tuple[dict, dict]:
+        grid_collection, metadata = self.get_grid(bbox)
+        neighborhoods, neighborhood_meta = self.neighborhood_service.load_boundaries()
+        neighborhood_scores = self._aggregate_cells_by_neighborhood(grid_collection, neighborhoods)
+        collection = {"type": "FeatureCollection", "features": neighborhood_scores}
+        merged_meta = {**metadata, "aggregationLevel": "neighborhood", "neighborhoods": neighborhood_meta}
+        return collection, merged_meta
 
     def get_summary(self) -> dict:
         _, metadata = self._ensure_cached()
@@ -55,6 +65,74 @@ class SafetyService:
             self.grid_path.write_text(json.dumps(collection, ensure_ascii=False), encoding="utf-8")
             self.meta_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
             return collection, metadata
+
+    def _aggregate_cells_by_neighborhood(self, grid_collection: dict, neighborhoods: list) -> list[dict]:
+        buckets: dict[str, dict] = {}
+        features = grid_collection.get("features", [])
+
+        for cell in features:
+            coordinates = cell.get("geometry", {}).get("coordinates", [])
+            if not coordinates or not coordinates[0]:
+                continue
+            ring = coordinates[0]
+            centroid_lon = sum(point[0] for point in ring[:-1]) / max(len(ring) - 1, 1)
+            centroid_lat = sum(point[1] for point in ring[:-1]) / max(len(ring) - 1, 1)
+
+            target = None
+            for neighborhood in neighborhoods:
+                if self.neighborhood_service.contains(neighborhood.geometry, centroid_lon, centroid_lat):
+                    target = neighborhood
+                    break
+            if target is None:
+                continue
+
+            if target.neighborhood_id not in buckets:
+                buckets[target.neighborhood_id] = {
+                    "neighborhood": target,
+                    "safety_scores": [],
+                    "risk_scores": [],
+                    "accidents": 0,
+                    "cells": 0,
+                }
+
+            bucket = buckets[target.neighborhood_id]
+            props = cell.get("properties", {})
+            bucket["safety_scores"].append(float(props.get("safetyScore", 0)))
+            bucket["risk_scores"].append(float(props.get("riskScore", 0)))
+            bucket["accidents"] += int(props.get("accidentCount", 0))
+            bucket["cells"] += 1
+
+        aggregated = []
+        for bucket in buckets.values():
+            neighborhood = bucket["neighborhood"]
+            safety_scores = bucket["safety_scores"]
+            risk_scores = bucket["risk_scores"]
+            if not safety_scores:
+                continue
+
+            safety_score = int(round(sum(safety_scores) / len(safety_scores)))
+            risk_score = int(round(sum(risk_scores) / len(risk_scores)))
+            aggregated.append(
+                {
+                    "type": "Feature",
+                    "geometry": neighborhood.geometry,
+                    "properties": {
+                        "neighborhoodId": neighborhood.neighborhood_id,
+                        "name": neighborhood.name,
+                        "district": neighborhood.district,
+                        "safetyScore": max(0, min(100, safety_score)),
+                        "riskScore": max(0, min(100, risk_score)),
+                        "accidentCount": bucket["accidents"],
+                        "cellCount": bucket["cells"],
+                        "explanation": [
+                            f"Score agregado a partir de {bucket['cells']} celdas de seguridad.",
+                            f"Accidentes ciclistas registrados en el área: {bucket['accidents']}.",
+                        ],
+                    },
+                }
+            )
+
+        return aggregated
 
     def _ensure_cached(self) -> tuple[dict, dict]:
         with self._lock:

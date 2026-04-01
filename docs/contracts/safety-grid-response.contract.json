@@ -26,17 +26,7 @@
               },
               "properties": {
                 "type": "object",
-                "required": [
-                  "cellId",
-                  "safetyScore",
-                  "riskScore",
-                  "accidentCount",
-                  "weightedAccidentScore",
-                  "trafficExposure",
-                  "hostileRoadExposure",
-                  "bikeInfraScore",
-                  "explanation"
-                ]
+                "required": ["safetyScore", "riskScore", "accidentCount", "explanation"]
               }
             }
           }
@@ -45,10 +35,11 @@
     },
     "meta": {
       "type": "object",
-      "required": ["version", "cellSizeMeters", "sources", "trafficFallbackUsed"],
+      "required": ["version", "cellSizeMeters", "aggregationLevel", "sources", "trafficFallbackUsed"],
       "properties": {
         "version": { "type": "string" },
         "cellSizeMeters": { "type": "integer" },
+        "aggregationLevel": { "type": "string", "enum": ["cell", "neighborhood"] },
         "sources": { "type": "object" },
         "trafficFallbackUsed": { "type": "boolean" }
       }

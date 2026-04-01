@@ -56,8 +56,13 @@ function styleSafetyFeature(feature) {
 function bindSafetyPopup(feature, layer) {
   const properties = feature?.properties ?? {};
   const explanation = Array.isArray(properties.explanation) ? properties.explanation.join('<br/>') : '';
+  const title = properties.name ? `Barrio: ${properties.name}` : `Seguridad: ${properties.safetyScore ?? '-'} / 100`;
+  const accidentsLabel = properties.name ? 'Accidentes (agregado)' : 'Accidentes';
+  const cellsInfo = properties.cellCount ? `<br/>Celdas agregadas: ${properties.cellCount}` : '';
   layer.bindPopup(
-    `<strong>Seguridad: ${properties.safetyScore ?? '-'} / 100</strong><br/>Accidentes: ${properties.accidentCount ?? 0}<br/>${explanation}`,
+    `<strong>${title}</strong><br/>Score seguridad: ${properties.safetyScore ?? '-'} / 100<br/>${accidentsLabel}: ${
+      properties.accidentCount ?? 0
+    }${cellsInfo}<br/>${explanation}`,
   );
 }
 

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class SafetyGridMeta(BaseModel):
     version: str
     cellSizeMeters: int
+    aggregationLevel: str = "cell"
     sources: dict[str, bool]
     trafficFallbackUsed: bool
 
