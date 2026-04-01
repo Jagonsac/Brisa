@@ -45,8 +45,11 @@ export function MapView({ selectedOriginPlace, selectedDestinationPlace, bicimad
   const routeFeature = routeData?.routeGeoJson ?? null;
   const originPoint = selectedOriginPlace || routeData?.origin || null;
   const destinationPoint = selectedDestinationPlace || routeData?.destination || null;
-  const originPosition = originPoint ? [originPoint.lat, originPoint.lon] : null;
-  const destinationPosition = destinationPoint ? [destinationPoint.lat, destinationPoint.lon] : null;
+  const originLon = originPoint?.lon ?? originPoint?.lng;
+  const destinationLon = destinationPoint?.lon ?? destinationPoint?.lng;
+
+  const originPosition = originPoint && originLon !== undefined ? [originPoint.lat, originLon] : null;
+  const destinationPosition = destinationPoint && destinationLon !== undefined ? [destinationPoint.lat, destinationLon] : null;
 
   return (
     <div className={styles.wrapper}>

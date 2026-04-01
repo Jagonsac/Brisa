@@ -79,11 +79,15 @@ export async function createRoute({ origin, destination, mode }) {
   const body = {
     origin: {
       query: origin.query,
-      ...(origin.lat !== undefined && origin.lon !== undefined ? { lat: origin.lat, lon: origin.lon } : {}),
+      ...(origin.lat !== undefined && (origin.lon !== undefined || origin.lng !== undefined)
+        ? { lat: origin.lat, lon: origin.lon ?? origin.lng }
+        : {}),
     },
     destination: {
       query: destination.query,
-      ...(destination.lat !== undefined && destination.lon !== undefined ? { lat: destination.lat, lon: destination.lon } : {}),
+      ...(destination.lat !== undefined && (destination.lon !== undefined || destination.lng !== undefined)
+        ? { lat: destination.lat, lon: destination.lon ?? destination.lng }
+        : {}),
     },
     mode,
   };

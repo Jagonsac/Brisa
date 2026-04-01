@@ -154,12 +154,12 @@ export function AppLayout() {
         origin: {
           query: inputValues.origin.trim(),
           lat: selectedPlaces.origin?.lat,
-          lon: selectedPlaces.origin?.lon,
+          lon: selectedPlaces.origin?.lon ?? selectedPlaces.origin?.lng,
         },
         destination: {
           query: inputValues.destination.trim(),
           lat: selectedPlaces.destination?.lat,
-          lon: selectedPlaces.destination?.lon,
+          lon: selectedPlaces.destination?.lon ?? selectedPlaces.destination?.lng,
         },
         mode: selectedMode.apiMode,
       });
