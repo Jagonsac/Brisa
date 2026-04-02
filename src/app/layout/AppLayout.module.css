@@ -1,8 +1,61 @@
 .page {
+  position: relative;
   min-height: 100vh;
   padding: 1.5rem;
   background: linear-gradient(180deg, #f5f8ff 0%, #f7faf9 100%);
   color: #14213d;
+}
+
+.bootOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(245, 248, 255, 0.95) 0%, rgba(247, 250, 249, 0.95) 100%);
+  backdrop-filter: blur(4px);
+}
+
+.bootCard {
+  width: min(460px, calc(100vw - 2rem));
+  padding: 1.3rem 1.2rem;
+  border-radius: 14px;
+  border: 1px solid #d8e1f2;
+  background: #ffffff;
+  box-shadow: 0 12px 34px rgba(25, 52, 96, 0.12);
+}
+
+.bootCard h2 {
+  margin: 0;
+  color: #173468;
+  font-size: 1.25rem;
+}
+
+.bootCard p {
+  margin: 0.55rem 0 0.7rem;
+  color: #3c4f74;
+}
+
+.progressTrack {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e8eefb;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2d76e4 0%, #2dc17f 100%);
+  transition: width 180ms ease;
+}
+
+.bootCard small {
+  display: inline-block;
+  margin-top: 0.45rem;
+  color: #4b5f84;
+  font-weight: 600;
 }
 
 .header {

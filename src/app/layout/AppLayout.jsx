@@ -10,7 +10,7 @@ import { RouteSearchForm } from '../../features/search/components/RouteSearchFor
 import { getLocationSuggestions } from '../../features/search/services/geocodingService';
 import { RouteSummaryCard } from '../../features/routing/components/RouteSummaryCard';
 import { useSafetyLayer } from '../../features/safety/hooks/useSafetyLayer';
-import { createRoute } from '../../features/routing/services/routesService';
+import { createRoute, waitForRoutingBackendReady } from '../../features/routing/services/routesService';
 import { featureFlags } from '../../shared/config/featureFlags';
 import { ROUTE_MODES } from '../../shared/constants/routeModes';
 import styles from './AppLayout.module.css';
@@ -41,6 +41,9 @@ const INITIAL_SELECTED_PLACES = {
 };
 
 export function AppLayout() {
+  const [appBooting, setAppBooting] = useState(true);
+  const [bootProgress, setBootProgress] = useState(8);
+  const [bootMessage, setBootMessage] = useState('Inicializando motor de rutas...');
   const [inputValues, setInputValues] = useState(INITIAL_INPUT_VALUES);
   const [selectedPlaces, setSelectedPlaces] = useState(INITIAL_SELECTED_PLACES);
   const [selectedMode, setSelectedMode] = useState(ROUTE_MODES.FAST);
@@ -65,6 +68,47 @@ export function AppLayout() {
     () => inputValues.origin.trim().length > 0 && inputValues.destination.trim().length > 0,
     [inputValues.destination, inputValues.origin],
   );
+
+  useEffect(() => {
+    let isMounted = true;
+    let progressTimer;
+
+    const runBootSequence = async () => {
+      progressTimer = window.setInterval(() => {
+        setBootProgress((current) => Math.min(current + 4, 88));
+      }, 280);
+
+      try {
+        setBootMessage('Conectando con el backend...');
+        await waitForRoutingBackendReady();
+        if (!isMounted) return;
+
+        setBootMessage('Cargando capas iniciales y cachés...');
+        setBootProgress(96);
+      } catch {
+        if (isMounted) {
+          setBootMessage('No se pudo validar el backend. Puedes intentarlo igualmente.');
+          setBootProgress(100);
+        }
+      } finally {
+        window.clearInterval(progressTimer);
+        if (isMounted) {
+          setBootProgress(100);
+          window.setTimeout(() => {
+            if (isMounted) {
+              setAppBooting(false);
+            }
+          }, 420);
+        }
+      }
+    };
+
+    runBootSequence();
+    return () => {
+      isMounted = false;
+      window.clearInterval(progressTimer);
+    };
+  }, []);
 
   useEffect(() => {
     const activeRequests = [];
@@ -193,6 +237,18 @@ export function AppLayout() {
 
   return (
     <div className={styles.page}>
+      {appBooting && (
+        <div className={styles.bootOverlay} role="status" aria-live="polite">
+          <div className={styles.bootCard}>
+            <h2>Preparando Brisa</h2>
+            <p>{bootMessage}</p>
+            <div className={styles.progressTrack} aria-hidden="true">
+              <div className={styles.progressBar} style={{ width: `${bootProgress}%` }} />
+            </div>
+            <small>{bootProgress}%</small>
+          </div>
+        </div>
+      )}
       <header className={styles.header}>
         <h1>Brisa</h1>
         <p>Plataforma para planificar rutas ciclistas más seguras por Madrid.</p>

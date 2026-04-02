@@ -1,4 +1,4 @@
-import json
+import threading
 
 import networkx as nx
 import numpy as np
@@ -24,6 +24,8 @@ class RouteService:
         self.graph_service = graph_service or GraphService()
         self.geocoding_service = geocoding_service or GeocodingService()
         self.edge_weight_service = EdgeWeightService()
+        self._weight_lock = threading.Lock()
+        self._last_decorated_signature: tuple[int, str, int] | None = None
 
     async def build_route(
         self,
@@ -57,7 +59,7 @@ class RouteService:
             raise RouteServiceError("snap_failed", "No se pudo ajustar el origen o destino a la red ciclista.") from error
 
         weight_name = f"brisa_weight_{mode}"
-        self._decorate_graph_weights(graph, edge_metrics=edge_metrics, mode=mode)
+        self._ensure_graph_weights(graph, edge_metrics=edge_metrics, weights_version=edge_weights_payload.get("version", "v1"))
 
         try:
             path = nx.shortest_path(graph, origin_node, destination_node, weight=weight_name)
@@ -160,7 +162,7 @@ class RouteService:
         }
         return RouteResponse.model_validate(response_payload)
 
-    def _decorate_graph_weights(self, graph, *, edge_metrics: dict, mode: str) -> None:
+    def _decorate_graph_weights(self, graph, *, edge_metrics: dict) -> None:
         for u, v, key, data in graph.edges(keys=True, data=True):
             length = float(data.get("length") or 0.0)
             edge_id = f"{u}:{v}:{key}"
@@ -179,23 +181,30 @@ class RouteService:
                 + routing_profiles_config.night_accident_multiplier * night
             )
 
+    def _ensure_graph_weights(self, graph, *, edge_metrics: dict, weights_version: str) -> None:
+        graph_signature = (id(graph), weights_version, len(edge_metrics))
+        if self._last_decorated_signature == graph_signature:
+            return
+
+        with self._weight_lock:
+            if self._last_decorated_signature == graph_signature:
+                return
+            self._decorate_graph_weights(graph, edge_metrics=edge_metrics)
+            self._last_decorated_signature = graph_signature
+
     @staticmethod
     def _estimate_baseline_fastest(graph, origin_node, destination_node) -> float:
         try:
-            baseline_path = nx.shortest_path(graph, origin_node, destination_node, weight="length")
+            baseline_distance = nx.shortest_path_length(graph, origin_node, destination_node, weight="length")
         except nx.NetworkXNoPath:
             return 0.0
+        return float(baseline_distance)
 
-        baseline_distance = 0.0
-        for index in range(len(baseline_path) - 1):
-            source = baseline_path[index]
-            target = baseline_path[index + 1]
-            edges = graph.get_edge_data(source, target)
-            if not edges:
-                continue
-            best = min(edges.values(), key=lambda edge: edge.get("length", float("inf")))
-            baseline_distance += float(best.get("length", 0.0))
-        return baseline_distance
+    def warmup_routing_engine(self) -> None:
+        graph, _ = self.graph_service.get_graph()
+        edge_weights_payload = self.edge_weight_service.get_edge_weights()
+        edge_metrics = edge_weights_payload.get("edges", {})
+        self._ensure_graph_weights(graph, edge_metrics=edge_metrics, weights_version=edge_weights_payload.get("version", "v1"))
 
     def _build_explanations(
         self,
