@@ -1,93 +1,56 @@
-# Slice 6 — Routing multicriterio real (rápida / segura / equilibrada / nocturna)
+# Slice 6.5 — Hardening de routing seguro (edge-first)
 
 ## Objetivo
-Extender `POST /api/routes` para soportar cuatro modos reales de cálculo (`fastest`, `safe`, `balanced`, `night`) reutilizando el grid de seguridad del Slice 5 y añadiendo dos capas nuevas para el modo nocturno:
-- proxy de iluminación urbana (farolas)
-- riesgo nocturno por accidentalidad ciclista
+Endurecer el motor multicriterio para que la decisión de ruta segura/nocturna sea **edge-first** y no dependa de una grid gruesa como señal principal.
 
-## Reutilización de Slice 5
-- Se reutiliza la malla de seguridad en `backend/data/safety/processed/madrid_safety_grid_v1.geojson`.
-- El coste por seguridad para `safe` y `balanced` usa el `riskScore` normalizado por edge (0..1).
-- La capa visual de seguridad y su resumen en frontend no se tocan; siguen siendo independientes del motor de routing.
+## Cambios clave
+- Filtrado explícito de legalidad ciclista por edge (`bicycle=no`, `access=no`, `motorroad=yes`, `motorway`, `motorway_link`).
+- `trunk`/`trunk_link` se bloquean por defecto salvo infraestructura ciclista explícita (ej. `cycleway=track`).
+- Nuevo pipeline de métricas por edge cacheadas en `backend/data/routing/edge_metrics_v2.json`.
+- El routing usa estas métricas cacheadas para `fastest`, `balanced`, `safe` y `night`.
 
-## Novedades del Slice 6
-- Nuevo servicio de pesos de edge con caché: `backend/app/services/edge_weight_service.py`.
-- Nuevo servicio de iluminación: `backend/app/services/lighting_service.py`.
-- Nuevo servicio de riesgo nocturno: `backend/app/services/night_risk_service.py`.
-- `RouteService` ahora calcula rutas para los cuatro modos y devuelve explicaciones deterministas.
-- UI actualizada para habilitar los cuatro modos y mostrar métricas compactas + explicaciones.
+## Modelo de seguridad edge-first
+Cada edge calcula señales independientes y explicables:
+- hostilidad vial (clase de vía, carriles, velocidad)
+- exposición motorizada (aforos + IMD cuando hay datos)
+- accidentalidad general y específica bici (con suavizado Bayesiano)
+- complejidad de cruce
+- bonus de infraestructura ciclista (tags OSM)
+- iluminación y riesgo nocturno
 
-## Dataset nuevo usado
-### Farolas (alumbrado público)
-- Dataset: Unidades luminosas (farolas) de Madrid.
-- Uso: proxy simple de iluminación por celda (densidad de farolas).
-- Campo espacial: `X_UTM`, `Y_UTM` (EPSG:25830).
+La grid de Slice 5 se mantiene para visualización/fallback, pero no es la señal principal de coste de ruta.
 
-## Construcción del modo nocturno
-1. **Lighting grid**: cuenta de farolas por celda (malla de 250m). Normalización min-max para `lightingScore` y derivación `lightingDeficit = 1 - lightingScore`.
-2. **Night risk grid**: accidentes bici filtrados por franja nocturna (`22:00` a `06:00`) agregados por celda y normalizados.
-3. **Coste night por edge**: promedio por muestreo (inicio/mitad/fin de cada edge) sobre:
-   - `safetyRiskNormalized`
-   - `lightingDeficitNormalized`
-   - `nightRiskNormalized`
+## Datasets integrados en pipeline v2
+- Accidentes generales (`300228-34` CSV).
+- Accidentes bici (`300110` CSV, con fallback local si falla descarga).
+- Aforos no permanentes (`300209-1` CSV).
+- Farolas (`300573-0` CSV).
+- Aforos peatones/bicicletas (`300321-10` CSV).
+- Cruces semaforizados y cruces bici: integración preparada vía CSV configurable (si no hay CSV resoluble, queda fallback neutro).
+- IMD: integración preparada con URL configurable (fallback neutro si el recurso no es CSV directo).
 
-## Fórmulas de peso por modo
-- `fastest`: `length`
-- `safe`: `length * (1 + SAFE_RISK_MULTIPLIER * safetyRiskNormalized)`
-- `balanced`: `length * (1 + BALANCED_RISK_MULTIPLIER * safetyRiskNormalized)`
-- `night`: `length * (1 + NIGHT_BASE_RISK_MULTIPLIER * safetyRiskNormalized + NIGHT_LIGHTING_MULTIPLIER * lightingDeficitNormalized + NIGHT_ACCIDENT_MULTIPLIER * nightRiskNormalized)`
+## Pesos por modo
+- `fastest`: distancia + penalización muy leve solo de hostilidad extrema.
+- `balanced`: penalización media de riesgo diurno.
+- `safe`: penalización fuerte de riesgo diurno (acepta desvío razonable).
+- `night`: base `safe` + penalización fuerte por iluminación/accidentalidad nocturna/tráfico nocturno.
 
-Pesos v1 configurados (env, con defaults):
-- `SAFE_RISK_MULTIPLIER=2.5`
-- `BALANCED_RISK_MULTIPLIER=1.1`
-- `NIGHT_BASE_RISK_MULTIPLIER=1.2`
-- `NIGHT_LIGHTING_MULTIPLIER=1.0`
-- `NIGHT_ACCIDENT_MULTIPLIER=0.8`
-- `NIGHT_START_HOUR=22`
-- `NIGHT_END_HOUR=6`
+## Preprocesado/caché
+Nuevo comando offline:
 
-## Estrategia de caché
-Se implementa caché lazy en `backend/data/routing/`:
-- `edge_weights_v1.json` (métricas de seguridad/iluminación/riesgo nocturno por edge)
-- `lighting_grid_v1.geojson` + metadatos
-- `night_risk_grid_v1.geojson` + metadatos
-- `route_metadata_v1.json` (pesos finales y fallback usados)
+```bash
+cd backend
+python -m app.pipelines.build_routing_cache
+```
 
-Primera ejecución: más lenta por descargas y preprocesado.
-Siguientes ejecuciones: lectura directa de cachés.
+Artefactos:
+- `backend/data/routing/edge_metrics_v2.json`
+- `backend/data/routing/route_metadata_v2.json`
 
-### Ajuste de rendimiento (abril 2026)
-- El backend ahora calienta **grafo + pesos multicriterio** durante el `lifespan` de FastAPI (`warmup_routing_engine`), de forma que el primer cálculo de ruta no arranca desde frío.
-- `GraphService` comparte un único grafo en memoria entre servicios para evitar cargas duplicadas del `.graphml`.
-- Los pesos `brisa_weight_*` se decoran una sola vez por versión de caché/instancia de grafo, eliminando un coste `O(E)` en cada request.
-- La baseline rápida usa `shortest_path_length` (distancia) en lugar de reconstruir la ruta completa cuando solo se necesita el total.
-- En frontend se amplía el timeout de cálculo y se añade pantalla de carga inicial con barra de progreso para comunicar el calentamiento del motor.
+Runtime:
+- carga cachés si existen
+- evita recomputar toda la red por request
 
-## Explicabilidad (v1)
-Reglas deterministas y cortas:
-- `safe`: explica reducción de exposición y posible incremento de distancia vs baseline más rápida.
-- `balanced`: explica compromiso distancia/seguridad.
-- `night`: explica iluminación media y riesgo nocturno agregado.
-- `fastest`: explica optimización pura por distancia.
-
-## Limitaciones conocidas
-- Iluminación nocturna es una proxy por densidad de farolas (sin fotometría).
-- Dataset de farolas excluye parques/jardines y M-30, por lo que se usan fallbacks neutros en celdas sin datos.
-- Muestreo de edges por 3 puntos (inicio/mitad/fin): suficiente para v1, mejorable en slices futuros.
-
-## Criterios de aceptación del slice
-- `POST /api/routes` responde para `fastest`, `safe`, `balanced`, `night`.
-- Las rutas cambian de forma real según el modo (costes distintos).
-- Se devuelven explicaciones y métricas de resumen por ruta.
-- Frontend permite seleccionar y ejecutar los cuatro modos sin mensajes de “próximamente”.
-
-## Verificación manual
-1. Arrancar backend y frontend.
-2. Calcular misma OD (por ejemplo Plaza de Castilla → Matadero Madrid) en los cuatro modos.
-3. Verificar cambios de geometría/longitud entre modos.
-4. Verificar en tarjeta:
-   - modo
-   - distancia
-   - seguridad/iluminación
-   - explicaciones (safe/balanced/night)
-5. Activar capa de seguridad y comprobar que la ruta sigue visible por encima.
+## Limitaciones reales
+- Integraciones SHP (carriles municipales y vías ciclistas oficiales) quedan preparadas para una fase siguiente con stack geoespacial adicional (GeoPandas/Fiona) o export a CSV/GeoJSON estable.
+- En ausencia de ciertos recursos CSV oficiales, el pipeline usa fallback neutro y lo deja registrado en metadata.
