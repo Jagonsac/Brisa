@@ -11,7 +11,7 @@ service = RouteService()
 
 
 async def warmup_route_graph() -> None:
-    await asyncio.to_thread(service.graph_service.get_graph)
+    await asyncio.to_thread(service.warmup_routing_engine)
 
 
 @router.post("", response_model=RouteResponse)

@@ -47,7 +47,8 @@ function normalizeApiError(status, payload) {
   return detailMessage || 'No se pudo calcular la ruta con los datos indicados.';
 }
 
-const ROUTE_REQUEST_TIMEOUT_MS = 90000;
+const ROUTE_REQUEST_TIMEOUT_MS = 180000;
+const STARTUP_CHECK_TIMEOUT_MS = 12000;
 
 async function fetchJsonWithTimeout(url, options = {}, timeoutMs = ROUTE_REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -105,4 +106,24 @@ export async function createRoute({ origin, destination, mode }) {
     },
     ROUTE_REQUEST_TIMEOUT_MS,
   );
+}
+
+export async function waitForRoutingBackendReady({ maxAttempts = 6 } = {}) {
+  const healthUrl = buildApiUrl('/health');
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await fetchJsonWithTimeout(healthUrl, { method: 'GET' }, STARTUP_CHECK_TIMEOUT_MS);
+      return true;
+    } catch (error) {
+      if (attempt === maxAttempts) {
+        throw error;
+      }
+      await new Promise((resolve) => {
+        setTimeout(resolve, Math.min(1000 * attempt, 3500));
+      });
+    }
+  }
+
+  return false;
 }

@@ -56,6 +56,13 @@ Se implementa caché lazy en `backend/data/routing/`:
 Primera ejecución: más lenta por descargas y preprocesado.
 Siguientes ejecuciones: lectura directa de cachés.
 
+### Ajuste de rendimiento (abril 2026)
+- El backend ahora calienta **grafo + pesos multicriterio** durante el `lifespan` de FastAPI (`warmup_routing_engine`), de forma que el primer cálculo de ruta no arranca desde frío.
+- `GraphService` comparte un único grafo en memoria entre servicios para evitar cargas duplicadas del `.graphml`.
+- Los pesos `brisa_weight_*` se decoran una sola vez por versión de caché/instancia de grafo, eliminando un coste `O(E)` en cada request.
+- La baseline rápida usa `shortest_path_length` (distancia) en lugar de reconstruir la ruta completa cuando solo se necesita el total.
+- En frontend se amplía el timeout de cálculo y se añade pantalla de carga inicial con barra de progreso para comunicar el calentamiento del motor.
+
 ## Explicabilidad (v1)
 Reglas deterministas y cortas:
 - `safe`: explica reducción de exposición y posible incremento de distancia vs baseline más rápida.
