@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import threading
 from pathlib import Path
-from typing import Any
 
 from app.core.safety_config import safety_config
 from app.services.neighborhood_service import NeighborhoodService
@@ -81,8 +80,8 @@ class SafetyService:
         features = grid_collection.get("features", [])
 
         for cell in features:
-            memberships = self._resolve_memberships(cell.get("geometry"), neighborhoods)
-            if not memberships:
+            neighborhood = self._resolve_neighborhood(cell.get("geometry"), neighborhoods)
+            if neighborhood is None:
                 continue
 
             props = cell.get("properties", {})
@@ -90,22 +89,22 @@ class SafetyService:
             risk_score = float(props.get("riskScore", 0))
             accidents = int(props.get("accidentCount", 0))
 
-            for neighborhood, weight in memberships:
-                if neighborhood.neighborhood_id not in buckets:
-                    buckets[neighborhood.neighborhood_id] = {
-                        "neighborhood": neighborhood,
-                        "weighted_safety": 0.0,
-                        "weighted_risk": 0.0,
-                        "accidents": 0.0,
-                        "weight_total": 0.0,
-                        "cells_equivalent": 0.0,
-                    }
-                bucket = buckets[neighborhood.neighborhood_id]
-                bucket["weighted_safety"] += safety_score * weight
-                bucket["weighted_risk"] += risk_score * weight
-                bucket["accidents"] += accidents * weight
-                bucket["weight_total"] += weight
-                bucket["cells_equivalent"] += weight
+            if neighborhood.neighborhood_id not in buckets:
+                buckets[neighborhood.neighborhood_id] = {
+                    "neighborhood": neighborhood,
+                    "weighted_safety": 0.0,
+                    "weighted_risk": 0.0,
+                    "accidents": 0.0,
+                    "weight_total": 0.0,
+                    "cells_equivalent": 0.0,
+                }
+
+            bucket = buckets[neighborhood.neighborhood_id]
+            bucket["weighted_safety"] += safety_score
+            bucket["weighted_risk"] += risk_score
+            bucket["accidents"] += accidents
+            bucket["weight_total"] += 1
+            bucket["cells_equivalent"] += 1
 
         aggregated = []
         for bucket in buckets.values():
@@ -131,7 +130,7 @@ class SafetyService:
                         "accidentCount": max(0, accidents),
                         "cellCount": cells_equivalent,
                         "explanation": [
-                            f"Score agregado por ponderación espacial de {cells_equivalent} celdas equivalentes.",
+                            f"Score agregado por celda-centro en {cells_equivalent} celdas equivalentes.",
                             f"Accidentes ciclistas estimados en el área: {max(0, accidents)}.",
                         ],
                     },
@@ -192,51 +191,32 @@ class SafetyService:
         }
         return grid_collection, merged_meta
 
-    def _resolve_memberships(self, cell_geometry: dict | None, neighborhoods: list) -> list[tuple[Any, float]]:
+    def _resolve_neighborhood(self, cell_geometry: dict | None, neighborhoods: list):
         if not cell_geometry:
-            return []
+            return None
 
         try:
             cell_projected = self.neighborhood_service.project_geometry(cell_geometry)
         except Exception:
-            return []
+            return None
 
         if cell_projected.is_empty:
-            return []
-
-        cell_area = float(cell_projected.area)
-        if cell_area <= 0:
-            return []
-
-        cell_bounds = cell_projected.bounds
-        overlaps: list[tuple[Any, float]] = []
-        for neighborhood in neighborhoods:
-            if not self._bbox_overlaps(cell_bounds, neighborhood.bounds_projected):
-                continue
-
-            intersection = cell_projected.intersection(neighborhood.projected_geometry)
-            if intersection.is_empty:
-                continue
-            overlap_area = float(intersection.area)
-            if overlap_area <= 0:
-                continue
-            overlaps.append((neighborhood, overlap_area / cell_area))
-
-        if overlaps:
-            total_weight = sum(weight for _, weight in overlaps)
-            if total_weight <= 0:
-                return []
-            return [(neighborhood, weight / total_weight) for neighborhood, weight in overlaps]
+            return None
 
         centroid = cell_projected.centroid
-        nearest = self._nearest_neighborhood_projected(float(centroid.x), float(centroid.y), neighborhoods)
-        if nearest is None:
-            return []
-        return [(nearest, 1.0)]
+        centroid_x, centroid_y = float(centroid.x), float(centroid.y)
+
+        for neighborhood in neighborhoods:
+            if not self._point_within_bbox(centroid_x, centroid_y, neighborhood.bounds_projected):
+                continue
+            if neighborhood.projected_geometry.contains(centroid):
+                return neighborhood
+
+        return self._nearest_neighborhood_projected(centroid_x, centroid_y, neighborhoods)
 
     @staticmethod
-    def _bbox_overlaps(left: tuple[float, float, float, float], right: tuple[float, float, float, float]) -> bool:
-        return not (left[2] < right[0] or left[0] > right[2] or left[3] < right[1] or left[1] > right[3])
+    def _point_within_bbox(x: float, y: float, bbox: tuple[float, float, float, float]) -> bool:
+        return bbox[0] <= x <= bbox[2] and bbox[1] <= y <= bbox[3]
 
     @staticmethod
     def _nearest_neighborhood_projected(x: float, y: float, neighborhoods: list):
