@@ -41,7 +41,7 @@
 .summaryList {
   margin: 0.5rem 0 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
 }
 
@@ -53,8 +53,14 @@
 .summaryList dd {
   margin: 0.1rem 0 0;
   font-weight: 600;
+  text-transform: capitalize;
 }
 
-.compact {
-  font-size: 0.8rem;
+.explanations {
+  margin: 0.65rem 0 0;
+  padding-left: 1rem;
+  font-size: 0.83rem;
+  color: #2c3f5f;
+  display: grid;
+  gap: 0.35rem;
 }

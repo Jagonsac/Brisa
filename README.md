@@ -1,54 +1,45 @@
 # Brisa
 
-Brisa es una aplicación web para ayudar a moverse por Madrid en bicicleta con más seguridad.
+Brisa es una aplicación web para planificar rutas ciclistas en Madrid con foco en seguridad y explicabilidad.
 
-## Problema que resuelve
-Elegir rutas ciclistas en ciudad suele requerir equilibrio entre rapidez, seguridad y contexto urbano. Brisa reduce esa fricción con rutas explicables y datos abiertos.
+## Estado actual (Slice 6)
+✅ Frontend React + Vite con mapa Leaflet y UX en español.  
+✅ Backend FastAPI con geocoding, routing real y capa de seguridad.  
+✅ Modos de ruta operativos en producción local:
+- **Rápida** (`fastest`)
+- **Segura** (`safe`)
+- **Equilibrada** (`balanced`)
+- **Nocturna** (`night`)  
+✅ Explicaciones deterministas por ruta (sin IA generativa).  
+✅ Capa de seguridad Slice 5 intacta y reutilizada para routing.
 
-## Estado actual (Slice 5)
-✅ Base React + Vite ejecutable.  
-✅ UI principal en español con mapa Leaflet de Madrid.  
-✅ Integración de estaciones Bicimad en mapa (Slice 2).  
-✅ Backend FastAPI con `GET /health` y `GET /api/stations` (Slice 3).  
-✅ Routing real más corto con `POST /api/routes` usando OSMnx + Nominatim (Slice 4).  
-✅ Inputs de origen/destino con sugerencias seleccionables y estado robusto (texto vs lugar real).  
-✅ Pins de origen/destino visibles antes de calcular ruta.  
-✅ Capa Bicimad opcional con toggle (oculta por defecto).  
-✅ Manejo de errores de ruta en español sin mensaje opaco “Failed to fetch”.
-✅ Capa de seguridad ciclista v1 con grid GeoJSON, score explicable y leyenda.
+## Qué añade Slice 6
+- Costes multicriterio por edge sobre grafo OSMnx.
+- Reutilización del grid de seguridad Slice 5 para `safe/balanced/night`.
+- Proxy nocturna con dos capas:
+  - iluminación por densidad de farolas
+  - accidentalidad ciclista en franja nocturna (22:00–06:00)
+- Caché local de atributos preprocesados para acelerar peticiones sucesivas.
 
-## Qué incluye Slice 5 (además de Slice 4)
-- Score de seguridad ciclista v1 (0..100) por celdas de 250m.
-- Cálculo backend con accidentes bici + proxy tráfico + contexto vial OSM.
-- Capa choropleth activable/desactivable con popup explicativo.
-- Caché local de preprocesado en `backend/data/safety/processed`.
-- Endpoints `GET /api/safety/grid` y `GET /api/safety/summary`.
+## Dataset nuevo en Slice 6
+- **Farolas (Unidades luminosas, Ayuntamiento de Madrid)**
+  - Se usa como proxy de iluminación nocturna por celda.
+  - No se hace fotometría avanzada; solo densidad/cobertura razonable.
 
-## Qué incluye Slice 4
-- Formulario origen/destino conectado a backend.
-- Sugerencias de geocoding con debounce (sin llamar Nominatim directo desde frontend).
-- Selección estable de sugerencias (`onMouseDown`) sin pérdida por blur prematuro.
-- Contrato de rutas robusto con `origin/destination` (`query` + `lat/lon` opcionales).
-- Geocoding en backend (Nominatim), no en frontend.
-- Carga de red bike de Madrid por OSMnx con caché GraphML.
-- Cálculo shortest-path por longitud (`length`).
-- Render de ruta GeoJSON y markers de origen/destino con mapa limpio (sin pins demo).
-- Modos de ruta honestos: solo “Rápida” implementada; resto “Próximamente”.
-
-## Stack tecnológico actual
+## Stack
 - Frontend: React + JavaScript (sin TypeScript), Vite, React Leaflet.
-- Backend: Python 3.11+, FastAPI, Uvicorn, HTTPX, OSMnx.
+- Backend: FastAPI, OSMnx, NetworkX, pyproj.
 
-## Cómo ejecutar localmente
+## Cómo ejecutar
 
-### 1) Frontend
+### Frontend
 ```bash
 npm install
 npm run dev
 ```
-Frontend en `http://localhost:5173`.
+Frontend: `http://localhost:5173`
 
-### 2) Backend
+### Backend
 ```bash
 cd backend
 python3 -m venv .venv
@@ -56,51 +47,25 @@ source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
-Backend en `http://localhost:8000`.
+Backend: `http://localhost:8000`
 
-> La primera petición a `POST /api/routes` puede tardar más por descarga y guardado inicial del grafo bike de Madrid.
+> La primera petición de rutas puede tardar más por la generación de cachés en `backend/data/routing` y `backend/data/safety/processed`.
 
-## Variables de entorno clave
-### Frontend (`/.env` opcional)
-- `VITE_API_BASE_URL=http://localhost:8000`
-
-### Backend (`/backend/.env`)
-- `PORT=8000`
-- `BRISA_ENV=development`
-- `FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
-- `OSMNX_PLACE_QUERY=Madrid, Spain`
-- `OSMNX_NETWORK_TYPE=bike`
-- `OSMNX_GRAPH_FILENAME=madrid_bike.graphml`
-- `NOMINATIM_BASE_URL=https://nominatim.openstreetmap.org/search`
-- `NOMINATIM_USER_AGENT=Brisa/0.1 (development)`
-- `NOMINATIM_COUNTRY_CODES=es`
-
-## Endpoints disponibles
+## Endpoints
 - `GET /health`
 - `GET /api/stations?source=auto|remote|snapshot`
-- `POST /api/routes`
 - `GET /api/geocoding/suggest?q=<texto>`
 - `GET /api/safety/grid`
 - `GET /api/safety/summary`
+- `POST /api/routes`
 
-## Notas de contrato (Slice 4 hardening)
-- `POST /api/routes` normaliza manualmente payloads flexibles (A/B/C) para evitar 422 por desajustes leves de forma.
-- Validación de negocio del request con errores `400` claros (datos insuficientes, lat/lon incompletos o modo inválido).
-- `POST /api/routes` prioriza coordenadas seleccionadas (`lat/lon`) y usa geocoding por `query` como fallback.
-- El backend acepta también el formato legacy `originQuery`/`destinationQuery` para evitar regresiones.
-- Las sugerencias de geocoding devuelven `label` (texto completo) y `displayText` (texto para el input), conservando número de portal cuando Nominatim lo aporta.
-
-## Verificar el flujo de routing
-1. Arranca backend y frontend.
-2. Escribe origen/destino (ej. `Plaza de Castilla` y `Matadero Madrid`) y selecciona sugerencias.
-3. Comprueba que aparecen pins de origen/destino antes de calcular.
-4. Deja modo `Rápida` y pulsa “Calcular ruta”.
-5. Verifica que:
-   - se dibuja la ruta en el mapa,
-   - el mapa se ajusta automáticamente,
-   - la tarjeta “Ruta actual” muestra distancia y estado.
-6. Activa/desactiva Bicimad para validar el toggle.
-7. Activa/desactiva la capa de seguridad v1, revisa leyenda y popup de celdas.
+## Prueba manual recomendada (Slice 6)
+1. Selecciona origen y destino con sugerencias.
+2. Calcula la ruta en los cuatro modos.
+3. Comprueba que cambian distancia/recorrido.
+4. Revisa en la tarjeta las explicaciones y métricas compactas.
+5. Activa capa de seguridad y verifica que la ruta sigue visible.
 
 ## Próximos pasos
-- Slice 6: rutas seguras/equilibradas/nocturnas reales (la capa v1 aún no modifica routing).
+- Slice 7: mejorar comparativa entre modos y análisis de trade-offs por tramo.
+- Slice 8: integración avanzada de infraestructura ciclista y métricas urbanas adicionales.
