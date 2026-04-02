@@ -56,6 +56,8 @@ Directorio:
 - `backend/data/safety/raw/` (descargas de trabajo)
 - `backend/data/safety/processed/madrid_safety_grid_v1.geojson`
 - `backend/data/safety/processed/safety_metadata_v1.json`
+- `backend/data/safety/processed/madrid_safety_neighborhood_grid_v2.geojson`
+- `backend/data/safety/processed/safety_neighborhood_metadata_v2.json`
 
 Regla:
 - Si existe caché procesada, se sirve inmediatamente.
@@ -65,7 +67,8 @@ Regla:
 - El recurso mensual de aforos puede cambiar estructura/campos y forzar fallback parcial.
 - La severidad de accidentes usa un mapping simple inicial (recalibrable).
 - Esta slice no modifica todavía `POST /api/routes`.
-- La carga de barrios ahora prioriza ArcGIS REST (`MapServer/25/query?f=geojson`) y usa URLs de fallback + caché local válida; solo se degrada a celdas si todas las fuentes fallan.
+- La agregación barrio-celda usa intersección por área en CRS proyectado (EPSG:25830) para contemplar celdas que cruzan varios barrios.
+- La carga de barrios prioriza el dataset local versionado `backend/data/safety/raw/madrid_barrios_131.geojson`, manteniendo fallback remoto + caché si faltase ese recurso.
 
 ## Criterios de aceptación de Slice 5
 - API de safety operativa (`grid` + `summary`).
