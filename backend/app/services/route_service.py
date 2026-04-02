@@ -44,10 +44,7 @@ class RouteService:
         try:
             graph, graph_source = self.graph_service.get_graph()
         except RuntimeError as error:
-            raise RouteServiceError(
-                "graph_warming_up",
-                "La red ciclista aún se está preparando. Inténtalo de nuevo en unos segundos.",
-            ) from error
+            raise RouteServiceError("graph_warming_up", "La red ciclista aún se está preparando. Inténtalo de nuevo en unos segundos.") from error
 
         edge_weights_payload = self.edge_weight_service.get_edge_weights()
         edge_metrics = edge_weights_payload.get("edges", {})
@@ -66,14 +63,14 @@ class RouteService:
         except nx.NetworkXNoPath as error:
             raise RouteServiceError("route_not_found", "No hemos encontrado una ruta válida entre esos puntos.") from error
 
-        if len(path) < 2:
-            raise RouteServiceError("route_not_found", "No hemos encontrado una ruta válida entre esos puntos.")
-
         coordinates: list[list[float]] = []
         distance_meters = 0.0
-        route_safety = []
+        route_day_risk = []
         route_lighting = []
         route_night = []
+        route_traffic = []
+        route_junction = []
+        route_bike_infra = []
 
         for index in range(len(path) - 1):
             source_node = path[index]
@@ -87,13 +84,15 @@ class RouteService:
             metrics = edge_metrics.get(edge_id, {})
 
             distance_meters += float(best_edge.get("length", 0.0))
-            route_safety.append(float(metrics.get("safetyRiskNormalized", 0.45)))
+            route_day_risk.append(float(metrics.get("safetyRiskNormalized", 0.45)))
             route_lighting.append(float(metrics.get("lightingDeficitNormalized", 0.5)))
             route_night.append(float(metrics.get("nightRiskNormalized", 0.35)))
+            route_traffic.append(float(metrics.get("motorTrafficExposureScore", 0.35)))
+            route_junction.append(float(metrics.get("junctionComplexityScore", 0.35)))
+            route_bike_infra.append(float(metrics.get("bikeInfrastructureScore", 0.25)))
 
             if "geometry" in best_edge:
-                line = best_edge["geometry"]
-                segment_coords = [[float(lon), float(lat)] for lon, lat in line.coords]
+                segment_coords = [[float(lon), float(lat)] for lon, lat in best_edge["geometry"].coords]
             else:
                 source = graph.nodes[source_node]
                 target = graph.nodes[target_node]
@@ -107,9 +106,13 @@ class RouteService:
         if len(coordinates) < 2:
             raise RouteServiceError("route_not_found", "No hemos encontrado una ruta válida entre esos puntos.")
 
-        avg_safety_risk = round(sum(route_safety) / len(route_safety), 4) if route_safety else 0.45
+        avg_safety_risk = round(sum(route_day_risk) / len(route_day_risk), 4) if route_day_risk else 0.45
         avg_lighting_deficit = round(sum(route_lighting) / len(route_lighting), 4) if route_lighting else 0.5
         avg_night_risk = round(sum(route_night) / len(route_night), 4) if route_night else 0.35
+        avg_traffic = round(sum(route_traffic) / len(route_traffic), 4) if route_traffic else 0.35
+        avg_junction = round(sum(route_junction) / len(route_junction), 4) if route_junction else 0.35
+        avg_bike_infra = round(sum(route_bike_infra) / len(route_bike_infra), 4) if route_bike_infra else 0.25
+
         baseline_fastest = self._estimate_baseline_fastest(graph, origin_node, destination_node)
         explanations = self._build_explanations(
             mode=mode,
@@ -118,49 +121,48 @@ class RouteService:
             avg_safety_risk=avg_safety_risk,
             avg_lighting_deficit=avg_lighting_deficit,
             avg_night_risk=avg_night_risk,
+            avg_traffic=avg_traffic,
+            avg_junction=avg_junction,
+            avg_bike_infra=avg_bike_infra,
         )
 
-        response_payload = {
-            "data": {
-                "routeGeoJson": build_route_geojson_feature(
-                    coordinates=coordinates,
-                    distance_meters=distance_meters,
-                    mode=mode,
-                    profile="bike",
-                ),
-                "origin": {
-                    "query": origin.query,
-                    "displayName": origin.display_name,
-                    "lat": origin.lat,
-                    "lon": origin.lon,
+        return RouteResponse.model_validate(
+            {
+                "data": {
+                    "routeGeoJson": build_route_geojson_feature(
+                        coordinates=coordinates,
+                        distance_meters=distance_meters,
+                        mode=mode,
+                        profile="bike",
+                    ),
+                    "origin": {"query": origin.query, "displayName": origin.display_name, "lat": origin.lat, "lon": origin.lon},
+                    "destination": {
+                        "query": destination.query,
+                        "displayName": destination.display_name,
+                        "lat": destination.lat,
+                        "lon": destination.lon,
+                    },
+                    "summary": {
+                        "distanceMeters": round(distance_meters, 2),
+                        "distanceKm": round(distance_meters / 1000, 2),
+                        "mode": mode,
+                        "relativeSafety": self._label_for_safety(avg_safety_risk),
+                        "lightingQuality": self._label_for_lighting(avg_lighting_deficit),
+                        "nightRisk": self._label_for_night(avg_night_risk),
+                    },
+                    "explanations": explanations,
                 },
-                "destination": {
-                    "query": destination.query,
-                    "displayName": destination.display_name,
-                    "lat": destination.lat,
-                    "lon": destination.lon,
+                "meta": {
+                    "engine": "osmnx",
+                    "graphSource": graph_source,
+                    "weightProfile": mode,
+                    "usedSafetyGrid": False,
+                    "usedLightingGrid": False,
+                    "usedNightRiskGrid": False,
+                    "networkType": graph.graph.get("network_type", "bike_hardened"),
                 },
-                "summary": {
-                    "distanceMeters": round(distance_meters, 2),
-                    "distanceKm": round(distance_meters / 1000, 2),
-                    "mode": mode,
-                    "relativeSafety": self._label_for_safety(avg_safety_risk),
-                    "lightingQuality": self._label_for_lighting(avg_lighting_deficit),
-                    "nightRisk": self._label_for_night(avg_night_risk),
-                },
-                "explanations": explanations,
-            },
-            "meta": {
-                "engine": "osmnx",
-                "graphSource": graph_source,
-                "weightProfile": mode,
-                "usedSafetyGrid": mode in {"safe", "balanced", "night"},
-                "usedLightingGrid": mode == "night",
-                "usedNightRiskGrid": mode == "night",
-                "networkType": graph.graph.get("network_type", "bike"),
-            },
-        }
-        return RouteResponse.model_validate(response_payload)
+            }
+        )
 
     def _decorate_graph_weights(self, graph, *, edge_metrics: dict) -> None:
         for u, v, key, data in graph.edges(keys=True, data=True):
@@ -170,8 +172,9 @@ class RouteService:
             safety = float(metrics.get("safetyRiskNormalized", 0.45))
             lighting = float(metrics.get("lightingDeficitNormalized", 0.5))
             night = float(metrics.get("nightRiskNormalized", 0.35))
+            hostility = float(metrics.get("roadHostilityScore", 0.5))
 
-            data["brisa_weight_fastest"] = length
+            data["brisa_weight_fastest"] = length * (1 + routing_profiles_config.fastest_extreme_hostility_multiplier * max(0.0, hostility - 0.85))
             data["brisa_weight_safe"] = length * (1 + routing_profiles_config.safe_risk_multiplier * safety)
             data["brisa_weight_balanced"] = length * (1 + routing_profiles_config.balanced_risk_multiplier * safety)
             data["brisa_weight_night"] = length * (
@@ -185,7 +188,6 @@ class RouteService:
         graph_signature = (id(graph), weights_version, len(edge_metrics))
         if self._last_decorated_signature == graph_signature:
             return
-
         with self._weight_lock:
             if self._last_decorated_signature == graph_signature:
                 return
@@ -195,54 +197,43 @@ class RouteService:
     @staticmethod
     def _estimate_baseline_fastest(graph, origin_node, destination_node) -> float:
         try:
-            baseline_distance = nx.shortest_path_length(graph, origin_node, destination_node, weight="length")
+            return float(nx.shortest_path_length(graph, origin_node, destination_node, weight="length"))
         except nx.NetworkXNoPath:
             return 0.0
-        return float(baseline_distance)
 
     def warmup_routing_engine(self) -> None:
         graph, _ = self.graph_service.get_graph()
         edge_weights_payload = self.edge_weight_service.get_edge_weights()
-        edge_metrics = edge_weights_payload.get("edges", {})
-        self._ensure_graph_weights(graph, edge_metrics=edge_metrics, weights_version=edge_weights_payload.get("version", "v1"))
+        self._ensure_graph_weights(graph, edge_metrics=edge_weights_payload.get("edges", {}), weights_version=edge_weights_payload.get("version", "v1"))
 
-    def _build_explanations(
-        self,
-        *,
-        mode: str,
-        distance_meters: float,
-        baseline_fastest: float,
-        avg_safety_risk: float,
-        avg_lighting_deficit: float,
-        avg_night_risk: float,
-    ) -> list[str]:
+    def _build_explanations(self, *, mode: str, distance_meters: float, baseline_fastest: float, avg_safety_risk: float, avg_lighting_deficit: float, avg_night_risk: float, avg_traffic: float, avg_junction: float, avg_bike_infra: float) -> list[str]:
         distance_delta = round(distance_meters - baseline_fastest, 1) if baseline_fastest else 0.0
-
         if mode == "fastest":
             return [
-                "Ruta optimizada por distancia para llegar lo antes posible.",
-                "No aplica penalizaciones extra de seguridad o noche en este modo.",
+                "Ruta optimizada por tiempo/distancia, manteniendo filtros de legalidad ciclista.",
+                "Solo penaliza tramos con hostilidad extrema para evitar calzadas especialmente adversas.",
             ]
 
-        messages = []
-        if mode == "safe":
-            if distance_delta > 150:
-                messages.append(f"Acepta {round(distance_delta / 1000, 2)} km extra para reducir exposición a zonas de mayor riesgo.")
-            messages.append("Prioriza tramos con mejor score de seguridad ciclista del grid de Slice 5.")
-            messages.append(f"Riesgo medio estimado del recorrido: {int(round(avg_safety_risk * 100))}/100.")
-        elif mode == "balanced":
-            messages.append("Combina distancia y seguridad para evitar desvíos excesivos.")
-            if distance_delta > 0:
-                messages.append(f"Incremento de distancia moderado frente a la más rápida: {round(distance_delta / 1000, 2)} km.")
-            messages.append(f"Riesgo medio estimado equilibrado: {int(round(avg_safety_risk * 100))}/100.")
-        elif mode == "night":
-            messages.append("Prioriza calles mejor iluminadas usando densidad de farolas por celda.")
-            messages.append(
-                f"Penaliza zonas con peor iluminación ({int(round(avg_lighting_deficit * 100))}/100 de déficit medio) y accidentalidad nocturna."
-            )
-            messages.append(f"Riesgo nocturno agregado estimado: {int(round(avg_night_risk * 100))}/100.")
+        if mode == "balanced":
+            return [
+                "Reduce exposición a tráfico motorizado intenso sin forzar desvíos extremos.",
+                f"Compromiso seguridad-distancia con riesgo diurno medio {int(avg_safety_risk * 100)}/100.",
+                "Prioriza infraestructura ciclista cuando existe un corredor alternativo razonable.",
+            ]
 
-        return messages[:3]
+        if mode == "safe":
+            extra = f"Acepta {round(distance_delta/1000, 2)} km extra" if distance_delta > 150 else "Mantiene desvío contenido"
+            return [
+                f"{extra} para evitar arterias con muchos carriles y alta exposición al tráfico.",
+                f"Reduce cruces complejos (índice {int(avg_junction*100)}/100) y concentra tramos más ciclables.",
+                f"Prioriza infraestructura ciclista oficial/OSM (score medio {int(avg_bike_infra*100)}/100).",
+            ]
+
+        return [
+            "En modo nocturno prioriza tramos mejor iluminados y minimiza zonas con déficit de farolas.",
+            f"Penaliza comportamiento histórico nocturno ({int(avg_night_risk*100)}/100) y exposición motorizada.",
+            "Evita intersecciones complejas de noche salvo que no exista alternativa ciclable razonable.",
+        ]
 
     @staticmethod
     def _label_for_safety(avg_safety_risk: float) -> str:
@@ -271,9 +262,7 @@ class RouteService:
     async def _resolve_point(self, *, query: str, point_label: str, lat: float | None, lon: float | None) -> GeocodedPoint:
         clean_query = query.strip()
         if lat is not None and lon is not None:
-            display_name = clean_query or f"{point_label.title()} seleccionado"
-            return GeocodedPoint(query=clean_query, display_name=display_name, lat=lat, lon=lon)
-
+            return GeocodedPoint(query=clean_query, display_name=clean_query or f"{point_label.title()} seleccionado", lat=lat, lon=lon)
         try:
             return await self.geocoding_service.geocode(clean_query, point_label=point_label)
         except GeocodingError as error:
@@ -287,12 +276,8 @@ class RouteService:
 
     def _resolve_nearest_node_fallback(self, graph, *, lat: float, lon: float):
         node_ids = list(graph.nodes)
-        if not node_ids:
-            raise ValueError("El grafo no contiene nodos.")
-
         node_coordinates = np.array([[float(graph.nodes[node]["y"]), float(graph.nodes[node]["x"])] for node in node_ids])
         target = np.array([lat, lon], dtype=float)
         deltas = node_coordinates - target
         squared_distances = np.einsum("ij,ij->i", deltas, deltas)
-        nearest_index = int(np.argmin(squared_distances))
-        return node_ids[nearest_index]
+        return node_ids[int(np.argmin(squared_distances))]
