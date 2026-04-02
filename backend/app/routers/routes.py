@@ -27,17 +27,8 @@ async def create_route(payload: dict = Body(...)) -> RouteResponse:
             },
         ) from error
 
-    if normalized_payload.mode != "fastest":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "mode_not_available",
-                "message": "Solo el modo rápida está disponible por ahora.",
-            },
-        )
-
     try:
-        return await service.build_fastest_route(
+        return await service.build_route(
             origin_query=normalized_payload.origin.query,
             destination_query=normalized_payload.destination.query,
             mode=normalized_payload.mode,

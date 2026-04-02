@@ -77,3 +77,11 @@ Slice 4: routing real más corto con backend FastAPI + OSMnx, contrato estable y
 - No mover lógica GIS/scoring al frontend; solo render y UX.
 - Cachear preprocesados pesados en `backend/data/safety/processed`.
 - Cambios de contrato en safety requieren actualizar `docs/contracts` y `docs/slices/slice-5.md`.
+
+## Routing multicriterio (Slice 6+)
+- Mantener `POST /api/routes` como endpoint único para modos `fastest`, `safe`, `balanced`, `night`.
+- Los pesos por edge deben vivir en servicios backend dedicados, nunca en componentes React.
+- Reutilizar grid de seguridad de Slice 5 para routing seguro; no reemplazar la capa visual existente.
+- Cachear preprocesados de routing en `backend/data/routing` y evitar recálculo por request.
+- Mantener explicabilidad determinista basada en métricas reales de la ruta (sin texto inventado).
+- En frontend, limitarse a selección de modo + render + resumen; sin geoprocesado GIS serio.

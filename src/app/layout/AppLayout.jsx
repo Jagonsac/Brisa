@@ -44,7 +44,7 @@ export function AppLayout() {
   const [inputValues, setInputValues] = useState(INITIAL_INPUT_VALUES);
   const [selectedPlaces, setSelectedPlaces] = useState(INITIAL_SELECTED_PLACES);
   const [selectedMode, setSelectedMode] = useState(ROUTE_MODES.FAST);
-  const [infoMessage, setInfoMessage] = useState('Selecciona origen y destino para calcular la ruta más corta.');
+  const [infoMessage, setInfoMessage] = useState('Selecciona origen y destino para calcular una ruta ciclista.');
   const [routeData, setRouteData] = useState(null);
   const [routeError, setRouteError] = useState('');
   const [routeLoading, setRouteLoading] = useState(false);
@@ -169,7 +169,7 @@ export function AppLayout() {
         mode: selectedMode.apiMode,
       });
       setRouteData(response.data);
-      setInfoMessage('Ruta rápida calculada correctamente.');
+      setInfoMessage(`Ruta ${selectedMode.label.toLowerCase()} calculada correctamente.`);
     } catch (error) {
       setRouteData(null);
       setRouteError(error instanceof Error ? error.message : 'No fue posible calcular la ruta.');
@@ -246,7 +246,6 @@ export function AppLayout() {
                     : ' Tráfico integrado con aforos.'}
                 </p>
               )}
-              <p className={styles.subtleNote}>La capa de seguridad aún no modifica el cálculo de ruta; llegará en Slice 6.</p>
               <p className={styles.infoText}>{infoMessage}</p>
               <RouteSummaryCard routeData={routeData} loading={routeLoading} error={routeError} statusMessage={routeData ? 'Ruta lista en mapa.' : 'Sin ruta calculada todavía.'} />
             </section>

@@ -1,165 +1,89 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RouteResponse",
-  "description": "Respuesta de ruta más corta calculada sobre red OSM bike con origen/destino resueltos por coordenadas o geocoding.",
+  "description": "Respuesta de ruta ciclista con resumen y explicabilidad determinista para fastest/safe/balanced/night.",
   "type": "object",
-  "required": [
-    "data",
-    "meta"
-  ],
+  "required": ["data", "meta"],
   "properties": {
     "data": {
       "type": "object",
-      "required": [
-        "routeGeoJson",
-        "origin",
-        "destination",
-        "summary"
-      ],
+      "required": ["routeGeoJson", "origin", "destination", "summary", "explanations"],
       "properties": {
         "routeGeoJson": {
           "type": "object",
-          "required": [
-            "type",
-            "geometry",
-            "properties"
-          ],
+          "required": ["type", "geometry", "properties"],
           "properties": {
-            "type": {
-              "const": "Feature"
-            },
+            "type": { "const": "Feature" },
             "geometry": {
               "type": "object",
-              "required": [
-                "type",
-                "coordinates"
-              ],
+              "required": ["type", "coordinates"],
               "properties": {
-                "type": {
-                  "const": "LineString"
-                },
+                "type": { "const": "LineString" },
                 "coordinates": {
                   "type": "array",
                   "items": {
                     "type": "array",
                     "minItems": 2,
                     "maxItems": 2,
-                    "items": {
-                      "type": "number"
-                    }
+                    "items": { "type": "number" }
                   }
                 }
               }
             },
             "properties": {
               "type": "object",
-              "required": [
-                "distanceMeters",
-                "mode",
-                "profile"
-              ],
+              "required": ["distanceMeters", "mode", "profile"],
               "properties": {
-                "distanceMeters": {
-                  "type": "number"
-                },
-                "mode": {
-                  "type": "string"
-                },
-                "profile": {
-                  "type": "string"
-                }
+                "distanceMeters": { "type": "number" },
+                "mode": { "type": "string", "enum": ["fastest", "safe", "balanced", "night"] },
+                "profile": { "type": "string" }
               }
             }
           }
         },
-        "origin": {
-          "type": "object",
-          "required": [
-            "query",
-            "displayName",
-            "lat",
-            "lon"
-          ],
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "displayName": {
-              "type": "string"
-            },
-            "lat": {
-              "type": "number"
-            },
-            "lon": {
-              "type": "number"
-            }
-          }
-        },
-        "destination": {
-          "type": "object",
-          "required": [
-            "query",
-            "displayName",
-            "lat",
-            "lon"
-          ],
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "displayName": {
-              "type": "string"
-            },
-            "lat": {
-              "type": "number"
-            },
-            "lon": {
-              "type": "number"
-            }
-          }
-        },
+        "origin": { "$ref": "#/$defs/location" },
+        "destination": { "$ref": "#/$defs/location" },
         "summary": {
           "type": "object",
-          "required": [
-            "distanceMeters",
-            "distanceKm"
-          ],
+          "required": ["distanceMeters", "distanceKm", "mode", "relativeSafety", "lightingQuality", "nightRisk"],
           "properties": {
-            "distanceMeters": {
-              "type": "number"
-            },
-            "distanceKm": {
-              "type": "number"
-            }
+            "distanceMeters": { "type": "number" },
+            "distanceKm": { "type": "number" },
+            "mode": { "type": "string", "enum": ["fastest", "safe", "balanced", "night"] },
+            "relativeSafety": { "type": "string", "enum": ["high", "medium", "low"] },
+            "lightingQuality": { "type": "string", "enum": ["high", "medium", "low"] },
+            "nightRisk": { "type": "string", "enum": ["low", "medium", "high"] }
           }
+        },
+        "explanations": {
+          "type": "array",
+          "items": { "type": "string" }
         }
       }
     },
     "meta": {
       "type": "object",
-      "required": [
-        "source",
-        "graphSource",
-        "weight",
-        "networkType"
-      ],
+      "required": ["engine", "graphSource", "weightProfile", "usedSafetyGrid", "usedLightingGrid", "usedNightRiskGrid", "networkType"],
       "properties": {
-        "source": {
-          "const": "osmnx"
-        },
-        "graphSource": {
-          "type": "string",
-          "enum": [
-            "cache",
-            "download"
-          ]
-        },
-        "weight": {
-          "const": "length"
-        },
-        "networkType": {
-          "type": "string"
-        }
+        "engine": { "const": "osmnx" },
+        "graphSource": { "type": "string", "enum": ["cache", "download"] },
+        "weightProfile": { "type": "string", "enum": ["fastest", "safe", "balanced", "night"] },
+        "usedSafetyGrid": { "type": "boolean" },
+        "usedLightingGrid": { "type": "boolean" },
+        "usedNightRiskGrid": { "type": "boolean" },
+        "networkType": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "required": ["query", "displayName", "lat", "lon"],
+      "properties": {
+        "query": { "type": "string" },
+        "displayName": { "type": "string" },
+        "lat": { "type": "number" },
+        "lon": { "type": "number" }
       }
     }
   },

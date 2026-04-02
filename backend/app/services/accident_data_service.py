@@ -27,12 +27,12 @@ class AccidentDataService:
         self.raw_dir = Path(__file__).resolve().parents[2] / "data" / "safety" / "raw"
 
     def load_accidents(self) -> tuple[list[AccidentPoint], dict]:
-        rows = self._download_accident_rows()
+        rows = self.load_raw_rows()
         deduped: dict[str, dict] = {}
 
         for row in rows:
-            x = self._parse_float(row.get("coordenada_x_utm"))
-            y = self._parse_float(row.get("coordenada_y_utm"))
+            x = self.parse_float(row.get("coordenada_x_utm"))
+            y = self.parse_float(row.get("coordenada_y_utm"))
             if x is None or y is None:
                 continue
 
@@ -41,7 +41,7 @@ class AccidentDataService:
                 continue
 
             px, py = self._to_projected.transform(lon, lat)
-            severity_weight = self._severity_weight(row)
+            severity_weight = self.severity_weight(row)
             key = self._accident_key(row, x, y)
             previous = deduped.get(key)
             if previous is None:
@@ -66,7 +66,7 @@ class AccidentDataService:
         }
         return points, meta
 
-    def _download_accident_rows(self) -> list[dict]:
+    def load_raw_rows(self) -> list[dict]:
         self.raw_dir.mkdir(parents=True, exist_ok=True)
         output_path = self.raw_dir / "accidentes_bici_2024.csv"
 
@@ -85,7 +85,7 @@ class AccidentDataService:
         reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
         return list(reader)
 
-    def _severity_weight(self, row: dict) -> float:
+    def severity_weight(self, row: dict) -> float:
         code = row.get("cod_lesividad")
         code_number = None
         if isinstance(code, str):
@@ -111,7 +111,7 @@ class AccidentDataService:
         return json.dumps(key, sort_keys=True)
 
     @staticmethod
-    def _parse_float(value: str | None) -> float | None:
+    def parse_float(value: str | None) -> float | None:
         if value is None:
             return None
         cleaned = value.replace(".", "").replace(",", ".").strip()
@@ -122,3 +122,7 @@ class AccidentDataService:
             return float(cleaned)
         except ValueError:
             return None
+
+    @property
+    def to_wgs84(self) -> Transformer:
+        return self._to_wgs84

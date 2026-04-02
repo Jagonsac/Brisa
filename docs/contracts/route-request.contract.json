@@ -1,24 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RouteRequest",
-  "description": "Solicitud tolerante para calcular una ruta ciclista en Madrid. El backend normaliza varios formatos de entrada antes del cálculo.",
+  "description": "Solicitud para calcular rutas en cuatro modos: fastest, safe, balanced y night.",
   "type": "object",
   "required": ["mode"],
   "properties": {
     "mode": {
       "type": "string",
       "enum": ["fastest", "safe", "balanced", "night"],
-      "description": "Slice 4 solo implementa 'fastest'."
+      "description": "Perfil de coste usado por el backend de routing."
     },
     "origin": { "$ref": "#/$defs/routePoint" },
     "destination": { "$ref": "#/$defs/routePoint" },
     "originQuery": {
       "type": "string",
-      "description": "Formato legacy: texto de origen cuando no se envía objeto origin."
+      "description": "Formato legacy soportado para compatibilidad."
     },
     "destinationQuery": {
       "type": "string",
-      "description": "Formato legacy: texto de destino cuando no se envía objeto destination."
+      "description": "Formato legacy soportado para compatibilidad."
     }
   },
   "anyOf": [
@@ -29,30 +29,12 @@
     "routePoint": {
       "type": "object",
       "properties": {
-        "query": {
-          "type": "string",
-          "description": "Texto visible del input para trazabilidad y fallback de geocoding."
-        },
-        "lat": {
-          "oneOf": [{ "type": "number" }, { "type": "string" }],
-          "description": "Latitud opcional; acepta number o string convertible."
-        },
-        "lon": {
-          "oneOf": [{ "type": "number" }, { "type": "string" }],
-          "description": "Longitud opcional; acepta number o string convertible."
-        },
-        "lng": {
-          "oneOf": [{ "type": "number" }, { "type": "string" }],
-          "description": "Alias tolerado para longitud por compatibilidad con payloads de Leaflet/Google Maps."
-        },
-        "longitude": {
-          "oneOf": [{ "type": "number" }, { "type": "string" }],
-          "description": "Alias tolerado para longitud en integraciones externas."
-        },
-        "latitude": {
-          "oneOf": [{ "type": "number" }, { "type": "string" }],
-          "description": "Alias tolerado para latitud en integraciones externas."
-        }
+        "query": { "type": "string" },
+        "lat": { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        "lon": { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        "lng": { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        "longitude": { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        "latitude": { "oneOf": [{ "type": "number" }, { "type": "string" }] }
       },
       "additionalProperties": true
     }

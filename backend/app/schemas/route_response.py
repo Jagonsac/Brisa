@@ -10,7 +10,7 @@ class RouteFeatureGeometry(BaseModel):
 
 class RouteFeatureProperties(BaseModel):
     distanceMeters: float
-    mode: str
+    mode: Literal["fastest", "safe", "balanced", "night"]
     profile: str
 
 
@@ -30,6 +30,10 @@ class RouteLocation(BaseModel):
 class RouteSummary(BaseModel):
     distanceMeters: float
     distanceKm: float
+    mode: Literal["fastest", "safe", "balanced", "night"]
+    relativeSafety: Literal["high", "medium", "low"]
+    lightingQuality: Literal["high", "medium", "low"]
+    nightRisk: Literal["low", "medium", "high"]
 
 
 class RouteData(BaseModel):
@@ -37,12 +41,16 @@ class RouteData(BaseModel):
     origin: RouteLocation
     destination: RouteLocation
     summary: RouteSummary
+    explanations: list[str]
 
 
 class RouteMeta(BaseModel):
-    source: Literal["osmnx"] = "osmnx"
+    engine: Literal["osmnx"] = "osmnx"
     graphSource: Literal["cache", "download"]
-    weight: Literal["length"] = "length"
+    weightProfile: Literal["fastest", "safe", "balanced", "night"]
+    usedSafetyGrid: bool
+    usedLightingGrid: bool
+    usedNightRiskGrid: bool
     networkType: str
 
 
