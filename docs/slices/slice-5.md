@@ -69,6 +69,7 @@ Regla:
 - Esta slice no modifica todavía `POST /api/routes`.
 - La agregación barrio-celda usa asignación por centroide de celda (con fallback por proximidad) en CRS proyectado (EPSG:25830) para reducir de forma drástica el tiempo de cómputo y mejorar la carga inicial del heatmap.
 - La carga de barrios prioriza el dataset local versionado `backend/data/safety/raw/madrid_barrios_131.geojson`, manteniendo fallback remoto + caché si faltase ese recurso.
+- Si una ejecución puntual cae a fallback de celdas (por error temporal al cargar barrios), ese resultado no se persiste en caché de barrio para evitar que el sistema quede “atascado” en modo fallback en reinicios posteriores.
 
 ## Criterios de aceptación de Slice 5
 - API de safety operativa (`grid` + `summary`).
