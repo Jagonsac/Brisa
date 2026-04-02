@@ -8,7 +8,8 @@ export function ProjectExplainer() {
         Brisa es una app para ayudar a moverse por Madrid en bicicleta priorizando seguridad, claridad y decisión informada.
       </p>
       <p>
-        Este Slice 1 establece la base técnica: interfaz funcional, mapa interactivo, estructura modular y contratos para crecer sin caos.
+        Combina rutas más rápidas con una capa de seguridad por barrios, estado de estaciones BiciMAD y resúmenes claros para elegir
+        mejor cada trayecto.
       </p>
     </section>
   );

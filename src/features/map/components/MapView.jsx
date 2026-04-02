@@ -46,9 +46,10 @@ function RouteBoundsController({ routeFeature }) {
 function styleSafetyFeature(feature) {
   const score = feature?.properties?.safetyScore ?? 0;
   return {
-    color: '#ffffff',
-    weight: 0.25,
-    fillOpacity: 0.42,
+    color: '#f8fbff',
+    weight: 0.9,
+    opacity: 0.7,
+    fillOpacity: 0.5,
     fillColor: getSafetyColor(score),
   };
 }
@@ -59,11 +60,36 @@ function bindSafetyPopup(feature, layer) {
   const title = properties.name ? `Barrio: ${properties.name}` : `Seguridad: ${properties.safetyScore ?? '-'} / 100`;
   const accidentsLabel = properties.name ? 'Accidentes (agregado)' : 'Accidentes';
   const cellsInfo = properties.cellCount ? `<br/>Celdas agregadas: ${properties.cellCount}` : '';
-  layer.bindPopup(
+  const popupContent =
     `<strong>${title}</strong><br/>Score seguridad: ${properties.safetyScore ?? '-'} / 100<br/>${accidentsLabel}: ${
       properties.accidentCount ?? 0
-    }${cellsInfo}<br/>${explanation}`,
-  );
+    }${cellsInfo}<br/>${explanation}`;
+
+  layer.bindPopup(popupContent, { closeButton: false, autoPan: false, className: styles.safetyPopup });
+
+  layer.on({
+    mouseover: (event) => {
+      const hoveredLayer = event.target;
+      hoveredLayer.setStyle({
+        weight: 2.2,
+        color: '#1f365f',
+        opacity: 0.95,
+        fillOpacity: 0.66,
+      });
+      hoveredLayer.bringToFront();
+      hoveredLayer.openPopup(event.latlng);
+    },
+    mousemove: (event) => {
+      layer.getPopup()?.setLatLng(event.latlng);
+    },
+    mouseout: () => {
+      layer.closePopup();
+      layer.setStyle(styleSafetyFeature(feature));
+    },
+    click: (event) => {
+      layer.openPopup(event.latlng);
+    },
+  });
 }
 
 export function MapView({
@@ -87,6 +113,11 @@ export function MapView({
 
   return (
     <div className={styles.wrapper}>
+      {showSafetyLayer && safetyGrid && (
+        <div className={styles.hoverHint}>
+          <strong>Tip:</strong> pasa el cursor por un barrio para ver su detalle de seguridad.
+        </div>
+      )}
       <MapContainer center={madridMapConfig.center} zoom={madridMapConfig.zoom} className={styles.map} scrollWheelZoom>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
