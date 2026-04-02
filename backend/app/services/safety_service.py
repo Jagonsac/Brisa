@@ -161,9 +161,10 @@ class SafetyService:
             if self.neighborhood_grid_path.exists() and self.neighborhood_meta_path.exists():
                 collection = json.loads(self.neighborhood_grid_path.read_text(encoding="utf-8"))
                 metadata = json.loads(self.neighborhood_meta_path.read_text(encoding="utf-8"))
-                self._cached_neighborhood_grid = collection
-                self._cached_neighborhood_meta = metadata
-                return collection, metadata
+                if self._is_neighborhood_aggregation(metadata):
+                    self._cached_neighborhood_grid = collection
+                    self._cached_neighborhood_meta = metadata
+                    return collection, metadata
 
         grid_collection, metadata = self._ensure_cached()
         try:
@@ -174,12 +175,13 @@ class SafetyService:
         except Exception as error:
             collection, merged_meta = self._fallback_to_cell_collection(grid_collection, metadata, str(error))
 
-        with self._lock:
-            self.data_dir.mkdir(parents=True, exist_ok=True)
-            self.neighborhood_grid_path.write_text(json.dumps(collection, ensure_ascii=False), encoding="utf-8")
-            self.neighborhood_meta_path.write_text(json.dumps(merged_meta, ensure_ascii=False, indent=2), encoding="utf-8")
-            self._cached_neighborhood_grid = collection
-            self._cached_neighborhood_meta = merged_meta
+        if self._is_neighborhood_aggregation(merged_meta):
+            with self._lock:
+                self.data_dir.mkdir(parents=True, exist_ok=True)
+                self.neighborhood_grid_path.write_text(json.dumps(collection, ensure_ascii=False), encoding="utf-8")
+                self.neighborhood_meta_path.write_text(json.dumps(merged_meta, ensure_ascii=False, indent=2), encoding="utf-8")
+                self._cached_neighborhood_grid = collection
+                self._cached_neighborhood_meta = merged_meta
 
         return collection, merged_meta
 
@@ -190,6 +192,10 @@ class SafetyService:
             "neighborhoods": {"source": "fallback", "warning": reason},
         }
         return grid_collection, merged_meta
+
+    @staticmethod
+    def _is_neighborhood_aggregation(metadata: dict | None) -> bool:
+        return bool(metadata and metadata.get("aggregationLevel") == "neighborhood")
 
     def _resolve_neighborhood(self, cell_geometry: dict | None, neighborhoods: list):
         if not cell_geometry:
