@@ -17,8 +17,8 @@ class SafetyService:
         self.data_dir = Path(__file__).resolve().parents[2] / "data" / "safety" / "processed"
         self.grid_path = self.data_dir / "madrid_safety_grid_v1.geojson"
         self.meta_path = self.data_dir / "safety_metadata_v1.json"
-        self.neighborhood_grid_path = self.data_dir / "madrid_safety_neighborhood_grid_v1.geojson"
-        self.neighborhood_meta_path = self.data_dir / "safety_neighborhood_metadata_v1.json"
+        self.neighborhood_grid_path = self.data_dir / "madrid_safety_neighborhood_grid_v2.geojson"
+        self.neighborhood_meta_path = self.data_dir / "safety_neighborhood_metadata_v2.json"
         self._lock = threading.Lock()
         self._cached_grid: dict | None = None
         self._cached_meta: dict | None = None
@@ -79,13 +79,9 @@ class SafetyService:
     def _aggregate_cells_by_neighborhood(self, grid_collection: dict, neighborhoods: list) -> list[dict]:
         buckets: dict[str, dict] = {}
         features = grid_collection.get("features", [])
-        neighborhood_bounds = {item.neighborhood_id: self._geometry_bounds(item.geometry) for item in neighborhoods}
 
         for cell in features:
-            ring = self._extract_ring(cell.get("geometry"))
-            if not ring:
-                continue
-            memberships = self._resolve_memberships(ring, neighborhoods, neighborhood_bounds)
+            memberships = self._resolve_memberships(cell.get("geometry"), neighborhoods)
             if not memberships:
                 continue
 
@@ -196,107 +192,65 @@ class SafetyService:
         }
         return grid_collection, merged_meta
 
-    def _resolve_memberships(self, ring: list[list[float]], neighborhoods: list, bounds: dict[str, tuple[float, float, float, float]]) -> list[tuple[Any, float]]:
-        sample_points = self._sample_points(ring)
-        scores: dict[str, tuple[Any, int]] = {}
+    def _resolve_memberships(self, cell_geometry: dict | None, neighborhoods: list) -> list[tuple[Any, float]]:
+        if not cell_geometry:
+            return []
 
+        try:
+            cell_projected = self.neighborhood_service.project_geometry(cell_geometry)
+        except Exception:
+            return []
+
+        if cell_projected.is_empty:
+            return []
+
+        cell_area = float(cell_projected.area)
+        if cell_area <= 0:
+            return []
+
+        cell_bounds = cell_projected.bounds
+        overlaps: list[tuple[Any, float]] = []
         for neighborhood in neighborhoods:
-            hits = 0
-            for lon, lat in sample_points:
-                if self.neighborhood_service.contains(neighborhood.geometry, lon, lat):
-                    hits += 1
-            if hits > 0:
-                scores[neighborhood.neighborhood_id] = (neighborhood, hits)
+            if not self._bbox_overlaps(cell_bounds, neighborhood.bounds_projected):
+                continue
 
-        if not scores:
-            centroid = self._centroid(ring)
-            nearest = self._nearest_neighborhood(centroid[0], centroid[1], neighborhoods, bounds)
-            if nearest is None:
+            intersection = cell_projected.intersection(neighborhood.projected_geometry)
+            if intersection.is_empty:
+                continue
+            overlap_area = float(intersection.area)
+            if overlap_area <= 0:
+                continue
+            overlaps.append((neighborhood, overlap_area / cell_area))
+
+        if overlaps:
+            total_weight = sum(weight for _, weight in overlaps)
+            if total_weight <= 0:
                 return []
-            return [(nearest, 1.0)]
+            return [(neighborhood, weight / total_weight) for neighborhood, weight in overlaps]
 
-        total_hits = sum(item[1] for item in scores.values()) or 1
-        return [(item[0], item[1] / total_hits) for item in scores.values()]
+        centroid = cell_projected.centroid
+        nearest = self._nearest_neighborhood_projected(float(centroid.x), float(centroid.y), neighborhoods)
+        if nearest is None:
+            return []
+        return [(nearest, 1.0)]
 
     @staticmethod
-    def _extract_ring(geometry: dict | None) -> list[list[float]]:
-        if not geometry:
-            return []
-        if geometry.get("type") != "Polygon":
-            return []
-        coordinates = geometry.get("coordinates", [])
-        if not coordinates or not isinstance(coordinates[0], list):
-            return []
-        ring = coordinates[0]
-        if len(ring) < 4:
-            return []
-        return [point for point in ring if isinstance(point, list) and len(point) >= 2]
+    def _bbox_overlaps(left: tuple[float, float, float, float], right: tuple[float, float, float, float]) -> bool:
+        return not (left[2] < right[0] or left[0] > right[2] or left[3] < right[1] or left[1] > right[3])
 
     @staticmethod
-    def _centroid(ring: list[list[float]]) -> tuple[float, float]:
-        points = ring[:-1] if len(ring) > 1 else ring
-        count = max(len(points), 1)
-        lon = sum(float(point[0]) for point in points) / count
-        lat = sum(float(point[1]) for point in points) / count
-        return lon, lat
-
-    def _sample_points(self, ring: list[list[float]]) -> list[tuple[float, float]]:
-        min_lon, min_lat, max_lon, max_lat = self._ring_bounds(ring)
-        center_lon, center_lat = self._centroid(ring)
-        return [
-            (center_lon, center_lat),
-            (min_lon, min_lat),
-            (max_lon, min_lat),
-            (max_lon, max_lat),
-            (min_lon, max_lat),
-            ((min_lon + center_lon) / 2, center_lat),
-            ((max_lon + center_lon) / 2, center_lat),
-            (center_lon, (min_lat + center_lat) / 2),
-            (center_lon, (max_lat + center_lat) / 2),
-        ]
-
-    @staticmethod
-    def _ring_bounds(ring: list[list[float]]) -> tuple[float, float, float, float]:
-        lons = [float(point[0]) for point in ring]
-        lats = [float(point[1]) for point in ring]
-        return min(lons), min(lats), max(lons), max(lats)
-
-    def _nearest_neighborhood(self, lon: float, lat: float, neighborhoods: list, bounds: dict[str, tuple[float, float, float, float]]):
+    def _nearest_neighborhood_projected(x: float, y: float, neighborhoods: list):
         nearest = None
         nearest_dist = None
         for neighborhood in neighborhoods:
-            bbox = bounds.get(neighborhood.neighborhood_id)
-            if bbox is None:
-                continue
-            min_lon, min_lat, max_lon, max_lat = bbox
-            center_lon = (min_lon + max_lon) / 2
-            center_lat = (min_lat + max_lat) / 2
-            dist = (center_lon - lon) ** 2 + (center_lat - lat) ** 2
+            min_x, min_y, max_x, max_y = neighborhood.bounds_projected
+            center_x = (min_x + max_x) / 2
+            center_y = (min_y + max_y) / 2
+            dist = (center_x - x) ** 2 + (center_y - y) ** 2
             if nearest_dist is None or dist < nearest_dist:
                 nearest = neighborhood
                 nearest_dist = dist
         return nearest
-
-    def _geometry_bounds(self, geometry: dict) -> tuple[float, float, float, float] | None:
-        geometry_type = geometry.get("type")
-        coordinates = geometry.get("coordinates", [])
-        points: list[tuple[float, float]] = []
-        if geometry_type == "Polygon":
-            for ring in coordinates:
-                for point in ring:
-                    if isinstance(point, list) and len(point) >= 2:
-                        points.append((float(point[0]), float(point[1])))
-        elif geometry_type == "MultiPolygon":
-            for polygon in coordinates:
-                for ring in polygon:
-                    for point in ring:
-                        if isinstance(point, list) and len(point) >= 2:
-                            points.append((float(point[0]), float(point[1])))
-        if not points:
-            return None
-        lons = [item[0] for item in points]
-        lats = [item[1] for item in points]
-        return min(lons), min(lats), max(lons), max(lats)
 
     @staticmethod
     def _filter_collection_by_bbox(collection: dict, bbox: tuple[float, float, float, float]) -> dict:

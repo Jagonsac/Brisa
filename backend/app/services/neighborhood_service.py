@@ -3,7 +3,13 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 from urllib.request import Request, urlopen
+
+from pyproj import Transformer
+from shapely.geometry import shape
+from shapely.geometry.base import BaseGeometry
+from shapely.ops import transform as shapely_transform
 
 from app.core.safety_config import safety_config
 
@@ -14,12 +20,16 @@ class NeighborhoodArea:
     name: str
     district: str
     geometry: dict
+    projected_geometry: BaseGeometry
+    bounds_projected: tuple[float, float, float, float]
 
 
 class NeighborhoodService:
     def __init__(self) -> None:
         self.raw_dir = Path(__file__).resolve().parents[2] / "data" / "safety" / "raw"
+        self.local_boundaries_path = self.raw_dir / "madrid_barrios_131.geojson"
         self.boundaries_path = self.raw_dir / safety_config.neighborhoods_cache_filename
+        self.to_projected = Transformer.from_crs(safety_config.target_crs, safety_config.projected_crs, always_xy=True)
         self._cached_boundaries: tuple[list[NeighborhoodArea], dict] | None = None
 
     def load_boundaries(self) -> tuple[list[NeighborhoodArea], dict]:
@@ -41,12 +51,19 @@ class NeighborhoodService:
             name = str(props.get("NOMBRE") or props.get("BARRIO_MAY") or props.get("BARRIO") or props.get("name") or neighborhood_id)
             district = str(props.get("NOMDIS") or props.get("DISTRITO") or props.get("district") or "")
 
+            polygon = shape(geometry)
+            projected = shapely_transform(self.to_projected.transform, polygon)
+            if projected.is_empty or projected.area <= 0:
+                continue
+
             neighborhoods.append(
                 NeighborhoodArea(
                     neighborhood_id=neighborhood_id,
                     name=name.strip(),
                     district=district.strip(),
                     geometry=geometry,
+                    projected_geometry=projected,
+                    bounds_projected=projected.bounds,
                 )
             )
 
@@ -58,7 +75,12 @@ class NeighborhoodService:
         self._cached_boundaries = (neighborhoods, metadata)
         return self._cached_boundaries
 
-    def _load_geojson_payload(self) -> tuple[dict, str]:
+    def _load_geojson_payload(self) -> tuple[dict[str, Any], str]:
+        if self.local_boundaries_path.exists():
+            payload = json.loads(self.local_boundaries_path.read_text(encoding="utf-8"))
+            if self._is_valid_geojson(payload):
+                return payload, f"local:{self.local_boundaries_path.name}"
+
         if self.boundaries_path.exists():
             cached_payload = json.loads(self.boundaries_path.read_text(encoding="utf-8"))
             if self._is_valid_geojson(cached_payload):
@@ -96,57 +118,8 @@ class NeighborhoodService:
         features = payload.get("features", [])
         if not isinstance(features, list) or not features:
             return False
-        has_polygon = False
-        for feature in features:
-            geometry = feature.get("geometry", {}) if isinstance(feature, dict) else {}
-            if geometry.get("type") in {"Polygon", "MultiPolygon"}:
-                has_polygon = True
-                break
-        return has_polygon
+        return any((feature.get("geometry", {}) or {}).get("type") in {"Polygon", "MultiPolygon"} for feature in features if isinstance(feature, dict))
 
-    @staticmethod
-    def contains(geometry: dict, lon: float, lat: float) -> bool:
-        geometry_type = geometry.get("type")
-        if geometry_type == "Polygon":
-            return NeighborhoodService._point_in_polygon_geometry(geometry.get("coordinates", []), lon, lat)
-        if geometry_type == "MultiPolygon":
-            polygons = geometry.get("coordinates", [])
-            return any(NeighborhoodService._point_in_polygon_geometry(coords, lon, lat) for coords in polygons)
-        return False
-
-    @staticmethod
-    def _point_in_polygon_geometry(polygon_coords: list, lon: float, lat: float) -> bool:
-        if not polygon_coords:
-            return False
-
-        outer_ring = polygon_coords[0]
-        if not NeighborhoodService._point_in_ring(outer_ring, lon, lat):
-            return False
-
-        inner_rings = polygon_coords[1:]
-        for ring in inner_rings:
-            if NeighborhoodService._point_in_ring(ring, lon, lat):
-                return False
-        return True
-
-    @staticmethod
-    def _point_in_ring(ring: list, lon: float, lat: float) -> bool:
-        if len(ring) < 4:
-            return False
-
-        inside = False
-        previous = ring[-1]
-        for current in ring:
-            x1, y1 = float(previous[0]), float(previous[1])
-            x2, y2 = float(current[0]), float(current[1])
-
-            intersects = (y1 > lat) != (y2 > lat)
-            if intersects:
-                slope = (x2 - x1) / ((y2 - y1) or 1e-12)
-                candidate_x = x1 + (lat - y1) * slope
-                if candidate_x >= lon:
-                    inside = not inside
-
-            previous = current
-
-        return inside
+    def project_geometry(self, geometry: dict) -> BaseGeometry:
+        raw_geometry = shape(geometry)
+        return shapely_transform(self.to_projected.transform, raw_geometry)
