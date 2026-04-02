@@ -96,7 +96,7 @@ export function RouteSearchForm({
       )}
 
       <button type="submit" disabled={loading}>
-        {loading ? 'Calculando...' : 'Calcular ruta'}
+        {loading ? 'Calculando rutas...' : 'Calcular rutas comparadas'}
       </button>
     </form>
   );

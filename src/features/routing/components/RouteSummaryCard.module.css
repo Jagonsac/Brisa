@@ -38,6 +38,27 @@
   background: #ebf9f0;
 }
 
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+.pill {
+  border: 1px solid color-mix(in srgb, var(--pill-color) 40%, white);
+  color: var(--pill-color);
+  background: color-mix(in srgb, var(--pill-color) 10%, white);
+  padding: 0.25rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.pillActive {
+  border-width: 2px;
+}
+
 .summaryList {
   margin: 0.5rem 0 0;
   display: grid;

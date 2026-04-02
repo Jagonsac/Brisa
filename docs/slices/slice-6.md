@@ -54,3 +54,9 @@ Runtime:
 ## Limitaciones reales
 - Integraciones SHP (carriles municipales y vías ciclistas oficiales) quedan preparadas para una fase siguiente con stack geoespacial adicional (GeoPandas/Fiona) o export a CSV/GeoJSON estable.
 - En ausencia de ciertos recursos CSV oficiales, el pipeline usa fallback neutro y lo deja registrado en metadata.
+
+## Demo UI (comparativa simultánea)
+- El frontend calcula en paralelo `fastest`, `safe` y `balanced` en cada búsqueda.
+- El mapa renderiza las tres rutas a la vez con color diferenciado y destaca la ruta seleccionada en el panel lateral.
+- Se añade toggle para incluir `night` bajo demanda en la misma comparación.
+- El resumen lateral muestra distancia (km) y tiempo estimado (h/min) por ruta para reforzar la comparación visual.
