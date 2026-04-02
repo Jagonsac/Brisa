@@ -12,7 +12,7 @@ import { RouteSummaryCard } from '../../features/routing/components/RouteSummary
 import { useSafetyLayer } from '../../features/safety/hooks/useSafetyLayer';
 import { createRoute, waitForRoutingBackendReady } from '../../features/routing/services/routesService';
 import { featureFlags } from '../../shared/config/featureFlags';
-import { ROUTE_MODES } from '../../shared/constants/routeModes';
+import { defaultComparisonModes, ROUTE_MODES } from '../../shared/constants/routeModes';
 import styles from './AppLayout.module.css';
 
 const INITIAL_INPUT_VALUES = {
@@ -40,15 +40,38 @@ const INITIAL_SELECTED_PLACES = {
   destination: null,
 };
 
+const ESTIMATED_KMH_BY_MODE = {
+  fastest: 18,
+  safe: 14,
+  balanced: 16,
+  night: 13,
+};
+
+function enrichRouteWithEstimatedDuration(routeData) {
+  const mode = routeData?.summary?.mode;
+  const speedKmh = ESTIMATED_KMH_BY_MODE[mode] || 15;
+  const distanceKm = routeData?.summary?.distanceKm || 0;
+  const estimatedDurationMinutes = (distanceKm / speedKmh) * 60;
+
+  return {
+    ...routeData,
+    summary: {
+      ...routeData.summary,
+      estimatedDurationMinutes,
+    },
+  };
+}
+
 export function AppLayout() {
   const [appBooting, setAppBooting] = useState(true);
   const [bootProgress, setBootProgress] = useState(8);
   const [bootMessage, setBootMessage] = useState('Inicializando motor de rutas...');
   const [inputValues, setInputValues] = useState(INITIAL_INPUT_VALUES);
   const [selectedPlaces, setSelectedPlaces] = useState(INITIAL_SELECTED_PLACES);
-  const [selectedMode, setSelectedMode] = useState(ROUTE_MODES.FAST);
+  const [selectedRouteMode, setSelectedRouteMode] = useState(ROUTE_MODES.FASTEST.apiMode);
+  const [includeNightRoute, setIncludeNightRoute] = useState(false);
   const [infoMessage, setInfoMessage] = useState('Selecciona origen y destino para calcular una ruta ciclista.');
-  const [routeData, setRouteData] = useState(null);
+  const [routesByMode, setRoutesByMode] = useState({});
   const [routeError, setRouteError] = useState('');
   const [routeLoading, setRouteLoading] = useState(false);
   const [showBicimadLayer, setShowBicimadLayer] = useState(false);
@@ -68,6 +91,8 @@ export function AppLayout() {
     () => inputValues.origin.trim().length > 0 && inputValues.destination.trim().length > 0,
     [inputValues.destination, inputValues.origin],
   );
+
+  const selectedRoute = routesByMode[selectedRouteMode] || null;
 
   useEffect(() => {
     let isMounted = true;
@@ -149,7 +174,7 @@ export function AppLayout() {
   const handleChange = (field, value) => {
     setInputValues((previous) => ({ ...previous, [field]: value }));
     setSuggestionOpen((prev) => ({ ...prev, [field]: true }));
-    setRouteData(null);
+    setRoutesByMode({});
 
     setSelectedPlaces((previous) => {
       const selected = previous[field];
@@ -172,7 +197,7 @@ export function AppLayout() {
     setSelectedPlaces((prev) => ({ ...prev, [field]: suggestion }));
     setSuggestions((prev) => ({ ...prev, [field]: [] }));
     setSuggestionOpen((prev) => ({ ...prev, [field]: false }));
-    setRouteData(null);
+    setRoutesByMode({});
   };
 
   const handleSubmit = async (event) => {
@@ -184,40 +209,61 @@ export function AppLayout() {
       return;
     }
 
-    if (!selectedMode.available) {
-      setRouteData(null);
-      setInfoMessage(`El modo ${selectedMode.label.toLowerCase()} estará disponible en próximos slices.`);
-      return;
-    }
-
     if (!featureFlags.enableRealRouting) {
       setInfoMessage('El cálculo real de rutas está desactivado por feature flag.');
       return;
     }
 
+    const requestedModes = [...defaultComparisonModes];
+    if (includeNightRoute && ROUTE_MODES.NIGHT.available) {
+      requestedModes.push(ROUTE_MODES.NIGHT);
+    }
+
     setRouteLoading(true);
-    setInfoMessage('Calculando ruta real sobre red ciclista de Madrid...');
+    setInfoMessage(
+      includeNightRoute
+        ? 'Calculando rutas rápida, segura, equilibrada y nocturna...'
+        : 'Calculando rutas rápida, segura y equilibrada...',
+    );
 
     try {
-      const response = await createRoute({
-        origin: {
-          query: inputValues.origin.trim(),
-          lat: selectedPlaces.origin?.lat,
-          lon: selectedPlaces.origin?.lon ?? selectedPlaces.origin?.lng,
-        },
-        destination: {
-          query: inputValues.destination.trim(),
-          lat: selectedPlaces.destination?.lat,
-          lon: selectedPlaces.destination?.lon ?? selectedPlaces.destination?.lng,
-        },
-        mode: selectedMode.apiMode,
-      });
-      setRouteData(response.data);
-      setInfoMessage(`Ruta ${selectedMode.label.toLowerCase()} calculada correctamente.`);
+      const responses = await Promise.all(
+        requestedModes.map(async (mode) => {
+          const response = await createRoute({
+            origin: {
+              query: inputValues.origin.trim(),
+              lat: selectedPlaces.origin?.lat,
+              lon: selectedPlaces.origin?.lon ?? selectedPlaces.origin?.lng,
+            },
+            destination: {
+              query: inputValues.destination.trim(),
+              lat: selectedPlaces.destination?.lat,
+              lon: selectedPlaces.destination?.lon ?? selectedPlaces.destination?.lng,
+            },
+            mode: mode.apiMode,
+          });
+
+          return [mode.apiMode, enrichRouteWithEstimatedDuration(response.data)];
+        }),
+      );
+
+      const nextRoutesByMode = Object.fromEntries(responses);
+      setRoutesByMode(nextRoutesByMode);
+
+      if (!nextRoutesByMode[selectedRouteMode]) {
+        setSelectedRouteMode(requestedModes[0].apiMode);
+      }
+
+      const hasNight = Boolean(nextRoutesByMode.night);
+      setInfoMessage(
+        hasNight
+          ? 'Listo: compara rutas rápida, segura, equilibrada y nocturna directamente en el mapa.'
+          : 'Listo: compara rutas rápida, segura y equilibrada directamente en el mapa.',
+      );
     } catch (error) {
-      setRouteData(null);
+      setRoutesByMode({});
       setRouteError(error instanceof Error ? error.message : 'No fue posible calcular la ruta.');
-      setInfoMessage('No se pudo completar la ruta. Revisa origen/destino e inténtalo de nuevo.');
+      setInfoMessage('No se pudieron calcular las rutas. Revisa origen/destino e inténtalo de nuevo.');
     } finally {
       setRouteLoading(false);
     }
@@ -274,7 +320,24 @@ export function AppLayout() {
                 onCloseAllSuggestions={handleCloseAllSuggestions}
                 onSelectSuggestion={handleSelectSuggestion}
               />
-              <RouteModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} />
+
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={includeNightRoute}
+                  onChange={(event) => setIncludeNightRoute(event.target.checked)}
+                  disabled={!ROUTE_MODES.NIGHT.available}
+                />
+                Incluir también ruta nocturna (farolas e iluminación)
+              </label>
+
+              <RouteModeSelector
+                routesByMode={routesByMode}
+                selectedMode={selectedRouteMode}
+                onSelectMode={setSelectedRouteMode}
+                loading={routeLoading}
+              />
+
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
@@ -303,7 +366,14 @@ export function AppLayout() {
                 </p>
               )}
               <p className={styles.infoText}>{infoMessage}</p>
-              <RouteSummaryCard routeData={routeData} loading={routeLoading} error={routeError} statusMessage={routeData ? 'Ruta lista en mapa.' : 'Sin ruta calculada todavía.'} />
+              <RouteSummaryCard
+                selectedRoute={selectedRoute}
+                routesByMode={routesByMode}
+                selectedMode={selectedRouteMode}
+                loading={routeLoading}
+                error={routeError}
+                statusMessage={selectedRoute ? 'Rutas listas en mapa.' : 'Sin rutas calculadas todavía.'}
+              />
             </section>
           )}
 
@@ -322,10 +392,10 @@ export function AppLayout() {
         <section className={styles.mapContainer}>
           {featureFlags.enableMap ? (
             <MapView
-              selectedMode={selectedMode}
               bicimadStations={bicimadState.stations}
               showBicimadLayer={showBicimadLayer && bicimadLayerEnabled}
-              routeData={routeData}
+              routesByMode={routesByMode}
+              selectedRouteMode={selectedRouteMode}
               selectedOriginPlace={selectedPlaces.origin}
               selectedDestinationPlace={selectedPlaces.destination}
               safetyGrid={safetyState.grid}

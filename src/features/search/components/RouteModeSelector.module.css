@@ -10,31 +10,50 @@
 
 .buttonGroup {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.45rem;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
 }
 
 .modeButton {
-  border: 1px solid #b4c3de;
-  border-radius: 10px;
-  padding: 0.55rem;
-  background: #f8fbff;
+  border: 1px solid #ccdaef;
+  border-radius: 12px;
+  padding: 0.65rem;
+  background: linear-gradient(180deg, #f9fbff 0%, #f4f8ff 100%);
   color: #1c2f4f;
-  font-weight: 500;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
   gap: 0.2rem;
+  text-align: left;
+}
+
+.modeButton:hover {
+  border-color: #8aa8dc;
 }
 
 .modeButtonActive {
-  background: #dfeaff;
-  border-color: #5083eb;
-  color: #123986;
+  border-color: #3f74df;
+  background: linear-gradient(180deg, #e8f0ff 0%, #e4edff 100%);
+  box-shadow: 0 6px 16px rgba(33, 76, 156, 0.18);
 }
 
-.comingSoon {
-  font-size: 0.72rem;
-  color: #5d6f92;
+.modeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.colorDot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+}
+
+.emptyState {
+  margin: 0;
+  color: #5e708f;
+  background: #f5f8ff;
+  border: 1px dashed #bfd1ed;
+  border-radius: 10px;
+  padding: 0.65rem;
+  font-size: 0.85rem;
 }

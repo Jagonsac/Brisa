@@ -7,6 +7,7 @@ import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLa
 import { SafetyLegend } from '../../safety/components/SafetyLegend';
 import { getSafetyColor } from '../../safety/utils/safetyColors';
 import { madridMapConfig } from '../../../mocks/madridMapConfig';
+import { routeModeByApiMode } from '../../../shared/constants/routeModes';
 import styles from './MapView.module.css';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -28,17 +29,23 @@ const destinationIcon = L.divIcon({
   iconAnchor: [12, 12],
 });
 
-function RouteBoundsController({ routeFeature }) {
+function RouteBoundsController({ routeFeatures }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!routeFeature) return;
-    const layer = L.geoJSON(routeFeature);
+    if (routeFeatures.length === 0) return;
+
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: routeFeatures,
+    };
+
+    const layer = L.geoJSON(featureCollection);
     const bounds = layer.getBounds();
     if (bounds.isValid()) {
       map.fitBounds(bounds.pad(0.15));
     }
-  }, [map, routeFeature]);
+  }, [map, routeFeatures]);
 
   return null;
 }
@@ -97,14 +104,20 @@ export function MapView({
   selectedDestinationPlace,
   bicimadStations,
   showBicimadLayer,
-  routeData,
+  routesByMode,
+  selectedRouteMode,
   safetyGrid,
   showSafetyLayer,
   safetySummary,
 }) {
-  const routeFeature = routeData?.routeGeoJson ?? null;
-  const originPoint = selectedOriginPlace || routeData?.origin || null;
-  const destinationPoint = selectedDestinationPlace || routeData?.destination || null;
+  const routeEntries = Object.entries(routesByMode);
+  const routeFeatures = routeEntries
+    .map(([, routeData]) => routeData?.routeGeoJson)
+    .filter((feature) => Boolean(feature));
+
+  const selectedRouteData = routesByMode[selectedRouteMode] || null;
+  const originPoint = selectedOriginPlace || selectedRouteData?.origin || routeEntries[0]?.[1]?.origin || null;
+  const destinationPoint = selectedDestinationPlace || selectedRouteData?.destination || routeEntries[0]?.[1]?.destination || null;
   const originLon = originPoint?.lon ?? originPoint?.lng;
   const destinationLon = destinationPoint?.lon ?? destinationPoint?.lng;
 
@@ -138,12 +151,30 @@ export function MapView({
           </Marker>
         )}
 
-        {routeFeature && (
-          <>
-            <GeoJSON data={routeFeature} style={{ color: '#1f6feb', weight: 5, opacity: 0.9 }} />
-            <RouteBoundsController routeFeature={routeFeature} />
-          </>
-        )}
+        {routeEntries.map(([modeKey, routeData]) => {
+          const modeMeta = routeModeByApiMode[modeKey];
+          const isActive = modeKey === selectedRouteMode;
+          const routeFeature = routeData?.routeGeoJson;
+
+          if (!routeFeature) {
+            return null;
+          }
+
+          return (
+            <GeoJSON
+              key={modeKey}
+              data={routeFeature}
+              style={{
+                color: modeMeta?.color || '#1f6feb',
+                weight: isActive ? 6.5 : 4.25,
+                opacity: isActive ? 0.98 : 0.76,
+                dashArray: isActive ? undefined : '8 6',
+              }}
+            />
+          );
+        })}
+
+        {routeFeatures.length > 0 && <RouteBoundsController routeFeatures={routeFeatures} />}
 
         {showBicimadLayer && bicimadStations.length > 0 && <BicimadStationsLayer stations={bicimadStations} />}
       </MapContainer>
