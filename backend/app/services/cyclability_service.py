@@ -406,14 +406,7 @@ class CyclabilityService:
             lat = (float(a["y"]) + float(b["y"])) / 2
 
         x, y = self.neighborhood_service.to_projected.transform(float(lon), float(lat))
-        pt = Point(x, y)
-
-        for neighborhood in neighborhoods:
-            if not self._point_within_bbox(x, y, neighborhood.bounds_projected):
-                continue
-            if neighborhood.projected_geometry.contains(pt):
-                return neighborhood
-        return self.neighborhood_service._nearest_neighborhood_projected(x, y, neighborhoods)
+        return self.neighborhood_service.resolve_neighborhood_projected_point(x, y, neighborhoods)
 
     def _bicimad_metrics(self, neighborhoods: list[NeighborhoodArea], stations: list[dict]) -> dict[str, dict]:
         projected_stations = []
@@ -486,7 +479,3 @@ class CyclabilityService:
     @staticmethod
     def _clamp01(value: float) -> float:
         return max(0.0, min(1.0, float(value)))
-
-    @staticmethod
-    def _point_within_bbox(x: float, y: float, bbox: tuple[float, float, float, float]) -> bool:
-        return bbox[0] <= x <= bbox[2] and bbox[1] <= y <= bbox[3]
