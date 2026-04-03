@@ -11,12 +11,17 @@ export function useNeighborhoodCyclability({ enabled }) {
   const [geojson, setGeojson] = useState(null);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [hasResolvedInitialLoad, setHasResolvedInitialLoad] = useState(!enabled);
   const [error, setError] = useState('');
   const [comparison, setComparison] = useState(null);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setHasResolvedInitialLoad(true);
+      return;
+    }
     let active = true;
+    setHasResolvedInitialLoad(false);
 
     async function run() {
       setLoading(true);
@@ -32,7 +37,10 @@ export function useNeighborhoodCyclability({ enabled }) {
         if (!active) return;
         setError(err instanceof Error ? err.message : 'No se pudo cargar el índice por barrio.');
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+          setHasResolvedInitialLoad(true);
+        }
       }
     }
 
@@ -52,5 +60,5 @@ export function useNeighborhoodCyclability({ enabled }) {
     setComparison(payload?.data ?? null);
   };
 
-  return { list, geojson, meta, loading, error, comparison, runComparison };
+  return { list, geojson, meta, loading, hasResolvedInitialLoad, error, comparison, runComparison };
 }
