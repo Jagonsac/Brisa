@@ -413,7 +413,7 @@ class CyclabilityService:
                 continue
             if neighborhood.projected_geometry.contains(pt):
                 return neighborhood
-        return self.neighborhood_service._nearest_neighborhood_projected(x, y, neighborhoods)
+        return self._nearest_neighborhood_projected(x, y, neighborhoods)
 
     def _bicimad_metrics(self, neighborhoods: list[NeighborhoodArea], stations: list[dict]) -> dict[str, dict]:
         projected_stations = []
@@ -490,3 +490,17 @@ class CyclabilityService:
     @staticmethod
     def _point_within_bbox(x: float, y: float, bbox: tuple[float, float, float, float]) -> bool:
         return bbox[0] <= x <= bbox[2] and bbox[1] <= y <= bbox[3]
+
+    @staticmethod
+    def _nearest_neighborhood_projected(x: float, y: float, neighborhoods: list):
+        nearest = None
+        nearest_dist = None
+        for neighborhood in neighborhoods:
+            min_x, min_y, max_x, max_y = neighborhood.bounds_projected
+            center_x = (min_x + max_x) / 2
+            center_y = (min_y + max_y) / 2
+            dist = (center_x - x) ** 2 + (center_y - y) ** 2
+            if nearest_dist is None or dist < nearest_dist:
+                nearest = neighborhood
+                nearest_dist = dist
+        return nearest
