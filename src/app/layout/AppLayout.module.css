@@ -150,6 +150,64 @@
   height: 16px;
 }
 
+.layerSelectorCard {
+  margin-top: 0.9rem;
+  padding: 0.8rem;
+  border: 1px solid #d6e3fb;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f2f7ff 100%);
+}
+
+.layerSelectorCard h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #173468;
+}
+
+.layerSelectorCard p {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: #3e5175;
+}
+
+.layerSelectorGroup {
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.layerOptionButton {
+  border: 1px solid #c8d8f5;
+  background: #ffffff;
+  color: #243b63;
+  border-radius: 10px;
+  min-height: 40px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.layerOptionButton:hover:not(:disabled) {
+  border-color: #3d7be0;
+  box-shadow: 0 4px 14px rgba(25, 52, 96, 0.12);
+  transform: translateY(-1px);
+}
+
+.layerOptionButtonActive {
+  border-color: #2b6fd8;
+  background: #eaf2ff;
+  color: #12376e;
+  box-shadow: 0 0 0 1px #2b6fd8 inset;
+}
+
+.layerOptionButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .warningText {
   margin: 0.5rem 0 0;
   color: #8a2c2a;
