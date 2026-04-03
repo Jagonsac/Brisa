@@ -75,6 +75,23 @@ function styleCyclabilityFeature(feature, selectedNeighborhoodId) {
   };
 }
 
+function darkenHexColor(hexColor, factor = 0.2) {
+  const normalized = hexColor?.replace('#', '');
+  if (!normalized || (normalized.length !== 3 && normalized.length !== 6)) return '#2f4b78';
+
+  const expanded =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => `${char}${char}`)
+          .join('')
+      : normalized;
+
+  const [r, g, b] = [0, 2, 4].map((start) => parseInt(expanded.slice(start, start + 2), 16));
+  const clamp = (value) => Math.max(0, Math.min(255, Math.round(value * (1 - factor))));
+  return `rgb(${clamp(r)}, ${clamp(g)}, ${clamp(b)})`;
+}
+
 function bindSafetyPopup(feature, layer) {
   const properties = feature?.properties ?? {};
   const explanation = Array.isArray(properties.explanation) ? properties.explanation.join('<br/>') : '';
@@ -91,12 +108,17 @@ function bindSafetyPopup(feature, layer) {
   layer.on({
     mouseover: (event) => {
       const hoveredLayer = event.target;
+      const baseStyle = styleSafetyFeature(feature);
+
       hoveredLayer.setStyle({
-        weight: 2.2,
-        color: '#1f365f',
-        opacity: 0.95,
-        fillOpacity: 0.66,
+        ...baseStyle,
+        weight: 1.8,
+        color: darkenHexColor(baseStyle.fillColor, 0.18),
+        opacity: 0.9,
+        fillOpacity: 0.62,
       });
+      const layerElement = hoveredLayer.getElement();
+      layerElement?.classList.add(styles.liftedNeighborhood);
       hoveredLayer.bringToFront();
       hoveredLayer.openPopup(event.latlng);
     },
@@ -105,6 +127,7 @@ function bindSafetyPopup(feature, layer) {
     },
     mouseout: () => {
       layer.closePopup();
+      layer.getElement()?.classList.remove(styles.liftedNeighborhood);
       layer.setStyle(styleSafetyFeature(feature));
     },
     click: (event) => {
