@@ -87,3 +87,11 @@
   padding: 0.35rem 0.55rem;
   box-shadow: 0 8px 22px rgba(22, 43, 79, 0.12);
 }
+
+:global(.leaflet-interactive) {
+  transition: filter 160ms ease, stroke-width 160ms ease, fill-opacity 160ms ease;
+}
+
+.liftedNeighborhood {
+  filter: drop-shadow(0 2px 3px rgba(20, 36, 64, 0.2)) drop-shadow(0 7px 14px rgba(20, 36, 64, 0.18));
+}
