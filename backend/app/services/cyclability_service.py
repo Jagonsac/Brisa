@@ -30,12 +30,16 @@ class NeighborhoodAccumulator:
     junction_complexity_length_sum: float = 0.0
     lighting_deficit_length_sum: float = 0.0
     bike_infra_metric_length_sum: float = 0.0
+    bike_accident_length_sum: float = 0.0
+    bike_exposure_length_sum: float = 0.0
     low_risk_length_m: float = 0.0
     high_risk_length_m: float = 0.0
     hostile_length_m: float = 0.0
     protected_bike_length_m: float = 0.0
     lane_bike_length_m: float = 0.0
     shared_bike_length_m: float = 0.0
+    green_cyclable_length_m: float = 0.0
+    green_quality_length_sum: float = 0.0
 
 
 class CyclabilityService:
@@ -94,6 +98,7 @@ class CyclabilityService:
             ("safetyScore", "Seguridad"),
             ("bikeInfraScore", "Infraestructura ciclista"),
             ("lowHostilityScore", "Confort frente al tráfico"),
+            ("greenCyclableScore", "Red ciclable en entorno verde"),
             ("nightScore", "Ciclabilidad nocturna"),
             ("junctionScore", "Confort en cruces"),
             ("bicimadScore", "Acceso a Bicimad"),
@@ -173,6 +178,8 @@ class CyclabilityService:
             junction = float(metrics.get("junctionComplexityScore", 0.4))
             lighting_deficit = float(metrics.get("lightingDeficitNormalized", 0.5))
             bike_metric = float(metrics.get("bikeInfrastructureScore", 0.25))
+            bike_accident = float(metrics.get("bikeAccidentScore", 0.2))
+            bike_presence = float(metrics.get("bikePresenceScore", bike_metric))
 
             bucket.day_risk_length_sum += day_risk * length
             bucket.night_risk_length_sum += night_risk * length
@@ -181,6 +188,8 @@ class CyclabilityService:
             bucket.junction_complexity_length_sum += junction * length
             bucket.lighting_deficit_length_sum += lighting_deficit * length
             bucket.bike_infra_metric_length_sum += bike_metric * length
+            bucket.bike_accident_length_sum += bike_accident * length
+            bucket.bike_exposure_length_sum += self._bike_exposure_proxy(bike_presence=bike_presence, bike_metric=bike_metric) * length
 
             if day_risk <= 0.35:
                 bucket.low_risk_length_m += length
@@ -197,6 +206,11 @@ class CyclabilityService:
             elif infra_class == "shared":
                 bucket.shared_bike_length_m += length
 
+            if self._is_green_context_edge(data):
+                bucket.green_cyclable_length_m += length
+                green_quality = self._clamp01((1 - hostility) * 0.5 + bike_metric * 0.35 + (1 - traffic) * 0.15)
+                bucket.green_quality_length_sum += green_quality * length
+
         bicimad_metrics = self._bicimad_metrics(neighborhoods, stations)
 
         rows = []
@@ -206,6 +220,9 @@ class CyclabilityService:
             total = bucket.total_length_m
             infra_km = (bucket.protected_bike_length_m + bucket.lane_bike_length_m + bucket.shared_bike_length_m) / 1000.0
             infra_density = infra_km / bucket.area_km2
+            served_area_ratio = self._served_area_ratio(total_length_m=total, area_km2=bucket.area_km2)
+            served_area_km2 = max(bucket.area_km2 * served_area_ratio, 0.05)
+            infra_density_served = infra_km / served_area_km2
             infra_share = (bucket.protected_bike_length_m + bucket.lane_bike_length_m + bucket.shared_bike_length_m) / total
             protected_share = bucket.protected_bike_length_m / total
             avg_day_risk = bucket.day_risk_length_sum / total
@@ -217,11 +234,23 @@ class CyclabilityService:
             avg_junction = bucket.junction_complexity_length_sum / total
             avg_lighting_deficit = bucket.lighting_deficit_length_sum / total
             bike_metric_avg = bucket.bike_infra_metric_length_sum / total
+            bike_accident_avg = bucket.bike_accident_length_sum / total
+            bike_exposure_avg = bucket.bike_exposure_length_sum / total
+            bike_accident_relative = bike_accident_avg / max(0.2, bike_exposure_avg)
+            green_share = bucket.green_cyclable_length_m / total
+            green_quality_avg = bucket.green_quality_length_sum / bucket.green_cyclable_length_m if bucket.green_cyclable_length_m > 0 else 0.0
 
             bm = bicimad_metrics.get(bucket.neighborhood.neighborhood_id, {"stationsDensity": 0.0, "coverageRatio": 0.0, "stationsCount": 0})
 
-            safety_raw = self._clamp01((1 - avg_day_risk) * 0.55 + low_risk_share * 0.30 + (1 - high_risk_share) * 0.15)
-            infra_raw = self._clamp01(infra_share * 0.45 + protected_share * 0.2 + self._clamp01(infra_density / 8.0) * 0.2 + bike_metric_avg * 0.15)
+            safety_raw = self._clamp01((1 - avg_day_risk) * 0.46 + low_risk_share * 0.24 + (1 - high_risk_share) * 0.14 + (1 - self._clamp01(bike_accident_relative)) * 0.16)
+            infra_raw = self._clamp01(
+                infra_share * 0.35
+                + protected_share * 0.15
+                + self._clamp01(infra_density / 8.0) * 0.10
+                + self._clamp01(infra_density_served / 8.0) * 0.30
+                + bike_metric_avg * 0.10
+            )
+            green_cyclable_raw = self._clamp01(green_share * 0.55 + green_quality_avg * 0.45)
             low_hostility_raw = self._clamp01((1 - hostile_share) * 0.55 + (1 - avg_traffic) * 0.30 + (1 - (bucket.road_hostility_length_sum / total)) * 0.15)
             night_raw = self._clamp01((1 - avg_night_risk) * 0.55 + (1 - avg_lighting_deficit) * 0.30 + (1 - avg_traffic) * 0.15)
             junction_raw = self._clamp01((1 - avg_junction) * 0.8 + (1 - hostile_share) * 0.2)
@@ -238,6 +267,9 @@ class CyclabilityService:
                         "networkKm": round(total / 1000.0, 3),
                         "infraKm": round(infra_km, 3),
                         "infraDensityKmPerKm2": round(infra_density, 3),
+                        "servedAreaRatio": round(served_area_ratio, 4),
+                        "servedAreaKm2": round(served_area_km2, 3),
+                        "infraDensityKmPerServedKm2": round(infra_density_served, 3),
                         "infraShare": round(infra_share, 4),
                         "protectedShare": round(protected_share, 4),
                         "avgDayRisk": round(avg_day_risk, 4),
@@ -248,6 +280,10 @@ class CyclabilityService:
                         "avgTrafficExposure": round(avg_traffic, 4),
                         "avgJunctionComplexity": round(avg_junction, 4),
                         "avgLightingDeficit": round(avg_lighting_deficit, 4),
+                        "bikeExposureProxy": round(bike_exposure_avg, 4),
+                        "bikeAccidentRelative": round(bike_accident_relative, 4),
+                        "greenCyclableShare": round(green_share, 4),
+                        "greenCyclableQuality": round(green_quality_avg, 4),
                         "bicimadStationsCount": int(bm["stationsCount"]),
                         "bicimadStationsDensity": round(bm["stationsDensity"], 4),
                         "bicimadCoverage": round(bm["coverageRatio"], 4),
@@ -256,6 +292,7 @@ class CyclabilityService:
                         "safety": safety_raw,
                         "bike_infra": infra_raw,
                         "low_hostility": low_hostility_raw,
+                        "green_cyclable": green_cyclable_raw,
                         "night": night_raw,
                         "junction": junction_raw,
                         "bicimad": bicimad_raw,
@@ -279,6 +316,7 @@ class CyclabilityService:
                         "safetyScore": row["safetyScore"],
                         "bikeInfraScore": row["bikeInfraScore"],
                         "lowHostilityScore": row["lowHostilityScore"],
+                        "greenCyclableScore": row["greenCyclableScore"],
                         "nightScore": row["nightScore"],
                         "junctionScore": row["junctionScore"],
                         "bicimadScore": row["bicimadScore"],
@@ -312,7 +350,7 @@ class CyclabilityService:
         return {"neighborhoods": neighborhoods_payload, "geojson": geojson, "metadata": metadata}
 
     def _normalize_scores(self, rows: list[dict]) -> list[dict]:
-        keys = ["safety", "bike_infra", "low_hostility", "night", "junction", "bicimad"]
+        keys = ["safety", "bike_infra", "low_hostility", "green_cyclable", "night", "junction", "bicimad"]
         for key in keys:
             values = [float(row["raw"][key]) for row in rows]
             low = self._percentile(values, cyclability_config.robust_p_low)
@@ -328,6 +366,7 @@ class CyclabilityService:
                 row["safety_score"] * weights["safety"]
                 + row["bike_infra_score"] * weights["bike_infra"]
                 + row["low_hostility_score"] * weights["low_hostility"]
+                + row["green_cyclable_score"] * weights["green_cyclable"]
                 + row["night_score"] * weights["night"]
                 + row["junction_score"] * weights["junction"]
                 + row["bicimad_score"] * weights["bicimad"]
@@ -355,6 +394,7 @@ class CyclabilityService:
                 "safetyScore": row["safety_score"],
                 "bikeInfraScore": row["bike_infra_score"],
                 "lowHostilityScore": row["low_hostility_score"],
+                "greenCyclableScore": row["green_cyclable_score"],
                 "nightScore": row["night_score"],
                 "junctionScore": row["junction_score"],
                 "bicimadScore": row["bicimad_score"],
@@ -376,6 +416,7 @@ class CyclabilityService:
             "safety_score": "Seguridad ciclista general",
             "bike_infra_score": "Cobertura de infraestructura ciclista",
             "low_hostility_score": "Baja exposición al tráfico hostil",
+            "green_cyclable_score": "Red ciclable en entorno verde legal",
             "night_score": "Comportamiento nocturno",
             "junction_score": "Confort en cruces",
             "bicimad_score": "Acceso a Bicimad",
@@ -468,6 +509,36 @@ class CyclabilityService:
         if highway in {"residential", "living_street", "service"}:
             return "shared"
         return None
+
+    @staticmethod
+    def _is_green_context_edge(edge_data: dict) -> bool:
+        green_landuse = {"grass", "forest", "wood", "recreation_ground", "village_green", "meadow", "park"}
+        green_natural = {"wood", "tree_row", "scrub", "grassland", "heath"}
+        green_leisure = {"park", "garden", "nature_reserve", "recreation_ground"}
+        cycle_friendly_highways = {"path", "track", "cycleway", "living_street", "residential", "service"}
+
+        highway = str(edge_data.get("highway", "")).lower()
+        landuse = str(edge_data.get("landuse", "")).lower()
+        natural = str(edge_data.get("natural", "")).lower()
+        leisure = str(edge_data.get("leisure", "")).lower()
+
+        has_green_tag = (landuse in green_landuse) or (natural in green_natural) or (leisure in green_leisure)
+        if has_green_tag and highway in cycle_friendly_highways:
+            return True
+        if highway == "cycleway" and has_green_tag:
+            return True
+        return False
+
+    @staticmethod
+    def _served_area_ratio(*, total_length_m: float, area_km2: float) -> float:
+        area_m2 = max(area_km2 * 1_000_000.0, 1.0)
+        corridor_m = max(total_length_m, 0.0) * 18.0
+        coverage = 1.0 - math.exp(-corridor_m / area_m2)
+        return max(0.15, min(1.0, coverage))
+
+    @staticmethod
+    def _bike_exposure_proxy(*, bike_presence: float, bike_metric: float) -> float:
+        return max(0.05, min(1.0, 0.75 * float(bike_presence) + 0.25 * float(bike_metric)))
 
     @staticmethod
     def _percentile(values: list[float], q: float) -> float:

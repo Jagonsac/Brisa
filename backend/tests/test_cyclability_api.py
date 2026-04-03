@@ -14,6 +14,7 @@ FAKE_NEIGHBORHOOD = {
     "safetyScore": 75,
     "bikeInfraScore": 70,
     "lowHostilityScore": 72,
+    "greenCyclableScore": 66,
     "nightScore": 65,
     "junctionScore": 68,
     "bicimadScore": 88,

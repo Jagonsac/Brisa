@@ -11,12 +11,13 @@ Convertir la agregación por barrio previa (Slice 5) en una feature completa de 
 
 ## Modelo del índice (0..100)
 Subscores normalizados con **clipping robusto percentilar (P10-P90)**:
-1. `safetyScore` (30%): riesgo diurno + shares de red de bajo/alto riesgo.
-2. `bikeInfraScore` (22%): km de infraestructura, densidad km/km², share de red e infraestructura protegida.
-3. `lowHostilityScore` (18%): baja exposición a tráfico hostil y arterias.
-4. `nightScore` (12%): riesgo nocturno + déficit de iluminación.
-5. `junctionScore` (8%): confort por complejidad de cruces.
-6. `bicimadScore` (10%): densidad de estaciones + cobertura espacial bufferizada.
+1. `safetyScore` (28%): riesgo diurno + shares de red de bajo/alto riesgo + accidentalidad ciclista relativa a exposición aproximada.
+2. `bikeInfraScore` (20%): km de infraestructura, share de red e infraestructura protegida, corrigiendo sesgo por área con densidad sobre área servida por red ciclable.
+3. `lowHostilityScore` (16%): baja exposición a tráfico hostil y arterias.
+4. `greenCyclableScore` (12%): red ciclable legal en entorno verde (sin bonus por hectárea verde bruta).
+5. `nightScore` (12%): riesgo nocturno + déficit de iluminación.
+6. `junctionScore` (8%): confort por complejidad de cruces.
+7. `bicimadScore` (4%): densidad de estaciones + cobertura espacial bufferizada, reduciendo el castigo de zonas recreativas.
 
 Pesos centralizados en `backend/app/core/cyclability_config.py`.
 
@@ -46,6 +47,19 @@ Cada barrio incluye:
 - fortalezas y debilidades (reglas deterministas por top/bottom subscores)
 - resumen breve en español
 - métricas base (km red, share hostil, densidades, cobertura Bicimad)
+- nuevas métricas trazables de calibración: `servedAreaRatio`, `infraDensityKmPerServedKm2`, `bikeAccidentRelative`, `greenCyclableShare` y `greenCyclableQuality`.
+
+## Decisiones de calibración (sesgo de Casa de Campo)
+- Se evita premiar “verde ciego”: `greenCyclableScore` solo sube cuando hay red **ciclable legal** y con calidad razonable dentro de entorno verde.
+- Se reduce sesgo de barrios grandes con componente no urbana al usar `infraDensityKmPerServedKm2` junto a la densidad clásica por km² total.
+- La accidentalidad mantiene suavizado bayesiano del edge-level y se corrige por exposición ciclista aproximada (`bikePresenceScore` con fallback estable) para aproximar riesgo por uso.
+
+### Nota de calibración (antes/después)
+- **Casa de Campo**: mejora esperada en `bikeInfraScore` y `greenCyclableScore`; deja de quedar artificialmente en cola por baja densidad territorial bruta y baja presencia Bicimad.
+- **Sol (control urbano denso)**: se mantiene alto en infraestructura/servicio, sin saltos abruptos en ranking.
+- **El Pardo (control gran superficie no urbana)**: mejora moderada, limitada por cobertura ciclable legal efectiva (sin premio por área verde no ciclable).
+
+> Referencia de validación: regenerar caché con `python -m app.pipelines.build_neighborhood_cyclability` y comparar top/bottom antes/después para estos tres barrios.
 
 ## Limitaciones reales
 - La señal Bicimad usa snapshot estático si no se integra una capa más completa de estaciones.

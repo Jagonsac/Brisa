@@ -17,6 +17,7 @@
           "safetyScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "bikeInfraScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "lowHostilityScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "greenCyclableScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "nightScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "junctionScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "bicimadScore": { "type": "number", "minimum": 0, "maximum": 100 },

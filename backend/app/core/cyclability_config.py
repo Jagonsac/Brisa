@@ -12,12 +12,13 @@ class CyclabilityConfig:
 
     weights: dict[str, float] = field(
         default_factory=lambda: {
-            "safety": float(getenv("CYCLABILITY_W_SAFETY", "30")),
-            "bike_infra": float(getenv("CYCLABILITY_W_BIKE_INFRA", "22")),
-            "low_hostility": float(getenv("CYCLABILITY_W_LOW_HOSTILITY", "18")),
+            "safety": float(getenv("CYCLABILITY_W_SAFETY", "28")),
+            "bike_infra": float(getenv("CYCLABILITY_W_BIKE_INFRA", "20")),
+            "low_hostility": float(getenv("CYCLABILITY_W_LOW_HOSTILITY", "16")),
+            "green_cyclable": float(getenv("CYCLABILITY_W_GREEN_CYCLABLE", "12")),
             "night": float(getenv("CYCLABILITY_W_NIGHT", "12")),
             "junction": float(getenv("CYCLABILITY_W_JUNCTION", "8")),
-            "bicimad": float(getenv("CYCLABILITY_W_BICIMAD", "10")),
+            "bicimad": float(getenv("CYCLABILITY_W_BICIMAD", "4")),
         }
     )
 
