@@ -66,6 +66,7 @@ function enrichRouteWithEstimatedDuration(routeData) {
 
 export function AppLayout() {
   const [appBooting, setAppBooting] = useState(true);
+  const [backendReadyForBoot, setBackendReadyForBoot] = useState(false);
   const [bootProgress, setBootProgress] = useState(8);
   const [bootMessage, setBootMessage] = useState('Inicializando motor de rutas...');
   const [inputValues, setInputValues] = useState(INITIAL_INPUT_VALUES);
@@ -91,6 +92,8 @@ export function AppLayout() {
   const bicimadState = useBicimadStations({ enabled: bicimadLayerEnabled });
   const safetyState = useSafetyLayer({ enabled: safetyLayerEnabled || safetySummaryEnabled });
   const cyclabilityState = useNeighborhoodCyclability({ enabled: featureFlags.enableNeighborhoodCyclability });
+  const shouldPreloadCyclability = featureFlags.enableNeighborhoodCyclability;
+  const cyclabilityPreloadReady = !shouldPreloadCyclability || cyclabilityState.hasResolvedInitialLoad;
 
   const canSubmit = useMemo(
     () => inputValues.origin.trim().length > 0 && inputValues.destination.trim().length > 0,
@@ -123,12 +126,8 @@ export function AppLayout() {
       } finally {
         window.clearInterval(progressTimer);
         if (isMounted) {
-          setBootProgress(100);
-          window.setTimeout(() => {
-            if (isMounted) {
-              setAppBooting(false);
-            }
-          }, 420);
+          setBackendReadyForBoot(true);
+          setBootProgress((current) => Math.max(current, 96));
         }
       }
     };
@@ -139,6 +138,26 @@ export function AppLayout() {
       window.clearInterval(progressTimer);
     };
   }, []);
+
+  useEffect(() => {
+    if (!backendReadyForBoot) return;
+
+    if (!cyclabilityPreloadReady) {
+      setBootMessage('Precargando índice de ciclabilidad por barrio...');
+      setBootProgress((current) => Math.max(current, 96));
+      return;
+    }
+
+    setBootMessage('Todo listo.');
+    setBootProgress(100);
+    const finishTimer = window.setTimeout(() => {
+      setAppBooting(false);
+    }, 420);
+
+    return () => {
+      window.clearTimeout(finishTimer);
+    };
+  }, [backendReadyForBoot, cyclabilityPreloadReady]);
 
   useEffect(() => {
     const activeRequests = [];
