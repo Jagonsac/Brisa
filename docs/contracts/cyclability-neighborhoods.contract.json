@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CyclabilityNeighborhoodListResponse",
+  "type": "object",
+  "required": ["data", "meta"],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["neighborhoodId", "name", "cyclabilityScore", "rank"],
+        "properties": {
+          "neighborhoodId": { "type": "string" },
+          "name": { "type": "string" },
+          "district": { "type": "string" },
+          "cyclabilityScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "safetyScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "bikeInfraScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "lowHostilityScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "nightScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "junctionScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "bicimadScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "rank": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "meta": { "type": "object" }
+  }
+}

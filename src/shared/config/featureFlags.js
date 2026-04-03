@@ -12,6 +12,9 @@ export const featureFlags = {
   enableRouteExplanations: true,
   enableBicimad: true,
   enableBicimadStationsLayer: true,
-  enableNeighborhoodScore: false,
+  enableNeighborhoodScore: true,
+  enableNeighborhoodCyclability: true,
+  enableNeighborhoodComparison: true,
+  enableNeighborhoodRanking: true,
   enableProjectStatusPanel: true,
 };

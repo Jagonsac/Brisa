@@ -61,6 +61,20 @@ function styleSafetyFeature(feature) {
   };
 }
 
+function styleCyclabilityFeature(feature, selectedNeighborhoodId) {
+  const score = feature?.properties?.cyclabilityScore ?? 0;
+  const hue = Math.round((score / 100) * 120);
+  const fillColor = `hsl(${hue}, 62%, 45%)`;
+  const isSelected = feature?.properties?.neighborhoodId === selectedNeighborhoodId;
+  return {
+    color: isSelected ? '#0f2f60' : '#f2f7ff',
+    weight: isSelected ? 2.2 : 0.9,
+    opacity: 0.8,
+    fillOpacity: isSelected ? 0.72 : 0.56,
+    fillColor,
+  };
+}
+
 function bindSafetyPopup(feature, layer) {
   const properties = feature?.properties ?? {};
   const explanation = Array.isArray(properties.explanation) ? properties.explanation.join('<br/>') : '';
@@ -99,6 +113,30 @@ function bindSafetyPopup(feature, layer) {
   });
 }
 
+function bindCyclabilityPopup(feature, layer, onSelectNeighborhood, selectedNeighborhoodId) {
+  const properties = feature?.properties ?? {};
+  const popupContent = `<strong>${properties.neighborhoodName ?? 'Barrio'}</strong><br/>Índice ciclabilidad: ${
+    properties.cyclabilityScore ?? '-'
+  } / 100<br/>Distrito: ${properties.districtName ?? '-'}`;
+  layer.bindPopup(popupContent, { className: styles.safetyPopup });
+
+  layer.on({
+    mouseover: (event) => {
+      event.target.setStyle(styleCyclabilityFeature(feature, selectedNeighborhoodId));
+      event.target.bringToFront();
+      event.target.openPopup(event.latlng);
+    },
+    mouseout: () => {
+      layer.closePopup();
+      layer.setStyle(styleCyclabilityFeature(feature, selectedNeighborhoodId));
+    },
+    click: (event) => {
+      onSelectNeighborhood?.(properties.neighborhoodId);
+      layer.openPopup(event.latlng);
+    },
+  });
+}
+
 export function MapView({
   selectedOriginPlace,
   selectedDestinationPlace,
@@ -109,6 +147,10 @@ export function MapView({
   safetyGrid,
   showSafetyLayer,
   safetySummary,
+  cyclabilityGeojson,
+  showCyclabilityLayer,
+  selectedNeighborhoodId,
+  onSelectNeighborhood,
 }) {
   const routeEntries = Object.entries(routesByMode);
   const routeFeatures = routeEntries
@@ -136,6 +178,14 @@ export function MapView({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {showCyclabilityLayer && cyclabilityGeojson && (
+          <GeoJSON
+            data={cyclabilityGeojson}
+            style={(feature) => styleCyclabilityFeature(feature, selectedNeighborhoodId)}
+            onEachFeature={(feature, layer) => bindCyclabilityPopup(feature, layer, onSelectNeighborhood, selectedNeighborhoodId)}
+          />
+        )}
 
         {showSafetyLayer && safetyGrid && <GeoJSON data={safetyGrid} style={styleSafetyFeature} onEachFeature={bindSafetyPopup} />}
 
@@ -179,6 +229,7 @@ export function MapView({
         {showBicimadLayer && bicimadStations.length > 0 && <BicimadStationsLayer stations={bicimadStations} />}
       </MapContainer>
       <SafetyLegend visible={showSafetyLayer} summary={safetySummary} />
+      {showCyclabilityLayer && <div className={styles.cyclabilityLegend}>Índice ciclabilidad 0–100 (rojo→verde)</div>}
     </div>
   );
 }
