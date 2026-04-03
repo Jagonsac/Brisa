@@ -406,7 +406,14 @@ class CyclabilityService:
             lat = (float(a["y"]) + float(b["y"])) / 2
 
         x, y = self.neighborhood_service.to_projected.transform(float(lon), float(lat))
-        return self.neighborhood_service.resolve_neighborhood_projected_point(x, y, neighborhoods)
+        pt = Point(x, y)
+
+        for neighborhood in neighborhoods:
+            if not self._point_within_bbox(x, y, neighborhood.bounds_projected):
+                continue
+            if neighborhood.projected_geometry.contains(pt):
+                return neighborhood
+        return self._nearest_neighborhood_projected(x, y, neighborhoods)
 
     def _bicimad_metrics(self, neighborhoods: list[NeighborhoodArea], stations: list[dict]) -> dict[str, dict]:
         projected_stations = []
@@ -479,3 +486,21 @@ class CyclabilityService:
     @staticmethod
     def _clamp01(value: float) -> float:
         return max(0.0, min(1.0, float(value)))
+
+    @staticmethod
+    def _point_within_bbox(x: float, y: float, bbox: tuple[float, float, float, float]) -> bool:
+        return bbox[0] <= x <= bbox[2] and bbox[1] <= y <= bbox[3]
+
+    @staticmethod
+    def _nearest_neighborhood_projected(x: float, y: float, neighborhoods: list):
+        nearest = None
+        nearest_dist = None
+        for neighborhood in neighborhoods:
+            min_x, min_y, max_x, max_y = neighborhood.bounds_projected
+            center_x = (min_x + max_x) / 2
+            center_y = (min_y + max_y) / 2
+            dist = (center_x - x) ** 2 + (center_y - y) ** 2
+            if nearest_dist is None or dist < nearest_dist:
+                nearest = neighborhood
+                nearest_dist = dist
+        return nearest

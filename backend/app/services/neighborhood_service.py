@@ -7,7 +7,7 @@ from typing import Any
 from urllib.request import Request, urlopen
 
 from pyproj import Transformer
-from shapely.geometry import Point, shape
+from shapely.geometry import shape
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import transform as shapely_transform
 
@@ -123,46 +123,3 @@ class NeighborhoodService:
     def project_geometry(self, geometry: dict) -> BaseGeometry:
         raw_geometry = shape(geometry)
         return shapely_transform(self.to_projected.transform, raw_geometry)
-
-    def resolve_neighborhood_projected_point(
-        self,
-        x: float,
-        y: float,
-        neighborhoods: list[NeighborhoodArea],
-    ) -> NeighborhoodArea | None:
-        point = Point(float(x), float(y))
-        for neighborhood in neighborhoods:
-            if not self._point_within_bbox(float(x), float(y), neighborhood.bounds_projected):
-                continue
-            if neighborhood.projected_geometry.covers(point):
-                return neighborhood
-        return self.nearest_neighborhood_projected(float(x), float(y), neighborhoods)
-
-    def nearest_neighborhood_projected(
-        self,
-        x: float,
-        y: float,
-        neighborhoods: list[NeighborhoodArea],
-    ) -> NeighborhoodArea | None:
-        point = Point(float(x), float(y))
-        nearest: NeighborhoodArea | None = None
-        nearest_dist: float | None = None
-        for neighborhood in neighborhoods:
-            dist = float(neighborhood.projected_geometry.distance(point))
-            if nearest_dist is None or dist < nearest_dist:
-                nearest = neighborhood
-                nearest_dist = dist
-        return nearest
-
-    @staticmethod
-    def _point_within_bbox(x: float, y: float, bbox: tuple[float, float, float, float]) -> bool:
-        return bbox[0] <= x <= bbox[2] and bbox[1] <= y <= bbox[3]
-
-    # Compat alias para código previo que aún invoque el método privado.
-    def _nearest_neighborhood_projected(
-        self,
-        x: float,
-        y: float,
-        neighborhoods: list[NeighborhoodArea],
-    ) -> NeighborhoodArea | None:
-        return self.nearest_neighborhood_projected(x, y, neighborhoods)
