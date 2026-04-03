@@ -15,9 +15,9 @@ def _row(neighborhood_id: str, raw: dict[str, float]) -> dict:
 def test_scores_are_bounded_and_sorted():
     service = CyclabilityService()
     rows = [
-        _row("a", {"safety": 0.9, "bike_infra": 0.8, "low_hostility": 0.7, "night": 0.75, "junction": 0.5, "bicimad": 0.8}),
-        _row("b", {"safety": 0.6, "bike_infra": 0.5, "low_hostility": 0.6, "night": 0.45, "junction": 0.4, "bicimad": 0.4}),
-        _row("c", {"safety": 0.25, "bike_infra": 0.3, "low_hostility": 0.2, "night": 0.2, "junction": 0.35, "bicimad": 0.1}),
+        _row("a", {"safety": 0.9, "bike_infra": 0.8, "low_hostility": 0.7, "green_cyclable": 0.85, "night": 0.75, "junction": 0.5, "bicimad": 0.8}),
+        _row("b", {"safety": 0.6, "bike_infra": 0.5, "low_hostility": 0.6, "green_cyclable": 0.45, "night": 0.45, "junction": 0.4, "bicimad": 0.4}),
+        _row("c", {"safety": 0.25, "bike_infra": 0.3, "low_hostility": 0.2, "green_cyclable": 0.15, "night": 0.2, "junction": 0.35, "bicimad": 0.1}),
     ]
 
     normalized = service._normalize_scores(rows)
@@ -30,6 +30,35 @@ def test_scores_are_bounded_and_sorted():
         assert 0 <= row["safetyScore"] <= 100
         assert 0 <= row["bikeInfraScore"] <= 100
         assert 0 <= row["lowHostilityScore"] <= 100
+        assert 0 <= row["greenCyclableScore"] <= 100
         assert 0 <= row["nightScore"] <= 100
         assert 0 <= row["junctionScore"] <= 100
         assert 0 <= row["bicimadScore"] <= 100
+
+
+def test_green_cyclable_score_rewards_legal_green_network():
+    service = CyclabilityService()
+    rows = [
+        _row("green", {"safety": 0.6, "bike_infra": 0.6, "low_hostility": 0.6, "green_cyclable": 0.9, "night": 0.6, "junction": 0.6, "bicimad": 0.3}),
+        _row("urban", {"safety": 0.6, "bike_infra": 0.6, "low_hostility": 0.6, "green_cyclable": 0.2, "night": 0.6, "junction": 0.6, "bicimad": 0.3}),
+    ]
+
+    ranked = service._build_ranked_payload(service._normalize_scores(rows))
+    index = {row["neighborhoodId"]: row for row in ranked}
+    assert index["green"]["greenCyclableScore"] > index["urban"]["greenCyclableScore"]
+
+
+def test_served_area_ratio_reduces_large_area_penalty():
+    service = CyclabilityService()
+    ratio_small = service._served_area_ratio(total_length_m=5_000, area_km2=1.0)
+    ratio_large = service._served_area_ratio(total_length_m=5_000, area_km2=8.0)
+    assert ratio_small > ratio_large
+    assert 0.15 <= ratio_large <= 1.0
+
+
+def test_bike_accident_exposure_proxy_is_stable():
+    service = CyclabilityService()
+    high_exposure = service._bike_exposure_proxy(bike_presence=0.8, bike_metric=0.6)
+    low_exposure = service._bike_exposure_proxy(bike_presence=0.0, bike_metric=0.0)
+    assert high_exposure > low_exposure
+    assert low_exposure == 0.05

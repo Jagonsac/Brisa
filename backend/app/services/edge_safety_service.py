@@ -128,6 +128,7 @@ class EdgeSafetyService:
                 "roadHostilityScore": round(self._clamp01(road_hostility), 6),
                 "junctionComplexityScore": round(self._clamp01(junction_complexity), 6),
                 "bikeInfrastructureScore": round(bike_bonus, 6),
+                "bikePresenceScore": round(self._clamp01(bike_presence), 6),
                 "generalAccidentScore": round(self._clamp01(accident_general_smoothed), 6),
                 "bikeAccidentScore": round(self._clamp01(bike_accident_smoothed), 6),
                 "nightAccidentScore": round(self._clamp01(night_accident_smoothed), 6),
