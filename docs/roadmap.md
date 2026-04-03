@@ -33,11 +33,11 @@
 - API `GET /api/safety/grid` y `GET /api/safety/summary`
 - Visualización choropleth con leyenda y popups
 
-## Slice 6 — Rutas seguras y nocturnas
+## Slice 6 — Rutas seguras y nocturnas (completado)
 - Perfil seguro y nocturno
 - Reglas para horario/luz y vías preferentes
 
-## Slice 7 — Índice por barrio + panel
+## Slice 7 — Índice por barrio + panel (completado)
 - Score de ciclabilidad por barrio
 - Panel comparativo y visualizaciones
 

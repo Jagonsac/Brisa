@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BicimadStatusCard } from '../../features/bicimad/components/BicimadStatusCard';
 import { useBicimadStations } from '../../features/bicimad/hooks/useBicimadStations';
 import { MapView } from '../../features/map/components/MapView';
+import { NeighborhoodCyclabilityPanel } from '../../features/neighborhoods/components/NeighborhoodCyclabilityPanel';
+import { useNeighborhoodCyclability } from '../../features/neighborhoods/hooks/useNeighborhoodCyclability';
 import { ProjectExplainer } from '../../features/projectStatus/components/ProjectExplainer';
 import { ProjectStatusPanel } from '../../features/projectStatus/components/ProjectStatusPanel';
 import { RouteModeSelector } from '../../features/search/components/RouteModeSelector';
@@ -76,6 +78,8 @@ export function AppLayout() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [showBicimadLayer, setShowBicimadLayer] = useState(false);
   const [showSafetyLayer, setShowSafetyLayer] = useState(true);
+  const [showCyclabilityLayer, setShowCyclabilityLayer] = useState(true);
+  const [selectedNeighborhoodId, setSelectedNeighborhoodId] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const [suggestionLoading, setSuggestionLoading] = useState(INITIAL_LOADING);
   const [suggestionOpen, setSuggestionOpen] = useState(INITIAL_SUGGESTION_OPEN);
@@ -86,6 +90,7 @@ export function AppLayout() {
   const safetySummaryEnabled = featureFlags.enableSafetySummary;
   const bicimadState = useBicimadStations({ enabled: bicimadLayerEnabled });
   const safetyState = useSafetyLayer({ enabled: safetyLayerEnabled || safetySummaryEnabled });
+  const cyclabilityState = useNeighborhoodCyclability({ enabled: featureFlags.enableNeighborhoodCyclability });
 
   const canSubmit = useMemo(
     () => inputValues.origin.trim().length > 0 && inputValues.destination.trim().length > 0,
@@ -357,6 +362,16 @@ export function AppLayout() {
                 Mostrar capa de seguridad ciclista v1
               </label>
               {safetyState.error && <p className={styles.warningText}>Capa de seguridad no disponible: {safetyState.error}</p>}
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={showCyclabilityLayer}
+                  onChange={(event) => setShowCyclabilityLayer(event.target.checked)}
+                  disabled={!featureFlags.enableNeighborhoodCyclability || Boolean(cyclabilityState.error)}
+                />
+                Mostrar índice de ciclabilidad por barrio
+              </label>
+              {cyclabilityState.error && <p className={styles.warningText}>Índice por barrio no disponible: {cyclabilityState.error}</p>}
               {safetySummaryEnabled && safetyState.summary && (
                 <p className={styles.infoText}>
                   Índice actual: {safetyState.summary.cellCount} celdas · score medio {safetyState.summary.scoreAvg}.
@@ -386,6 +401,16 @@ export function AppLayout() {
             stationsCount={bicimadState.stations.length}
           />
 
+          {featureFlags.enableNeighborhoodCyclability && (
+            <NeighborhoodCyclabilityPanel
+              neighborhoods={cyclabilityState.list}
+              selectedNeighborhoodId={selectedNeighborhoodId}
+              onSelectNeighborhood={setSelectedNeighborhoodId}
+              comparison={cyclabilityState.comparison}
+              onCompare={cyclabilityState.runComparison}
+            />
+          )}
+
           {featureFlags.enableProjectStatusPanel && <ProjectStatusPanel />}
         </aside>
 
@@ -401,6 +426,10 @@ export function AppLayout() {
               safetyGrid={safetyState.grid}
               showSafetyLayer={showSafetyLayer && safetyLayerEnabled}
               safetySummary={safetyState.summary}
+              cyclabilityGeojson={cyclabilityState.geojson}
+              showCyclabilityLayer={showCyclabilityLayer && featureFlags.enableNeighborhoodCyclability}
+              selectedNeighborhoodId={selectedNeighborhoodId}
+              onSelectNeighborhood={setSelectedNeighborhoodId}
             />
           ) : (
             <p>Mapa desactivado por feature flag.</p>
