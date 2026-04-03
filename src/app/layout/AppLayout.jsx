@@ -42,6 +42,12 @@ const INITIAL_SELECTED_PLACES = {
   destination: null,
 };
 
+const LAYER_VISIBILITY_MODE = {
+  NONE: 'none',
+  SAFETY: 'safety',
+  CYCLABILITY: 'cyclability',
+};
+
 const ESTIMATED_KMH_BY_MODE = {
   fastest: 18,
   safe: 14,
@@ -78,8 +84,7 @@ export function AppLayout() {
   const [routeError, setRouteError] = useState('');
   const [routeLoading, setRouteLoading] = useState(false);
   const [showBicimadLayer, setShowBicimadLayer] = useState(false);
-  const [showSafetyLayer, setShowSafetyLayer] = useState(true);
-  const [showCyclabilityLayer, setShowCyclabilityLayer] = useState(true);
+  const [activeInsightLayer, setActiveInsightLayer] = useState(LAYER_VISIBILITY_MODE.SAFETY);
   const [selectedNeighborhoodId, setSelectedNeighborhoodId] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const [suggestionLoading, setSuggestionLoading] = useState(INITIAL_LOADING);
@@ -94,6 +99,11 @@ export function AppLayout() {
   const cyclabilityState = useNeighborhoodCyclability({ enabled: featureFlags.enableNeighborhoodCyclability });
   const shouldPreloadCyclability = featureFlags.enableNeighborhoodCyclability;
   const cyclabilityPreloadReady = !shouldPreloadCyclability || cyclabilityState.hasResolvedInitialLoad;
+  const safetyLayerAvailable = safetyLayerEnabled && !safetyState.error;
+  const cyclabilityLayerAvailable = featureFlags.enableNeighborhoodCyclability && !cyclabilityState.error;
+  const showSafetyLayer = activeInsightLayer === LAYER_VISIBILITY_MODE.SAFETY && safetyLayerAvailable;
+  const showCyclabilityLayer =
+    activeInsightLayer === LAYER_VISIBILITY_MODE.CYCLABILITY && cyclabilityLayerAvailable;
 
   const canSubmit = useMemo(
     () => inputValues.origin.trim().length > 0 && inputValues.destination.trim().length > 0,
@@ -194,6 +204,19 @@ export function AppLayout() {
       });
     };
   }, [inputValues, suggestionOpen]);
+
+  useEffect(() => {
+    if (activeInsightLayer === LAYER_VISIBILITY_MODE.SAFETY && !safetyLayerAvailable) {
+      setActiveInsightLayer(
+        cyclabilityLayerAvailable ? LAYER_VISIBILITY_MODE.CYCLABILITY : LAYER_VISIBILITY_MODE.NONE,
+      );
+      return;
+    }
+
+    if (activeInsightLayer === LAYER_VISIBILITY_MODE.CYCLABILITY && !cyclabilityLayerAvailable) {
+      setActiveInsightLayer(safetyLayerAvailable ? LAYER_VISIBILITY_MODE.SAFETY : LAYER_VISIBILITY_MODE.NONE);
+    }
+  }, [activeInsightLayer, safetyLayerAvailable, cyclabilityLayerAvailable]);
 
   const handleChange = (field, value) => {
     setInputValues((previous) => ({ ...previous, [field]: value }));
@@ -371,25 +394,52 @@ export function AppLayout() {
                 />
                 Mostrar estaciones Bicimad
               </label>
-              <label className={styles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={showSafetyLayer}
-                  onChange={(event) => setShowSafetyLayer(event.target.checked)}
-                  disabled={!safetyLayerEnabled || Boolean(safetyState.error)}
-                />
-                Mostrar capa de seguridad ciclista v1
-              </label>
+              <div className={styles.layerSelectorCard}>
+                <h3>Visualización principal del mapa</h3>
+                <p>Elige un único índice para evitar ruido visual y comparar mejor.</p>
+                <div
+                  className={styles.layerSelectorGroup}
+                  role="radiogroup"
+                  aria-label="Seleccionar índice principal del mapa"
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={activeInsightLayer === LAYER_VISIBILITY_MODE.SAFETY}
+                    className={`${styles.layerOptionButton} ${
+                      activeInsightLayer === LAYER_VISIBILITY_MODE.SAFETY ? styles.layerOptionButtonActive : ''
+                    }`}
+                    onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.SAFETY)}
+                    disabled={!safetyLayerAvailable}
+                  >
+                    Índice de seguridad
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={activeInsightLayer === LAYER_VISIBILITY_MODE.CYCLABILITY}
+                    className={`${styles.layerOptionButton} ${
+                      activeInsightLayer === LAYER_VISIBILITY_MODE.CYCLABILITY ? styles.layerOptionButtonActive : ''
+                    }`}
+                    onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.CYCLABILITY)}
+                    disabled={!cyclabilityLayerAvailable}
+                  >
+                    Índice de ciclabilidad
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={activeInsightLayer === LAYER_VISIBILITY_MODE.NONE}
+                    className={`${styles.layerOptionButton} ${
+                      activeInsightLayer === LAYER_VISIBILITY_MODE.NONE ? styles.layerOptionButtonActive : ''
+                    }`}
+                    onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.NONE)}
+                  >
+                    Sin índice
+                  </button>
+                </div>
+              </div>
               {safetyState.error && <p className={styles.warningText}>Capa de seguridad no disponible: {safetyState.error}</p>}
-              <label className={styles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={showCyclabilityLayer}
-                  onChange={(event) => setShowCyclabilityLayer(event.target.checked)}
-                  disabled={!featureFlags.enableNeighborhoodCyclability || Boolean(cyclabilityState.error)}
-                />
-                Mostrar índice de ciclabilidad por barrio
-              </label>
               {cyclabilityState.error && <p className={styles.warningText}>Índice por barrio no disponible: {cyclabilityState.error}</p>}
               {safetySummaryEnabled && safetyState.summary && (
                 <p className={styles.infoText}>
