@@ -78,7 +78,7 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = ROUTE_REQUEST
   }
 }
 
-export async function createRoute({ origin, destination, mode }) {
+export async function createRoute({ origin, destination, mode, useBicimad = false }) {
   const body = {
     origin: {
       query: origin.query,
@@ -93,6 +93,7 @@ export async function createRoute({ origin, destination, mode }) {
         : {}),
     },
     mode,
+    useBicimad,
   };
 
   return fetchJsonWithTimeout(

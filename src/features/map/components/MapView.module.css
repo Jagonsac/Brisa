@@ -46,6 +46,19 @@
   background: #1f6feb;
 }
 
+.bicimadRecommendationMarker {
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  background: #00a6fb;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+}
+
 :global(.leaflet-popup.safetyPopup .leaflet-popup-content-wrapper) {
   border-radius: 12px;
   border: 1px solid #d8e4f6;

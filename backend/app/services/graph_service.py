@@ -11,8 +11,8 @@ from app.services.bike_legality_service import evaluate_bike_legality
 
 
 class GraphService:
-    _shared_graph: MultiDiGraph | None = None
-    _shared_graph_source: str = "cache"
+    _shared_graphs: dict[str, MultiDiGraph] = {}
+    _shared_graph_sources: dict[str, str] = {}
     _shared_lock = threading.Lock()
 
     def __init__(self) -> None:
@@ -20,29 +20,48 @@ class GraphService:
         self.graph_path = self.graphs_dir / settings.osmnx_graph_filename
         self.filtered_graph_path = self.graphs_dir / f"filtered_{settings.osmnx_graph_filename}"
 
-    def get_graph(self) -> tuple[MultiDiGraph, str]:
-        if GraphService._shared_graph is not None:
-            return GraphService._shared_graph, GraphService._shared_graph_source
+    def get_graph(self, network_type: str = "bike") -> tuple[MultiDiGraph, str]:
+        if network_type in GraphService._shared_graphs:
+            return GraphService._shared_graphs[network_type], GraphService._shared_graph_sources.get(network_type, "cache")
 
         with GraphService._shared_lock:
-            if GraphService._shared_graph is not None:
-                return GraphService._shared_graph, GraphService._shared_graph_source
+            if network_type in GraphService._shared_graphs:
+                return GraphService._shared_graphs[network_type], GraphService._shared_graph_sources.get(network_type, "cache")
 
             self.graphs_dir.mkdir(parents=True, exist_ok=True)
-            if self.filtered_graph_path.exists():
-                cached = self._try_load_graph(self.filtered_graph_path)
-                if cached is not None and cached.graph.get("brisa_filtered"):
-                    GraphService._shared_graph = cached
-                    GraphService._shared_graph_source = "cache"
-                    return cached, GraphService._shared_graph_source
+            return self._load_graph_by_network(network_type)
 
-            base_graph = self._load_or_download_base_graph()
-            filtered_graph = self._build_filtered_graph(base_graph)
-            ox.save_graphml(filtered_graph, self.filtered_graph_path)
+    def _load_graph_by_network(self, network_type: str) -> tuple[MultiDiGraph, str]:
+        if network_type == "walk":
+            walk_path = self.graphs_dir / "madrid_walk.graphml"
+            if walk_path.exists():
+                cached = self._try_load_graph(walk_path)
+                if cached is not None:
+                    GraphService._shared_graphs["walk"] = cached
+                    GraphService._shared_graph_sources["walk"] = "cache"
+                    return cached, "cache"
 
-            GraphService._shared_graph = filtered_graph
-            GraphService._shared_graph_source = "download"
-            return filtered_graph, GraphService._shared_graph_source
+            graph = ox.graph_from_place(settings.osmnx_place_query, network_type="walk", simplify=True)
+            graph.graph["network_type"] = "walk"
+            ox.save_graphml(graph, walk_path)
+            GraphService._shared_graphs["walk"] = graph
+            GraphService._shared_graph_sources["walk"] = "download"
+            return graph, "download"
+
+        if self.filtered_graph_path.exists():
+            cached = self._try_load_graph(self.filtered_graph_path)
+            if cached is not None and cached.graph.get("brisa_filtered"):
+                GraphService._shared_graphs["bike"] = cached
+                GraphService._shared_graph_sources["bike"] = "cache"
+                return cached, "cache"
+
+        base_graph = self._load_or_download_base_graph()
+        filtered_graph = self._build_filtered_graph(base_graph)
+        ox.save_graphml(filtered_graph, self.filtered_graph_path)
+
+        GraphService._shared_graphs["bike"] = filtered_graph
+        GraphService._shared_graph_sources["bike"] = "download"
+        return filtered_graph, "download"
 
     def _load_or_download_base_graph(self) -> MultiDiGraph:
         if self.graph_path.exists():

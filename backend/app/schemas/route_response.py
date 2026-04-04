@@ -10,8 +10,8 @@ class RouteFeatureGeometry(BaseModel):
 
 class RouteFeatureProperties(BaseModel):
     distanceMeters: float
-    mode: Literal["fastest", "safe", "balanced", "night"]
-    profile: str
+    mode: Literal["fastest", "safe", "balanced", "night", "walk", "bicimad"]
+    profile: str | None = None
 
 
 class RouteGeoJsonFeature(BaseModel):
@@ -30,10 +30,16 @@ class RouteLocation(BaseModel):
 class RouteSummary(BaseModel):
     distanceMeters: float
     distanceKm: float
-    mode: Literal["fastest", "safe", "balanced", "night"]
+    mode: Literal["fastest", "safe", "balanced", "night", "bicimad"]
     relativeSafety: Literal["high", "medium", "low"]
     lightingQuality: Literal["high", "medium", "low"]
     nightRisk: Literal["low", "medium", "high"]
+    estimatedDurationMinutes: float | None = None
+    totalDurationSeconds: float | None = None
+    walkDistanceMeters: float | None = None
+    walkDurationSeconds: float | None = None
+    bikeDistanceMeters: float | None = None
+    bikeDurationSeconds: float | None = None
 
 
 class RouteData(BaseModel):
@@ -42,6 +48,10 @@ class RouteData(BaseModel):
     destination: RouteLocation
     summary: RouteSummary
     explanations: list[str]
+    segments: list[dict] | None = None
+    stations: dict | None = None
+    bikeProfile: Literal["fastest", "safe", "balanced", "night"] | None = None
+    transportMode: Literal["bike", "bicimad"] = "bike"
 
 
 class RouteMeta(BaseModel):
@@ -52,6 +62,9 @@ class RouteMeta(BaseModel):
     usedLightingGrid: bool
     usedNightRiskGrid: bool
     networkType: str
+    liveStatusUsed: bool | None = None
+    fallbackUsed: bool | None = None
+    evaluatedPairs: int | None = None
 
 
 class RouteResponse(BaseModel):

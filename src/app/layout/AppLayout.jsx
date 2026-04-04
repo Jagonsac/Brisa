@@ -79,6 +79,7 @@ export function AppLayout() {
   const [selectedPlaces, setSelectedPlaces] = useState(INITIAL_SELECTED_PLACES);
   const [selectedRouteMode, setSelectedRouteMode] = useState(ROUTE_MODES.FASTEST.apiMode);
   const [includeNightRoute, setIncludeNightRoute] = useState(false);
+  const [useBicimadRouting, setUseBicimadRouting] = useState(false);
   const [infoMessage, setInfoMessage] = useState('Selecciona origen y destino para calcular una ruta ciclista.');
   const [routesByMode, setRoutesByMode] = useState({});
   const [routeError, setRouteError] = useState('');
@@ -267,15 +268,23 @@ export function AppLayout() {
     }
 
     setRouteLoading(true);
-    setInfoMessage(
-      includeNightRoute
-        ? 'Calculando rutas rápida, segura, equilibrada y nocturna...'
-        : 'Calculando rutas rápida, segura y equilibrada...',
-    );
+    if (useBicimadRouting) {
+      setInfoMessage('Calculando ruta multimodal con Bicimad...');
+    } else {
+      setInfoMessage(
+        includeNightRoute
+          ? 'Calculando rutas rápida, segura, equilibrada y nocturna...'
+          : 'Calculando rutas rápida, segura y equilibrada...',
+      );
+    }
 
     try {
+      const modesToRequest = useBicimadRouting
+        ? [{ apiMode: selectedRouteMode }]
+        : requestedModes;
+
       const responses = await Promise.all(
-        requestedModes.map(async (mode) => {
+        modesToRequest.map(async (mode) => {
           const response = await createRoute({
             origin: {
               query: inputValues.origin.trim(),
@@ -288,9 +297,13 @@ export function AppLayout() {
               lon: selectedPlaces.destination?.lon ?? selectedPlaces.destination?.lng,
             },
             mode: mode.apiMode,
+            useBicimad: useBicimadRouting,
           });
 
-          return [mode.apiMode, enrichRouteWithEstimatedDuration(response.data)];
+          const enriched = response.data?.summary?.estimatedDurationMinutes
+            ? response.data
+            : enrichRouteWithEstimatedDuration(response.data);
+          return [mode.apiMode, enriched];
         }),
       );
 
@@ -301,12 +314,16 @@ export function AppLayout() {
         setSelectedRouteMode(requestedModes[0].apiMode);
       }
 
-      const hasNight = Boolean(nextRoutesByMode.night);
-      setInfoMessage(
-        hasNight
-          ? 'Listo: compara rutas rápida, segura, equilibrada y nocturna directamente en el mapa.'
-          : 'Listo: compara rutas rápida, segura y equilibrada directamente en el mapa.',
-      );
+      if (useBicimadRouting) {
+        setInfoMessage('Listo: ruta multimodal Bicimad calculada.');
+      } else {
+        const hasNight = Boolean(nextRoutesByMode.night);
+        setInfoMessage(
+          hasNight
+            ? 'Listo: compara rutas rápida, segura, equilibrada y nocturna directamente en el mapa.'
+            : 'Listo: compara rutas rápida, segura y equilibrada directamente en el mapa.',
+        );
+      }
     } catch (error) {
       setRoutesByMode({});
       setRouteError(error instanceof Error ? error.message : 'No fue posible calcular la ruta.');
@@ -393,6 +410,14 @@ export function AppLayout() {
                   disabled={!bicimadLayerEnabled}
                 />
                 Mostrar estaciones Bicimad
+              </label>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={useBicimadRouting}
+                  onChange={(event) => setUseBicimadRouting(event.target.checked)}
+                />
+                Usar Bicimad (ruta multimodal)
               </label>
               <div className={styles.layerSelectorCard}>
                 <h3>Visualización principal del mapa</h3>

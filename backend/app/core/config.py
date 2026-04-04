@@ -12,6 +12,11 @@ class Settings:
         "BICIMAD_STATIONS_URL",
         "https://madrid.publicbikesystem.net/customer/gbfs/v2/es/station_information",
     )
+    bicimad_status_url: str = getenv(
+        "BICIMAD_STATUS_URL",
+        "https://madrid.publicbikesystem.net/customer/gbfs/v2/es/station_status",
+    )
+    bicimad_status_ttl_seconds: int = int(getenv("BICIMAD_STATUS_TTL_SECONDS", "45"))
     bicimad_fallback_url: str = getenv(
         "BICIMAD_FALLBACK_URL",
         "https://datos.emtmadrid.es/dataset/5fcc0945-2cbd-46c3-801a-6a83f4167c11/resource/105ce5df-793f-4e0a-a88e-5d3b3f024a5d/download/bikestationbicimad_geojson.geojson",
