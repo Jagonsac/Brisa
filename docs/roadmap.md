@@ -41,6 +41,9 @@
 - Score de ciclabilidad por barrio
 - Panel comparativo y visualizaciones
 
-## Slice 8 — Pulido concurso
-- UX polish, performance y narrativa final
-- Revisión global de demo y documentación
+## Slice 8 — Routing multimodal Bicimad (completado)
+- Opción real “Usar Bicimad” sobre perfiles existentes fastest/safe/balanced/night
+- Ruta en tres tramos: walk + bike + walk
+- Selección de estaciones por score de viaje completo (no solo cercanía)
+- GBFS `station_information` + `station_status` con fallback estable
+- Visualización multimodal y desglose por segmentos en UI

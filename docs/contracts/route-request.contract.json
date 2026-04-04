@@ -1,25 +1,28 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RouteRequest",
-  "description": "Solicitud para calcular rutas en cuatro modos: fastest, safe, balanced y night.",
+  "description": "Solicitud para calcular rutas en cuatro perfiles y opción multimodal Bicimad.",
   "type": "object",
   "required": ["mode"],
   "properties": {
     "mode": {
       "type": "string",
       "enum": ["fastest", "safe", "balanced", "night"],
-      "description": "Perfil de coste usado por el backend de routing."
+      "description": "Perfil de coste del tramo bici."
+    },
+    "useBicimad": {
+      "type": "boolean",
+      "description": "Activa planificación multimodal walk+bike+walk con estaciones Bicimad."
+    },
+    "transportMode": {
+      "type": "string",
+      "enum": ["bike", "bicimad"],
+      "description": "Alias opcional para activar modo multimodal con bicimad."
     },
     "origin": { "$ref": "#/$defs/routePoint" },
     "destination": { "$ref": "#/$defs/routePoint" },
-    "originQuery": {
-      "type": "string",
-      "description": "Formato legacy soportado para compatibilidad."
-    },
-    "destinationQuery": {
-      "type": "string",
-      "description": "Formato legacy soportado para compatibilidad."
-    }
+    "originQuery": { "type": "string" },
+    "destinationQuery": { "type": "string" }
   },
   "anyOf": [
     { "required": ["origin", "destination"] },

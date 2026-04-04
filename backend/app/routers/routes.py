@@ -36,6 +36,7 @@ async def create_route(payload: dict = Body(...)) -> RouteResponse:
             origin_lon=normalized_payload.origin.lon,
             destination_lat=normalized_payload.destination.lat,
             destination_lon=normalized_payload.destination.lon,
+            use_bicimad=normalized_payload.use_bicimad,
         )
     except RouteServiceError as error:
         status_by_code = {

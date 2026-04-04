@@ -20,6 +20,7 @@ class NormalizedRoutePayload:
     origin: NormalizedRoutePoint
     destination: NormalizedRoutePoint
     mode: str
+    use_bicimad: bool
 
 
 _ALLOWED_MODES = {"fastest", "safe", "balanced", "night"}
@@ -33,7 +34,8 @@ def parse_route_payload(payload: dict[str, Any]) -> NormalizedRoutePayload:
     origin = _parse_point(payload, point_key="origin", query_key="originQuery", point_label="origen")
     destination = _parse_point(payload, point_key="destination", query_key="destinationQuery", point_label="destino")
 
-    return NormalizedRoutePayload(origin=origin, destination=destination, mode=mode)
+    use_bicimad = _parse_use_bicimad(payload)
+    return NormalizedRoutePayload(origin=origin, destination=destination, mode=mode, use_bicimad=use_bicimad)
 
 
 def _parse_mode(raw_mode: Any) -> str:
@@ -46,6 +48,14 @@ def _parse_mode(raw_mode: Any) -> str:
         raise RoutePayloadError(f"El modo '{mode or raw_mode}' no es válido. Modos permitidos: {valid_modes}.")
 
     return mode
+
+
+def _parse_use_bicimad(payload: dict[str, Any]) -> bool:
+    if "useBicimad" in payload:
+        return bool(payload.get("useBicimad"))
+
+    transport_mode = str(payload.get("transportMode", "")).strip().lower()
+    return transport_mode == "bicimad"
 
 
 def _parse_point(payload: dict[str, Any], *, point_key: str, query_key: str, point_label: str) -> NormalizedRoutePoint:

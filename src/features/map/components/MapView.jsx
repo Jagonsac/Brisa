@@ -28,6 +28,12 @@ const destinationIcon = L.divIcon({
   iconSize: [24, 24],
   iconAnchor: [12, 12],
 });
+const bicimadStationIcon = L.divIcon({
+  className: styles.bicimadRecommendationMarker,
+  html: '<span>B</span>',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
 
 function RouteBoundsController({ routeFeatures }) {
   const map = useMap();
@@ -177,7 +183,16 @@ export function MapView({
 }) {
   const routeEntries = Object.entries(routesByMode);
   const routeFeatures = routeEntries
-    .map(([, routeData]) => routeData?.routeGeoJson)
+    .flatMap(([, routeData]) => {
+      if (Array.isArray(routeData?.segments)) {
+        return routeData.segments.map((segment) => ({
+          type: 'Feature',
+          geometry: segment.geometry,
+          properties: { segmentType: segment.type, mode: routeData?.bikeProfile || selectedRouteMode },
+        }));
+      }
+      return [routeData?.routeGeoJson];
+    })
     .filter((feature) => Boolean(feature));
 
   const selectedRouteData = routesByMode[selectedRouteMode] || null;
@@ -227,25 +242,36 @@ export function MapView({
         {routeEntries.map(([modeKey, routeData]) => {
           const modeMeta = routeModeByApiMode[modeKey];
           const isActive = modeKey === selectedRouteMode;
-          const routeFeature = routeData?.routeGeoJson;
-
-          if (!routeFeature) {
-            return null;
+          if (Array.isArray(routeData?.segments) && modeKey === selectedRouteMode) {
+            return routeData.segments.map((segment, index) => (
+              <GeoJSON
+                key={`${modeKey}-${segment.type}-${index}`}
+                data={{ type: 'Feature', geometry: segment.geometry, properties: {} }}
+                style={{
+                  color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
+                  weight: segment.type === 'walk' ? 4 : 6.2,
+                  opacity: segment.type === 'walk' ? 0.88 : 0.98,
+                  dashArray: segment.type === 'walk' ? '6 10' : undefined,
+                }}
+              />
+            ));
           }
 
-          return (
-            <GeoJSON
-              key={modeKey}
-              data={routeFeature}
-              style={{
-                color: modeMeta?.color || '#1f6feb',
-                weight: isActive ? 6.5 : 4.25,
-                opacity: isActive ? 0.98 : 0.76,
-                dashArray: isActive ? undefined : '8 6',
-              }}
-            />
-          );
+          const routeFeature = routeData?.routeGeoJson;
+          if (!routeFeature) return null;
+          return <GeoJSON key={modeKey} data={routeFeature} style={{ color: modeMeta?.color || '#1f6feb', weight: isActive ? 6.5 : 4.25, opacity: isActive ? 0.98 : 0.76, dashArray: isActive ? undefined : '8 6' }} />;
         })}
+
+        {selectedRouteData?.stations?.departure && (
+          <Marker position={[selectedRouteData.stations.departure.lat, selectedRouteData.stations.departure.lon]} icon={bicimadStationIcon}>
+            <Popup>Salida Bicimad: {selectedRouteData.stations.departure.name}</Popup>
+          </Marker>
+        )}
+        {selectedRouteData?.stations?.arrival && (
+          <Marker position={[selectedRouteData.stations.arrival.lat, selectedRouteData.stations.arrival.lon]} icon={bicimadStationIcon}>
+            <Popup>Llegada Bicimad: {selectedRouteData.stations.arrival.name}</Popup>
+          </Marker>
+        )}
 
         {routeFeatures.length > 0 && <RouteBoundsController routeFeatures={routeFeatures} />}
 

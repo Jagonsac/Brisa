@@ -71,6 +71,18 @@ export function RouteSummaryCard({ selectedRoute, routesByMode, selectedMode, lo
               <dt>Tiempo</dt>
               <dd>{formatDuration(summary?.estimatedDurationMinutes)}</dd>
             </div>
+            {selectedRoute?.transportMode === 'bicimad' && (
+              <>
+                <div>
+                  <dt>Andando</dt>
+                  <dd>{formatDuration((summary?.walkDurationSeconds || 0) / 60)}</dd>
+                </div>
+                <div>
+                  <dt>En bici</dt>
+                  <dd>{formatDuration((summary?.bikeDurationSeconds || 0) / 60)}</dd>
+                </div>
+              </>
+            )}
             <div>
               <dt>Seguridad</dt>
               <dd>{summary?.relativeSafety || '-'}</dd>
@@ -90,6 +102,17 @@ export function RouteSummaryCard({ selectedRoute, routesByMode, selectedMode, lo
               {explanations.map((message, index) => (
                 <li key={`${message}-${index}`}>{message}</li>
               ))}
+            </ul>
+          )}
+
+          {selectedRoute?.stations && (
+            <ul className={styles.explanations}>
+              <li>
+                Salida Bicimad: {selectedRoute.stations.departure?.name} ({selectedRoute.stations.departure?.bikesAvailable ?? '-'} bicis)
+              </li>
+              <li>
+                Llegada Bicimad: {selectedRoute.stations.arrival?.name} ({selectedRoute.stations.arrival?.docksAvailable ?? '-'} anclajes)
+              </li>
             </ul>
           )}
         </>
