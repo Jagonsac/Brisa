@@ -20,6 +20,7 @@ Integrar Bicimad como opción real de planificación multimodal en `POST /api/ro
 
 ## UX
 - Toggle “Usar Bicimad (ruta multimodal)”.
+- Comparativa de perfiles también en multimodal (`fastest`, `safe`, `balanced` y opcional `night`) sin cambiar contrato.
 - Estilo de segmentos andando: azul punteado.
 - Marcadores dedicados para estación de salida/llegada recomendadas.
 - Panel con desglose andar/bici y disponibilidad relevante.

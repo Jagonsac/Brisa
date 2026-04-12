@@ -279,9 +279,7 @@ export function AppLayout() {
     }
 
     try {
-      const modesToRequest = useBicimadRouting
-        ? [{ apiMode: selectedRouteMode }]
-        : requestedModes;
+      const modesToRequest = requestedModes;
 
       const responses = await Promise.all(
         modesToRequest.map(async (mode) => {
@@ -311,11 +309,16 @@ export function AppLayout() {
       setRoutesByMode(nextRoutesByMode);
 
       if (!nextRoutesByMode[selectedRouteMode]) {
-        setSelectedRouteMode(requestedModes[0].apiMode);
+        setSelectedRouteMode(modesToRequest[0].apiMode);
       }
 
       if (useBicimadRouting) {
-        setInfoMessage('Listo: ruta multimodal Bicimad calculada.');
+        const hasNight = Boolean(nextRoutesByMode.night);
+        setInfoMessage(
+          hasNight
+            ? 'Listo: compara rutas multimodales Bicimad rápida, segura, equilibrada y nocturna.'
+            : 'Listo: compara rutas multimodales Bicimad rápida, segura y equilibrada.',
+        );
       } else {
         const hasNight = Boolean(nextRoutesByMode.night);
         setInfoMessage(
