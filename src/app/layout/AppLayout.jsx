@@ -281,7 +281,7 @@ export function AppLayout() {
     try {
       const modesToRequest = requestedModes;
 
-      const responses = await Promise.all(
+      const settledResponses = await Promise.allSettled(
         modesToRequest.map(async (mode) => {
           const response = await createRoute({
             origin: {
@@ -305,11 +305,34 @@ export function AppLayout() {
         }),
       );
 
+      const responses = [];
+      const failedModes = [];
+
+      settledResponses.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          responses.push(result.value);
+          return;
+        }
+
+        failedModes.push(modesToRequest[index]?.apiMode);
+      });
+
+      if (responses.length === 0) {
+        throw new Error('No fue posible calcular ninguna alternativa de ruta.');
+      }
+
       const nextRoutesByMode = Object.fromEntries(responses);
       setRoutesByMode(nextRoutesByMode);
 
       if (!nextRoutesByMode[selectedRouteMode]) {
-        setSelectedRouteMode(modesToRequest[0].apiMode);
+        const [firstAvailableMode] = Object.keys(nextRoutesByMode);
+        if (firstAvailableMode) {
+          setSelectedRouteMode(firstAvailableMode);
+        }
+      }
+
+      if (failedModes.length > 0) {
+        setRouteError(`Algunos perfiles no se pudieron calcular: ${failedModes.join(', ')}.`);
       }
 
       if (useBicimadRouting) {
