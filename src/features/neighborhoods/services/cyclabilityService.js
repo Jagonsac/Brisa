@@ -36,3 +36,7 @@ export function getNeighborhoodCyclabilityGeojson() {
 export function compareNeighborhoods(left, right) {
   return fetchJson(`/api/cyclability/neighborhoods/compare?left=${encodeURIComponent(left)}&right=${encodeURIComponent(right)}`);
 }
+
+export function getNeighborhoodScoreBreakdown(neighborhoodId) {
+  return fetchJson(`/api/cyclability/neighborhoods/${encodeURIComponent(neighborhoodId)}/score-breakdown`);
+}

@@ -23,5 +23,5 @@ Este directorio define la interfaz de datos pública y estable usada por Brisa e
 - Routing: `route-request.contract.json`, `route-response.contract.json`
 - Safety: `safety-grid-response.contract.json`, `safety-summary-response.contract.json`
 - Ciclabilidad barrios: `cyclability-neighborhoods.contract.json`, `neighborhood-score.contract.json`
+- Debug de score por barrio (temporal): `cyclability-score-breakdown.contract.json`
 - Estado de UI: `ui-state.contract.md`
-

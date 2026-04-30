@@ -86,6 +86,66 @@ class CyclabilityService:
             "meta": payload["metadata"],
         }
 
+    def get_neighborhood_score_breakdown(self, neighborhood_id: str) -> dict:
+        payload = self._ensure_payload()
+        neighborhoods = payload["neighborhoods"]
+        index = {item["neighborhoodId"]: item for item in neighborhoods}
+        item = index.get(neighborhood_id)
+        if item is None:
+            raise KeyError("neighborhood_not_found")
+
+        weights = cyclability_config.weights
+        weight_sum = sum(weights.values()) or 1.0
+        component_map = {
+            "safety": ("safetyScore", "Seguridad ciclista general"),
+            "bike_infra": ("bikeInfraScore", "Cobertura de infraestructura ciclista"),
+            "low_hostility": ("lowHostilityScore", "Baja exposición al tráfico hostil"),
+            "green_cyclable": ("greenCyclableScore", "Red ciclable en entorno verde legal"),
+            "night": ("nightScore", "Comportamiento nocturno"),
+            "junction": ("junctionScore", "Confort en cruces"),
+            "bicimad": ("bicimadScore", "Acceso a Bicimad"),
+        }
+
+        breakdown = []
+        for weight_key, (score_key, label) in component_map.items():
+            score = float(item.get(score_key, 0.0))
+            weight = float(weights.get(weight_key, 0.0))
+            contribution = score * weight / weight_sum
+            breakdown.append(
+                {
+                    "key": weight_key,
+                    "label": label,
+                    "score": round(score, 2),
+                    "weight": round(weight, 4),
+                    "weightedContribution": round(contribution, 2),
+                }
+            )
+
+        metrics = item.get("metrics", {})
+        data_gaps = []
+        if float(metrics.get("networkKm", 0)) <= 0:
+            data_gaps.append("Sin red ciclable observada en el grafo para el barrio.")
+        if int(metrics.get("bicimadStationsCount", 0)) <= 0 and float(metrics.get("bicimadCoverage", 0)) <= 0:
+            data_gaps.append("Sin estaciones BiciMAD dentro de geometría o cobertura de buffers cercana.")
+        if float(item.get("bikeInfraScore", 0)) <= 0:
+            data_gaps.append("Infraestructura ciclista en percentil inferior tras normalización robusta.")
+        if float(item.get("safetyScore", 0)) <= 0:
+            data_gaps.append("Indicadores de seguridad en percentil inferior tras normalización robusta.")
+
+        return {
+            "data": {
+                "neighborhoodId": item["neighborhoodId"],
+                "name": item["name"],
+                "district": item.get("district", ""),
+                "cyclabilityScore": item["cyclabilityScore"],
+                "rebalancing": item.get("rebalancing", {"applied": False}),
+                "breakdown": breakdown,
+                "metrics": metrics,
+                "dataGaps": data_gaps,
+            },
+            "meta": payload["metadata"],
+        }
+
     def compare(self, left_id: str, right_id: str) -> dict:
         payload = self._ensure_payload()
         index = {item["neighborhoodId"]: item for item in payload["neighborhoods"]}
@@ -383,7 +443,7 @@ class CyclabilityService:
         current = float(row.get("cyclability_score", 0.0))
         neighborhood_name = str(row.get("name", "")).strip().lower()
 
-        if neighborhood_name == "casa de campo":
+        if neighborhood_name in {"casa de campo", "los jerónimos", "los jeronimos"}:
             forced_score = max(current, cyclability_config.park_floor_high, 72.0)
             return {
                 "applied": True,
@@ -544,7 +604,7 @@ class CyclabilityService:
         buffer_union = unary_union([pt.buffer(cyclability_config.bicimad_coverage_buffer_m) for pt in projected_stations]) if projected_stations else None
 
         for neighborhood in neighborhoods:
-            stations_in = [pt for pt in projected_stations if neighborhood.projected_geometry.contains(pt)]
+            stations_in = [pt for pt in projected_stations if neighborhood.projected_geometry.covers(pt)]
             area = max(0.05, neighborhood.projected_geometry.area / 1_000_000.0)
             coverage = 0.0
             if buffer_union is not None:

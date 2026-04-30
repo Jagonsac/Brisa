@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CyclabilityNeighborhoodScoreBreakdownResponse",
+  "type": "object",
+  "required": ["data", "meta"],
+  "properties": {
+    "data": {
+      "type": "object",
+      "required": ["neighborhoodId", "cyclabilityScore", "breakdown", "metrics", "dataGaps"],
+      "properties": {
+        "neighborhoodId": { "type": "string" },
+        "name": { "type": "string" },
+        "district": { "type": "string" },
+        "cyclabilityScore": { "type": "number", "minimum": 0, "maximum": 100 },
+        "breakdown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "label", "score", "weight", "weightedContribution"],
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "score": { "type": "number" },
+              "weight": { "type": "number" },
+              "weightedContribution": { "type": "number" }
+            }
+          }
+        },
+        "metrics": { "type": "object" },
+        "dataGaps": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "meta": { "type": "object" }
+  }
+}
