@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import {
   compareNeighborhoods,
@@ -51,14 +51,15 @@ export function useNeighborhoodCyclability({ enabled }) {
     };
   }, [enabled]);
 
-  const runComparison = async (left, right) => {
+  const runComparison = useCallback(async (left, right) => {
     if (!left || !right) {
       setComparison(null);
       return;
     }
+
     const payload = await compareNeighborhoods(left, right);
     setComparison(payload?.data ?? null);
-  };
+  }, []);
 
   return { list, geojson, meta, loading, hasResolvedInitialLoad, error, comparison, runComparison };
 }
