@@ -1,8 +1,7 @@
-# Feature: neighborhoods (Slice 7)
+# Feature: neighborhoods
 
-Incluye la experiencia completa del índice de ciclabilidad por barrio:
-- consumo de endpoints de ciclabilidad
-- ranking top/barrios más débiles
-- panel de detalle (subscores + fortalezas/debilidades)
-- comparador entre dos barrios
-- integración con capa coroplética del mapa
+Experiencia de ciclabilidad por barrio:
+- listado/ranking de barrios
+- detalle de subscores y factores destacados
+- comparación entre barrios
+- integración con capa geográfica

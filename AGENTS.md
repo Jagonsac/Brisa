@@ -1,87 +1,63 @@
 # AGENTS.md — Guía operativa para agentes en Brisa
 
-## Visión general
-Brisa es una app web para movilidad ciclista segura en Madrid. El proyecto evoluciona por slices funcionales pequeños, visibles y documentados.
+## Contexto
 
-## Objetivo actual
-Slice 4: routing real más corto con backend FastAPI + OSMnx, contrato estable y demo visible en mapa.
+Brisa es una plataforma web para planificación ciclista segura en Madrid. El repositorio está preparado para colaboración abierta y evolución incremental por capacidades de producto.
+
+## Objetivo de trabajo
+
+Mantener una base de código estable, modular y documentada, preservando contratos entre frontend y backend y evitando regresiones funcionales.
 
 ## Reglas del repositorio
-1. Un slice = una vertical pequeña y funcional.
-2. No avanzar un slice sin demo visible.
-3. No mezclar cambios de múltiples slices en un único PR.
-4. Mantener frontend y backend desacoplados mediante contratos.
-5. Documentar contratos antes de implementar integraciones.
+
+1. Mantener cambios acotados, trazables y con demo/verificación clara.
+2. No mezclar refactors amplios con cambios funcionales no relacionados.
+3. Mantener frontend y backend desacoplados mediante contratos documentados.
+4. Actualizar documentación en el mismo cambio cuando se altere comportamiento público.
+5. Ejecutar checks de calidad (`lint`, `build`, `pytest`) cuando aplique.
 
 ## Principios de arquitectura
+
 - Separación en capas: `app`, `features`, `shared`, `mocks`, `docs`, `backend`.
 - Lógica de negocio fuera de componentes visuales.
 - Endpoints con routers finos + servicios dedicados.
-- Feature flags para activar valor incremental sin romper demos.
+- Reutilización backend en `services` y `utils`; no incrustar reglas en routers.
 - Evitar archivos grandes y responsabilidades difusas.
 
-## Cómo trabajar por slices
-1. Leer `docs/roadmap.md` y el documento del slice activo.
-2. Definir alcance mínimo demoable.
-3. Implementar en la feature/capa correspondiente.
-4. Actualizar contratos/documentación si cambia la interfaz de datos.
-5. Ejecutar checks (`lint`, `build` y validación backend cuando aplique).
+## Reglas backend
 
-## Backend (Slice 3 en adelante)
-- El backend vive en `backend/app`.
-- Añadir endpoints nuevos en `backend/app/routers` y delegar lógica a `backend/app/services`.
-- El consumo de proveedores externos debe ir en `backend/app/clients`.
-- La normalización de payloads externos debe ir en `backend/app/utils`.
-- Mantener estables los contratos JSON documentados en `docs/contracts`.
+- Nuevos endpoints en `backend/app/routers`.
+- Lógica de dominio en `backend/app/services`.
+- Integraciones externas en `backend/app/clients`.
+- Normalización de payloads externos en `backend/app/utils`.
+- Mantener contratos JSON alineados con `docs/contracts`.
 
-## Reglas específicas de routing (Slice 4+)
-- No mover lógica GIS al frontend React.
-- Geocoding y shortest-path solo en backend.
-- Mantener `POST /api/routes` como contrato estable antes de ampliar endpoints.
-- Si cambia JSON de rutas, actualizar `docs/contracts` y `docs/slices` en el mismo slice.
+## Reglas de routing/safety
 
-## Contratos
-- Los contratos viven en `docs/contracts`.
-- Cualquier cambio de campos JSON debe reflejarse en contratos y docs del slice.
-- El frontend debe consumir contratos internos estables, no payloads crudos de proveedor.
+- No mover lógica GIS/scoring al frontend React.
+- `POST /api/routes` se mantiene como endpoint principal de routing.
+- Pesos/criterios por edge viven en servicios backend dedicados.
+- Reutilizar caches en `backend/data/routing` y `backend/data/safety/processed`.
+- Explicabilidad de rutas siempre determinista y basada en métricas reales.
+
+## Contratos y documentación
+
+- Cualquier cambio en interfaz HTTP debe actualizar `docs/contracts`.
+- Si cambia arquitectura o flujo funcional, actualizar `docs/architecture.md` y/o `docs/roadmap.md`.
+- Mantener `README.md` y `backend/README.md` consistentes con el estado real del proyecto.
 
 ## Convenciones de nombres
+
 - Componentes frontend: `PascalCase.jsx`
 - Estilos por componente: `Nombre.module.css`
-- Constantes/config frontend: `camelCase.js` con exports explícitos
-- Features frontend: carpeta en `camelCase` semántico
+- Config/constantes frontend: `camelCase.js`
+- Features frontend: carpetas en `camelCase`
 - Módulos backend Python: `snake_case.py`
 
-## Cómo documentar cambios
-- Actualizar `docs/slices/slice-X.md` con decisiones y criterios.
-- Si cambia arquitectura, tocar `docs/architecture.md`.
-- Si cambia prioridad de producto, tocar `docs/roadmap.md`.
-- Si cambia interfaz HTTP, actualizar `docs/contracts`.
+## Checklist antes de cerrar cambios
 
-## Regla de modularidad
-- Cada feature/servicio debe poder evolucionar con mínimo impacto en otros.
-- Reutilización transversal frontend vía `shared`.
-- Reutilización backend vía `services` y `utils`, no en routers.
+- [ ] Funcionalidad verificada localmente (o limitación documentada).
+- [ ] Contratos alineados con frontend/backend.
+- [ ] Documentación actualizada.
+- [ ] Lint/build/tests ejecutados según alcance.
 
-## Checklist antes de cerrar un slice
-- [ ] Demo visible y estable.
-- [ ] Feature flags revisadas.
-- [ ] Contratos alineados con UI/API esperada.
-- [ ] Documentación del slice actualizada.
-- [ ] README actualizado si cambia experiencia de uso.
-- [ ] Lint/build ejecutados (o limitación documentada).
-
-
-## Reglas específicas de safety (Slice 5+)
-- Mantener el score de seguridad explicable y parametrizable (sin “caja negra”).
-- No mover lógica GIS/scoring al frontend; solo render y UX.
-- Cachear preprocesados pesados en `backend/data/safety/processed`.
-- Cambios de contrato en safety requieren actualizar `docs/contracts` y `docs/slices/slice-5.md`.
-
-## Routing multicriterio (Slice 6+)
-- Mantener `POST /api/routes` como endpoint único para modos `fastest`, `safe`, `balanced`, `night`.
-- Los pesos por edge deben vivir en servicios backend dedicados, nunca en componentes React.
-- Reutilizar grid de seguridad de Slice 5 para routing seguro; no reemplazar la capa visual existente.
-- Cachear preprocesados de routing en `backend/data/routing` y evitar recálculo por request.
-- Mantener explicabilidad determinista basada en métricas reales de la ruta (sin texto inventado).
-- En frontend, limitarse a selección de modo + render + resumen; sin geoprocesado GIS serio.

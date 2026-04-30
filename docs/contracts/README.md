@@ -1,17 +1,27 @@
 # Contratos de integración frontend-backend
 
-Estos contratos definen la interfaz de datos estable esperada por el frontend y expuesta por el backend de Brisa.
+Este directorio define la interfaz de datos pública y estable usada por Brisa entre frontend y backend.
+
+## Objetivo
+
+- Evitar acoplamiento a payloads crudos de proveedores externos.
+- Permitir evolución interna del backend sin romper la UI.
+- Centralizar validación y versionado de campos.
 
 ## Reglas
-- Mantener nombres de campos estables antes de añadir nuevos consumidores.
-- Indicar claramente campos obligatorios y opcionales.
-- Actualizar este directorio antes de implementar cambios de integración.
-- Cualquier cambio de contrato debe reflejarse también en `docs/slices/slice-X.md`.
 
-## Relación feature -> contrato
-- `api/health`: `health-response.contract.json`.
-- `bicimad`: `stations.contract.json`.
-- `search` + `routing`: `route-request.contract.json`, `route-response.contract.json`, `geocoding-suggest-response.contract.json`.
-- `neighborhoods`: `neighborhood-score.contract.json`, `cyclability-neighborhoods.contract.json`.
-- `safety`: `safety-grid-response.contract.json`, `safety-summary-response.contract.json`.
-- Estado local de UI: `ui-state.contract.md`.
+- Mantener nombres y estructura de campos estables.
+- Documentar explícitamente campos obligatorios/opcionales.
+- Actualizar contratos en el mismo cambio que modifique respuestas/requests.
+- Reflejar cambios relevantes también en `README.md` y documentación técnica.
+
+## Índice
+
+- Salud: `health-response.contract.json`
+- Estaciones Bicimad: `stations.contract.json` + `stations.mapping.md`
+- Geocoding: `geocoding-suggest-response.contract.json`
+- Routing: `route-request.contract.json`, `route-response.contract.json`
+- Safety: `safety-grid-response.contract.json`, `safety-summary-response.contract.json`
+- Ciclabilidad barrios: `cyclability-neighborhoods.contract.json`, `neighborhood-score.contract.json`
+- Estado de UI: `ui-state.contract.md`
+

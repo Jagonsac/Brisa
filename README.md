@@ -1,45 +1,44 @@
-# Brisa
+# Brisa 🚲
 
-Brisa es una aplicación web para planificar rutas ciclistas en Madrid con foco en seguridad y explicabilidad.
+Brisa es una plataforma open source para planificar rutas ciclistas en Madrid combinando **rapidez, seguridad y contexto urbano**. Incluye frontend React (mapa interactivo) y backend FastAPI (geocoding, routing multicriterio, seguridad, ciclabilidad por barrios y soporte multimodal con Bicimad).
 
-## Estado actual (Slice 6)
-✅ Frontend React + Vite con mapa Leaflet y UX en español.  
-✅ Backend FastAPI con geocoding, routing real y capa de seguridad.  
-✅ Modos de ruta operativos en producción local:
-- **Rápida** (`fastest`)
-- **Segura** (`safe`)
-- **Equilibrada** (`balanced`)
-- **Nocturna** (`night`)  
-✅ Explicaciones deterministas por ruta (sin IA generativa).  
-✅ Capa de seguridad Slice 5 intacta y reutilizada para routing.
+## Estado del proyecto
 
-## Qué añade Slice 6
-- Costes multicriterio por edge sobre grafo OSMnx.
-- Reutilización del grid de seguridad Slice 5 para `safe/balanced/night`.
-- Proxy nocturna con dos capas:
-  - iluminación por densidad de farolas
-  - accidentalidad ciclista en franja nocturna (22:00–06:00)
-- Caché local de atributos preprocesados para acelerar peticiones sucesivas.
+**Versión funcional actual:** cierre de desarrollo interno tras completar las fases 1–9.
 
-## Dataset nuevo en Slice 6
-- **Farolas (Unidades luminosas, Ayuntamiento de Madrid)**
-  - Se usa como proxy de iluminación nocturna por celda.
-  - No se hace fotometría avanzada; solo densidad/cobertura razonable.
+Capacidades principales disponibles:
+- Routing real sobre red OSM para modos `fastest`, `safe`, `balanced` y `night`.
+- Comparativa de rutas y resumen explicable por métricas.
+- Soporte multimodal opcional con Bicimad (`walk + bike + walk`).
+- Capa de seguridad ciclista y resumen agregado de riesgo.
+- Índice de ciclabilidad por barrio (listado, detalle, comparación, geojson).
+- Sugerencias de geocoding para origen/destino.
 
-## Stack
-- Frontend: React + JavaScript (sin TypeScript), Vite, React Leaflet.
-- Backend: FastAPI, OSMnx, NetworkX, pyproj.
+## Arquitectura
 
-## Cómo ejecutar
+- **Frontend:** React + Vite + React Leaflet.
+- **Backend:** FastAPI + OSMnx + NetworkX + utilidades GIS/GeoJSON.
+- **Contratos:** definidos en `docs/contracts` y consumidos por frontend sin acoplarse a payloads crudos de proveedores.
 
-### Frontend
+Más detalle: `docs/architecture.md`.
+
+## Estructura del repositorio
+
+- `src/`: aplicación frontend (app shell, features, shared, mocks).
+- `backend/app/`: API, servicios de dominio, clientes externos, utilidades y schemas.
+- `backend/data/`: artefactos de cache/preprocesado para safety/routing/ciclabilidad.
+- `docs/`: documentación técnica, contratos y evolución del producto.
+
+## Puesta en marcha local
+
+### 1) Frontend
 ```bash
 npm install
 npm run dev
 ```
-Frontend: `http://localhost:5173`
+Frontend en `http://localhost:5173`.
 
-### Backend
+### 2) Backend
 ```bash
 cd backend
 python3 -m venv .venv
@@ -47,25 +46,50 @@ source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
-Backend: `http://localhost:8000`
+Backend en `http://localhost:8000`.
 
-> La primera petición de rutas puede tardar más por la generación de cachés en `backend/data/routing` y `backend/data/safety/processed`.
+> La primera ejecución puede tardar más por warmup de grafo y lectura/generación de cachés.
 
-## Endpoints
+## Endpoints principales
+
 - `GET /health`
 - `GET /api/stations?source=auto|remote|snapshot`
 - `GET /api/geocoding/suggest?q=<texto>`
 - `GET /api/safety/grid`
 - `GET /api/safety/summary`
+- `GET /api/cyclability/neighborhoods`
+- `GET /api/cyclability/neighborhoods/geojson`
+- `GET /api/cyclability/neighborhoods/{id}`
+- `GET /api/cyclability/neighborhoods/compare?a=<id>&b=<id>`
 - `POST /api/routes`
 
-## Prueba manual recomendada (Slice 6)
-1. Selecciona origen y destino con sugerencias.
-2. Calcula la ruta en los cuatro modos.
-3. Comprueba que cambian distancia/recorrido.
-4. Revisa en la tarjeta las explicaciones y métricas compactas.
-5. Activa capa de seguridad y verifica que la ruta sigue visible.
+## Calidad y checks
 
-## Próximos pasos
-- Slice 7: mejorar comparativa entre modos y análisis de trade-offs por tramo.
-- Slice 8: integración avanzada de infraestructura ciclista y métricas urbanas adicionales.
+Frontend:
+```bash
+npm run lint
+npm run build
+```
+
+Backend:
+```bash
+cd backend
+pytest
+```
+
+## Documentación clave
+
+- Arquitectura: `docs/architecture.md`
+- Estado y roadmap unificado: `docs/roadmap.md`
+- Contratos API/UI: `docs/contracts/`
+- Backend técnico: `backend/README.md`
+- Historial por fases (archivo): `docs/slices/`
+
+## Open source
+
+Este repositorio está preparado para colaboración pública. Revisa:
+- `CONTRIBUTING.md`
+- `CODE_OF_CONDUCT.md`
+- `SECURITY.md`
+- `LICENSE`
+

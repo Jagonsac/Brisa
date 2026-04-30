@@ -1,3 +1,8 @@
 # Feature: safety
 
-Placeholder para score de seguridad y explicabilidad (Slice 5 en adelante).
+Módulo de visualización de seguridad ciclista:
+- capa grid en mapa
+- leyenda de interpretación
+- consumo de resumen agregado de seguridad
+
+El cálculo del score se realiza en backend.
