@@ -72,3 +72,24 @@
     padding: 0.6rem;
   }
 }
+
+
+.compact {
+  margin-top: 0.45rem;
+}
+
+.compact .title {
+  font-size: 0.78rem;
+  margin-bottom: 0.35rem;
+}
+
+.compact .buttonGroup {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.compact .modeButton {
+  min-height: 46px;
+  padding: 0.45rem;
+  font-size: 0.8rem;
+}

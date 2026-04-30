@@ -485,6 +485,15 @@ export function AppLayout() {
                     Sin índice
                   </button>
                 </div>
+                {Object.keys(routesByMode).length > 0 && (
+                <RouteModeSelector
+                  routesByMode={routesByMode}
+                  selectedMode={selectedRouteMode}
+                  onSelectMode={setSelectedRouteMode}
+                  loading={routeLoading}
+                  compact
+                />
+                )}
               </div>
               {safetyState.error && <p className={styles.warningText}>Capa de seguridad no disponible: {safetyState.error}</p>}
               {cyclabilityState.error && <p className={styles.warningText}>Índice por barrio no disponible: {cyclabilityState.error}</p>}
@@ -516,6 +525,7 @@ export function AppLayout() {
             <>
               <div className={styles.mobileTopOverlay}>
                 <RouteSearchForm
+                  compact={isMobile}
                   inputValues={inputValues}
                   onFieldChange={handleChange}
                   onSubmit={handleSubmit}
@@ -538,6 +548,15 @@ export function AppLayout() {
                     Bicimad
                   </label>
                 </div>
+                {Object.keys(routesByMode).length > 0 && (
+                <RouteModeSelector
+                  routesByMode={routesByMode}
+                  selectedMode={selectedRouteMode}
+                  onSelectMode={setSelectedRouteMode}
+                  loading={routeLoading}
+                  compact
+                />
+                )}
               </div>
               <div className={styles.mobileBottomOverlay} role="radiogroup" aria-label="Visualización principal del mapa">
                 <button type="button" className={`${styles.layerOptionButton} ${activeInsightLayer === LAYER_VISIBILITY_MODE.SAFETY ? styles.layerOptionButtonActive : ''}`} onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.SAFETY)} disabled={!safetyLayerAvailable}>Seguridad</button>

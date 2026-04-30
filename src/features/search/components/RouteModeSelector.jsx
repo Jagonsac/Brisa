@@ -21,11 +21,11 @@ function formatDuration(minutes) {
   return `${hours} h ${remainingMinutes} min`;
 }
 
-export function RouteModeSelector({ routesByMode, selectedMode, onSelectMode, loading }) {
+export function RouteModeSelector({ routesByMode, selectedMode, onSelectMode, loading, compact = false }) {
   const routeModes = Object.keys(routesByMode);
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${compact ? styles.compact : ""}`}>
       <p className={styles.title}>Elige tu ruta preferida</p>
       <div className={styles.buttonGroup} role="tablist" aria-label="Rutas disponibles en el mapa">
         {routeModes.length === 0 && (

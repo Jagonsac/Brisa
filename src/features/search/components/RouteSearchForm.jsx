@@ -39,6 +39,7 @@ export function RouteSearchForm({
   onCloseSuggestions,
   onCloseAllSuggestions,
   onSelectSuggestion,
+  compact = false,
 }) {
   const formRef = useRef(null);
 
@@ -56,7 +57,7 @@ export function RouteSearchForm({
   }, [onCloseAllSuggestions]);
 
   return (
-    <form ref={formRef} className={styles.form} onSubmit={onSubmit}>
+    <form ref={formRef} className={`${styles.form} ${compact ? styles.formCompact : ''}`} onSubmit={onSubmit}>
       <label htmlFor="origin">Origen</label>
       <input
         id="origin"

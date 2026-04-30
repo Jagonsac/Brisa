@@ -55,18 +55,18 @@ function RouteBoundsController({ routeFeatures }) {
   return null;
 }
 
-function styleSafetyFeature(feature) {
+function styleSafetyFeature(feature, soften = false) {
   const score = feature?.properties?.safetyScore ?? 0;
   return {
     color: '#f8fbff',
     weight: 0.9,
     opacity: 0.7,
-    fillOpacity: 0.5,
+    fillOpacity: soften ? 0.32 : 0.5,
     fillColor: getSafetyColor(score),
   };
 }
 
-function styleCyclabilityFeature(feature, selectedNeighborhoodId) {
+function styleCyclabilityFeature(feature, selectedNeighborhoodId, soften = false) {
   const score = feature?.properties?.cyclabilityScore ?? 0;
   const hue = Math.round((score / 100) * 120);
   const fillColor = `hsl(${hue}, 62%, 45%)`;
@@ -75,7 +75,7 @@ function styleCyclabilityFeature(feature, selectedNeighborhoodId) {
     color: isSelected ? '#0f2f60' : '#f2f7ff',
     weight: isSelected ? 2.2 : 0.9,
     opacity: 0.8,
-    fillOpacity: isSelected ? 0.72 : 0.56,
+    fillOpacity: soften ? (isSelected ? 0.48 : 0.34) : (isSelected ? 0.72 : 0.56),
     fillColor,
   };
 }
@@ -194,6 +194,7 @@ export function MapView({
     .filter((feature) => Boolean(feature));
 
   const selectedRouteData = routesByMode[selectedRouteMode] || null;
+  const hasRoutes = routeEntries.length > 0;
   const originPoint = selectedOriginPlace || selectedRouteData?.origin || routeEntries[0]?.[1]?.origin || null;
   const destinationPoint = selectedDestinationPlace || selectedRouteData?.destination || routeEntries[0]?.[1]?.destination || null;
   const originLon = originPoint?.lon ?? originPoint?.lng;
@@ -218,12 +219,12 @@ export function MapView({
         {showCyclabilityLayer && cyclabilityGeojson && (
           <GeoJSON
             data={cyclabilityGeojson}
-            style={(feature) => styleCyclabilityFeature(feature, selectedNeighborhoodId)}
+            style={(feature) => styleCyclabilityFeature(feature, selectedNeighborhoodId, hasRoutes)}
             onEachFeature={(feature, layer) => bindCyclabilityPopup(feature, layer, onSelectNeighborhood, selectedNeighborhoodId)}
           />
         )}
 
-        {showSafetyLayer && safetyGrid && <GeoJSON data={safetyGrid} style={styleSafetyFeature} onEachFeature={bindSafetyPopup} />}
+        {showSafetyLayer && safetyGrid && <GeoJSON data={safetyGrid} style={(feature) => styleSafetyFeature(feature, hasRoutes)} onEachFeature={bindSafetyPopup} />}
 
         {originPosition && (
           <Marker position={originPosition} icon={originIcon}>
@@ -237,28 +238,45 @@ export function MapView({
           </Marker>
         )}
 
-        {routeEntries.map(([modeKey, routeData]) => {
-          const modeMeta = routeModeByApiMode[modeKey];
-          const isActive = modeKey === selectedRouteMode;
-          if (Array.isArray(routeData?.segments) && modeKey === selectedRouteMode) {
-            return routeData.segments.map((segment, index) => (
+        {[...routeEntries]
+          .sort(([modeA], [modeB]) => {
+            if (modeA === selectedRouteMode) return 1;
+            if (modeB === selectedRouteMode) return -1;
+            return 0;
+          })
+          .map(([modeKey, routeData]) => {
+            const modeMeta = routeModeByApiMode[modeKey];
+            const isActive = modeKey === selectedRouteMode;
+            if (Array.isArray(routeData?.segments) && modeKey === selectedRouteMode) {
+              return routeData.segments.map((segment, index) => (
+                <GeoJSON
+                  key={`${modeKey}-${segment.type}-${index}`}
+                  data={{ type: 'Feature', geometry: segment.geometry, properties: {} }}
+                  style={{
+                    color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
+                    weight: segment.type === 'walk' ? 4.6 : 7,
+                    opacity: segment.type === 'walk' ? 0.9 : 1,
+                    dashArray: segment.type === 'walk' ? '6 10' : undefined,
+                  }}
+                />
+              ));
+            }
+
+            const routeFeature = routeData?.routeGeoJson;
+            if (!routeFeature) return null;
+            return (
               <GeoJSON
-                key={`${modeKey}-${segment.type}-${index}`}
-                data={{ type: 'Feature', geometry: segment.geometry, properties: {} }}
+                key={modeKey}
+                data={routeFeature}
                 style={{
-                  color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
-                  weight: segment.type === 'walk' ? 4 : 6.2,
-                  opacity: segment.type === 'walk' ? 0.88 : 0.98,
-                  dashArray: segment.type === 'walk' ? '6 10' : undefined,
+                  color: modeMeta?.color || '#1f6feb',
+                  weight: isActive ? 7 : 4,
+                  opacity: isActive ? 1 : 0.64,
+                  dashArray: isActive ? undefined : '8 6',
                 }}
               />
-            ));
-          }
-
-          const routeFeature = routeData?.routeGeoJson;
-          if (!routeFeature) return null;
-          return <GeoJSON key={modeKey} data={routeFeature} style={{ color: modeMeta?.color || '#1f6feb', weight: isActive ? 6.5 : 4.25, opacity: isActive ? 0.98 : 0.76, dashArray: isActive ? undefined : '8 6' }} />;
-        })}
+            );
+          })}
 
         {selectedRouteData?.stations?.departure && (
           <Marker position={[selectedRouteData.stations.departure.lat, selectedRouteData.stations.departure.lon]} icon={bicimadStationIcon}>
