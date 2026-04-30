@@ -52,3 +52,16 @@ def get_cyclability_neighborhood(neighborhood_id: str) -> dict:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "cyclability_detail_unavailable", "message": f"No se pudo cargar el detalle del barrio: {error}"},
         ) from error
+
+
+@router.get("/neighborhoods/{neighborhood_id}/score-breakdown")
+def get_cyclability_neighborhood_breakdown(neighborhood_id: str) -> dict:
+    try:
+        return service.get_neighborhood_score_breakdown(neighborhood_id)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "neighborhood_not_found", "message": "Barrio no encontrado."})
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "cyclability_breakdown_unavailable", "message": f"No se pudo cargar el desglose del score: {error}"},
+        ) from error

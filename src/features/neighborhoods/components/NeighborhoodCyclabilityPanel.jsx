@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { getNeighborhoodScoreBreakdown } from '../services/cyclabilityService';
 
 import styles from './NeighborhoodCyclabilityPanel.module.css';
 
@@ -14,6 +15,9 @@ const scoreKeys = [
 export function NeighborhoodCyclabilityPanel({ neighborhoods, selectedNeighborhoodId, onSelectNeighborhood, comparison, onCompare }) {
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState('');
+  const [scoreBreakdown, setScoreBreakdown] = useState(null);
+  const [loadingBreakdown, setLoadingBreakdown] = useState(false);
+  const [breakdownError, setBreakdownError] = useState('');
 
   const selected = useMemo(
     () => neighborhoods.find((item) => item.neighborhoodId === selectedNeighborhoodId) || neighborhoods[0] || null,
@@ -89,6 +93,29 @@ export function NeighborhoodCyclabilityPanel({ neighborhoods, selectedNeighborho
             <p className={styles.bigScore}>{selected.cyclabilityScore}/100</p>
             <p className={styles.meta}>Puesto #{selected.rank} · Percentil {selected.percentile}</p>
             <p className={styles.summary}>{selected.summary}</p>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!selected?.neighborhoodId) return;
+                try {
+                  setLoadingBreakdown(true);
+                  setBreakdownError('');
+                  const response = await getNeighborhoodScoreBreakdown(selected.neighborhoodId);
+                  setScoreBreakdown(response?.data || null);
+                } catch (error) {
+                  setBreakdownError(error?.message || 'No se pudo cargar el desglose');
+                } finally {
+                  setLoadingBreakdown(false);
+                }
+              }}
+            >
+              Ver cálculo del score (debug)
+            </button>
+            {loadingBreakdown && <p className={styles.meta}>Cargando desglose...</p>}
+            {breakdownError && <p className={styles.compareWarning}>{breakdownError}</p>}
+            {scoreBreakdown && scoreBreakdown.neighborhoodId === selected.neighborhoodId && (
+              <pre className={styles.summary}>{JSON.stringify(scoreBreakdown, null, 2)}</pre>
+            )}
 
             <div className={styles.subscores}>
               {scoreKeys.map(([key, label]) => (
