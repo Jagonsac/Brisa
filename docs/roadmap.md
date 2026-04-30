@@ -27,6 +27,7 @@ Brisa ha completado nueve fases internas de desarrollo y cuenta con una base fun
 - CI/CD pública (lint + build + tests backend) con checks obligatorios.
 - Observabilidad básica (latencias, errores por endpoint, salud de proveedores).
 - Optimización incremental de precálculos/caches GIS.
+- Reintroducir `station_status` en multimodal Bicimad como optimización no bloqueante (ranking por disponibilidad y replanificación), manteniendo fallback determinista por cercanía cuando falle el dato en vivo.
 
 ### Prioridad baja
 - Internacionalización (ES/EN) de interfaz y documentación.
@@ -36,4 +37,3 @@ Brisa ha completado nueve fases internas de desarrollo y cuenta con una base fun
 ## Historial detallado
 
 El detalle histórico por fase se conserva en `docs/slices/` como archivo de decisiones y contexto de implementación.
-

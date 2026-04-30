@@ -3,73 +3,223 @@
   "title": "RouteResponse",
   "description": "Respuesta de ruta bike o multimodal Bicimad.",
   "type": "object",
-  "required": ["data", "meta"],
+  "required": [
+    "data",
+    "meta"
+  ],
   "properties": {
     "data": {
       "type": "object",
-      "required": ["routeGeoJson", "origin", "destination", "summary", "explanations"],
+      "required": [
+        "routeGeoJson",
+        "origin",
+        "destination",
+        "summary",
+        "explanations"
+      ],
       "properties": {
-        "routeGeoJson": { "type": "object" },
-        "origin": { "$ref": "#/$defs/location" },
-        "destination": { "$ref": "#/$defs/location" },
-        "transportMode": { "type": "string", "enum": ["bike", "bicimad"] },
-        "bikeProfile": { "type": "string", "enum": ["fastest", "safe", "balanced", "night"] },
+        "routeGeoJson": {
+          "type": "object"
+        },
+        "origin": {
+          "$ref": "#/$defs/location"
+        },
+        "destination": {
+          "$ref": "#/$defs/location"
+        },
+        "transportMode": {
+          "type": "string",
+          "enum": [
+            "bike",
+            "bicimad"
+          ]
+        },
+        "bikeProfile": {
+          "type": "string",
+          "enum": [
+            "fastest",
+            "safe",
+            "balanced",
+            "night"
+          ]
+        },
         "stations": {
           "type": "object",
           "properties": {
-            "departure": { "type": "object" },
-            "arrival": { "type": "object" }
+            "departure": {
+              "type": "object"
+            },
+            "arrival": {
+              "type": "object"
+            }
           }
         },
         "segments": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["type", "distanceMeters", "durationSeconds", "geometry"],
+            "required": [
+              "type",
+              "distanceMeters",
+              "durationSeconds",
+              "geometry"
+            ],
             "properties": {
-              "type": { "type": "string", "enum": ["walk", "bike"] },
-              "distanceMeters": { "type": "number" },
-              "durationSeconds": { "type": "number" },
-              "geometry": { "type": "object" }
+              "type": {
+                "type": "string",
+                "enum": [
+                  "walk",
+                  "bike"
+                ]
+              },
+              "distanceMeters": {
+                "type": "number"
+              },
+              "durationSeconds": {
+                "type": "number"
+              },
+              "geometry": {
+                "type": "object"
+              }
             }
           }
         },
         "summary": {
           "type": "object",
-          "required": ["distanceMeters", "distanceKm", "mode", "relativeSafety", "lightingQuality", "nightRisk"],
+          "required": [
+            "distanceMeters",
+            "distanceKm",
+            "mode",
+            "relativeSafety",
+            "lightingQuality",
+            "nightRisk"
+          ],
           "properties": {
-            "distanceMeters": { "type": "number" },
-            "distanceKm": { "type": "number" },
-            "mode": { "type": "string", "enum": ["fastest", "safe", "balanced", "night", "bicimad"] },
-            "relativeSafety": { "type": "string", "enum": ["high", "medium", "low"] },
-            "lightingQuality": { "type": "string", "enum": ["high", "medium", "low"] },
-            "nightRisk": { "type": "string", "enum": ["low", "medium", "high"] },
-            "estimatedDurationMinutes": { "type": "number" },
-            "totalDurationSeconds": { "type": "number" },
-            "walkDistanceMeters": { "type": "number" },
-            "walkDurationSeconds": { "type": "number" },
-            "bikeDistanceMeters": { "type": "number" },
-            "bikeDurationSeconds": { "type": "number" }
+            "distanceMeters": {
+              "type": "number"
+            },
+            "distanceKm": {
+              "type": "number"
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "fastest",
+                "safe",
+                "balanced",
+                "night",
+                "bicimad"
+              ]
+            },
+            "relativeSafety": {
+              "type": "string",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ]
+            },
+            "lightingQuality": {
+              "type": "string",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ]
+            },
+            "nightRisk": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "estimatedDurationMinutes": {
+              "type": "number"
+            },
+            "totalDurationSeconds": {
+              "type": "number"
+            },
+            "walkDistanceMeters": {
+              "type": "number"
+            },
+            "walkDurationSeconds": {
+              "type": "number"
+            },
+            "bikeDistanceMeters": {
+              "type": "number"
+            },
+            "bikeDurationSeconds": {
+              "type": "number"
+            }
           }
         },
-        "explanations": { "type": "array", "items": { "type": "string" } }
+        "explanations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       },
       "additionalProperties": true
     },
     "meta": {
       "type": "object",
-      "required": ["engine", "graphSource", "weightProfile", "usedSafetyGrid", "usedLightingGrid", "usedNightRiskGrid", "networkType"],
+      "required": [
+        "engine",
+        "graphSource",
+        "weightProfile",
+        "usedSafetyGrid",
+        "usedLightingGrid",
+        "usedNightRiskGrid",
+        "networkType"
+      ],
       "properties": {
-        "engine": { "const": "osmnx" },
-        "graphSource": { "type": "string", "enum": ["cache", "download"] },
-        "weightProfile": { "type": "string", "enum": ["fastest", "safe", "balanced", "night"] },
-        "usedSafetyGrid": { "type": "boolean" },
-        "usedLightingGrid": { "type": "boolean" },
-        "usedNightRiskGrid": { "type": "boolean" },
-        "networkType": { "type": "string" },
-        "liveStatusUsed": { "type": "boolean" },
-        "fallbackUsed": { "type": "boolean" },
-        "evaluatedPairs": { "type": "number" }
+        "engine": {
+          "const": "osmnx"
+        },
+        "graphSource": {
+          "type": "string",
+          "enum": [
+            "cache",
+            "download"
+          ]
+        },
+        "weightProfile": {
+          "type": "string",
+          "enum": [
+            "fastest",
+            "safe",
+            "balanced",
+            "night"
+          ]
+        },
+        "usedSafetyGrid": {
+          "type": "boolean"
+        },
+        "usedLightingGrid": {
+          "type": "boolean"
+        },
+        "usedNightRiskGrid": {
+          "type": "boolean"
+        },
+        "networkType": {
+          "type": "string"
+        },
+        "liveStatusUsed": {
+          "type": "boolean"
+        },
+        "fallbackUsed": {
+          "type": "boolean"
+        },
+        "evaluatedPairs": {
+          "type": "number"
+        },
+        "discardedPairs": {
+          "type": "integer",
+          "minimum": 0
+        }
       },
       "additionalProperties": true
     }
@@ -77,12 +227,25 @@
   "$defs": {
     "location": {
       "type": "object",
-      "required": ["query", "displayName", "lat", "lon"],
+      "required": [
+        "query",
+        "displayName",
+        "lat",
+        "lon"
+      ],
       "properties": {
-        "query": { "type": "string" },
-        "displayName": { "type": "string" },
-        "lat": { "type": "number" },
-        "lon": { "type": "number" }
+        "query": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "lat": {
+          "type": "number"
+        },
+        "lon": {
+          "type": "number"
+        }
       }
     }
   },

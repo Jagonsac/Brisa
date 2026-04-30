@@ -10,7 +10,7 @@ Integrar Bicimad como opción real de planificación multimodal en `POST /api/ro
   2. evaluación real de pares con `walk + bike + walk`.
 - Tramo bici con perfiles existentes `fastest|safe|balanced|night`.
 - Tramos andando con grafo `walk` de OSMnx cacheado.
-- Uso de `station_information` + `station_status` (TTL corto) y fallback a snapshot/estático cuando falla vivo.
+- Uso de `station_information` para selección por cercanía de estaciones (origen/destino), sin bloquear por disponibilidad en tiempo real.
 - Respuesta multimodal con `segments`, `stations`, desglose de tiempos/distancias y metadata de fallback.
 
 ## Contrato y compatibilidad
@@ -28,4 +28,5 @@ Integrar Bicimad como opción real de planificación multimodal en `POST /api/ro
 ## Limitaciones conocidas
 - Heurística inicial configurable pero todavía simple (no usa históricos de fiabilidad).
 - El score multimodal aún no compara explícitamente contra “caminar directo” o “bici propia” en esta slice.
+- La disponibilidad en tiempo real (`station_status`: bicis/anclajes) queda como mejora futura para reintroducir ranking dinámico de estaciones y reintentos ante saturación.
 - La disponibilidad viva depende del feed GBFS; si falla, se usa fallback sin disponibilidad en tiempo real.

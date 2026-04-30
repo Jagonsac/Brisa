@@ -11,7 +11,6 @@ from app.services.bicimad_service import BicimadService
 from app.services.edge_weight_service import EdgeWeightService
 from app.services.geocoding_service import GeocodedPoint, GeocodingError, GeocodingService
 from app.services.graph_service import GraphService
-from app.services.station_status_service import StationStatusService
 from app.utils.geojson import build_route_geojson_feature
 
 
@@ -28,7 +27,6 @@ class RouteService:
         self.geocoding_service = geocoding_service or GeocodingService()
         self.edge_weight_service = EdgeWeightService()
         self.bicimad_service = BicimadService()
-        self.station_status_service = StationStatusService()
         self._weight_lock = threading.Lock()
         self._last_decorated_signature: tuple[int, str, int] | None = None
 
@@ -127,13 +125,6 @@ class RouteService:
         stations = station_response.data
         fallback_used = station_response.meta.fallbackUsed
 
-        live_status_used = True
-        try:
-            status_by_id, _ = await self.station_status_service.get_status()
-        except Exception:
-            status_by_id = self.station_status_service.get_cached_status()
-            live_status_used = False
-
         bike_graph, bike_graph_source = self.graph_service.get_graph(network_type="bike")
         walk_graph, walk_graph_source = self.graph_service.get_graph(network_type="walk")
         edge_weights_payload = self.edge_weight_service.get_edge_weights()
@@ -145,8 +136,8 @@ class RouteService:
         )
         bike_weight_name = f"brisa_weight_{mode}"
 
-        dep_candidates = self._pick_station_candidates(stations, status_by_id, origin, candidate_type="departure")
-        arr_candidates = self._pick_station_candidates(stations, status_by_id, destination, candidate_type="arrival")
+        dep_candidates = self._pick_station_candidates(stations, origin)
+        arr_candidates = self._pick_station_candidates(stations, destination)
 
         if not dep_candidates:
             raise RouteServiceError("route_not_found", "No hay estaciones Bicimad de salida razonables cerca del origen.")
@@ -154,10 +145,11 @@ class RouteService:
             raise RouteServiceError("route_not_found", "No hay estaciones Bicimad de llegada razonables cerca del destino.")
 
         evaluated_pairs = 0
+        discarded_pairs = 0
         best_plan = None
 
-        for dep in dep_candidates[:5]:
-            for arr in arr_candidates[:5]:
+        for dep in dep_candidates[:8]:
+            for arr in arr_candidates[:8]:
                 if dep["station"].id == arr["station"].id:
                     continue
                 evaluated_pairs += 1
@@ -166,6 +158,7 @@ class RouteService:
                     bike_leg = self._compute_bike_leg(bike_graph, edge_metrics, bike_weight_name, dep["station"].lat, dep["station"].lon, arr["station"].lat, arr["station"].lon)
                     walk2 = self._compute_walk_leg(walk_graph, arr["station"].lat, arr["station"].lon, destination.lat, destination.lon)
                 except Exception:
+                    discarded_pairs += 1
                     continue
 
                 walk_duration = walk1["duration_seconds"] + walk2["duration_seconds"]
@@ -174,8 +167,6 @@ class RouteService:
                     mode=mode,
                     walk_duration_seconds=walk_duration,
                     bike_duration_seconds=bike_duration,
-                    dep_status=dep["status"],
-                    arr_status=arr["status"],
                 )
 
                 if bike_leg["distance_meters"] < 500:
@@ -191,6 +182,33 @@ class RouteService:
                 }
                 if best_plan is None or score < best_plan["score"]:
                     best_plan = plan
+
+        if best_plan is None:
+            for dep in dep_candidates[:12]:
+                for arr in arr_candidates[:12]:
+                    if dep["station"].id == arr["station"].id:
+                        continue
+                    evaluated_pairs += 1
+                    try:
+                        walk1 = self._compute_walk_leg(walk_graph, origin.lat, origin.lon, dep["station"].lat, dep["station"].lon)
+                        bike_leg = self._compute_bike_leg(bike_graph, edge_metrics, bike_weight_name, dep["station"].lat, dep["station"].lon, arr["station"].lat, arr["station"].lon)
+                        walk2 = self._compute_walk_leg(walk_graph, arr["station"].lat, arr["station"].lon, destination.lat, destination.lon)
+                    except Exception:
+                        discarded_pairs += 1
+                        continue
+
+                    walk_duration = walk1["duration_seconds"] + walk2["duration_seconds"]
+                    bike_duration = bike_leg["duration_seconds"]
+                    score = self._multimodal_score(
+                        mode=mode,
+                        walk_duration_seconds=walk_duration,
+                        bike_duration_seconds=bike_duration,
+                    )
+                    if bike_leg["distance_meters"] < 500:
+                        score += 900
+                    plan = {"dep": dep, "arr": arr, "walk1": walk1, "walk2": walk2, "bike": bike_leg, "score": score}
+                    if best_plan is None or score < best_plan["score"]:
+                        best_plan = plan
 
         if best_plan is None:
             raise RouteServiceError("route_not_found", "No se encontró una combinación multimodal Bicimad válida.")
@@ -298,9 +316,10 @@ class RouteService:
                     "usedLightingGrid": False,
                     "usedNightRiskGrid": False,
                     "networkType": "multimodal",
-                    "liveStatusUsed": live_status_used,
+                    "liveStatusUsed": False,
                     "fallbackUsed": fallback_used,
                     "evaluatedPairs": evaluated_pairs,
+                    "discardedPairs": discarded_pairs,
                 },
             }
         )
@@ -375,26 +394,18 @@ class RouteService:
             "avg_bike_infra": round(sum(route_bike_infra) / len(route_bike_infra), 4) if route_bike_infra else 0.25,
         }
 
-    def _pick_station_candidates(self, stations, status_by_id: dict, point: GeocodedPoint, *, candidate_type: str) -> list[dict]:
+    def _pick_station_candidates(self, stations, point: GeocodedPoint) -> list[dict]:
         candidates = []
         for station in stations:
             distance = self._haversine_meters(point.lat, point.lon, station.lat, station.lon)
-            if distance > 1500:
+            if distance > 2200:
                 continue
-            status = status_by_id.get(station.id, {})
-            is_operational = status.get("isInstalled", True) and (status.get("isRenting", True) or status.get("isReturning", True))
-            if not is_operational:
-                continue
-            availability = status.get("bikesAvailable") if candidate_type == "departure" else status.get("docksAvailable")
-            if availability == 0:
-                continue
-            score = distance + (0 if availability is None else max(0, 5 - availability) * 120)
-            candidates.append({"station": station, "status": status, "distance": distance, "score": score})
+            candidates.append({"station": station, "distance": distance, "score": distance})
 
         candidates.sort(key=lambda item: item["score"])
-        return candidates[:8]
+        return candidates[:12]
 
-    def _multimodal_score(self, *, mode: str, walk_duration_seconds: float, bike_duration_seconds: float, dep_status: dict, arr_status: dict) -> float:
+    def _multimodal_score(self, *, mode: str, walk_duration_seconds: float, bike_duration_seconds: float) -> float:
         if mode == "fastest":
             walk_w, bike_w = 1.0, 1.3
         elif mode in {"safe", "night"}:
@@ -402,21 +413,18 @@ class RouteService:
         else:
             walk_w, bike_w = 1.0, 1.1
 
-        bikes_penalty = 0 if dep_status.get("bikesAvailable") is None else max(0, 3 - int(dep_status.get("bikesAvailable", 0))) * 180
-        docks_penalty = 0 if arr_status.get("docksAvailable") is None else max(0, 3 - int(arr_status.get("docksAvailable", 0))) * 180
-        return walk_duration_seconds * walk_w + bike_duration_seconds * bike_w + bikes_penalty + docks_penalty
+        return walk_duration_seconds * walk_w + bike_duration_seconds * bike_w
 
     def _station_payload(self, station_bundle: dict) -> dict:
         station = station_bundle["station"]
-        status = station_bundle["status"]
         return {
             "stationId": station.id,
             "name": station.name,
             "lat": station.lat,
             "lon": station.lon,
-            "bikesAvailable": status.get("bikesAvailable"),
-            "docksAvailable": status.get("docksAvailable"),
-            "isOperational": bool(status.get("isInstalled", True)),
+            "bikesAvailable": None,
+            "docksAvailable": None,
+            "isOperational": True,
         }
 
     def _decorate_graph_weights(self, graph, *, edge_metrics: dict) -> None:
