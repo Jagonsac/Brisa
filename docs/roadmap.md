@@ -1,49 +1,39 @@
-# Roadmap de Brisa
+# Evolución del producto y roadmap
 
-## Slice 1 — Base + mapa + UI + docs (completado)
-- Base React/Vite
-- Mapa Leaflet en Madrid
-- Formulario origen/destino + modo de ruta
-- Estado del proyecto
-- Contratos y documentación inicial
+## Estado actual
 
-## Slice 2 — Estaciones Bicimad en mapa (completado)
-- Capa de estaciones Bicimad en mapa
-- Carga real desde GBFS `station_information`
-- Fallback oficial EMT + snapshot local
-- Normalización a contrato interno estable
-- Estados de carga/error/fallback en UI
+Brisa ha completado nueve fases internas de desarrollo y cuenta con una base funcional integral para planificación ciclista en Madrid.
 
-## Slice 3 — Backend mínimo (completado)
-- FastAPI inicial en `backend/`
-- Endpoint de salud `GET /health`
-- Endpoint de estaciones `GET /api/stations`
-- Normalización y fallback en backend
-- Integración frontend configurable por `VITE_API_BASE_URL`
+## Capacidades entregadas (resumen unificado)
 
-## Slice 4 — Routing más corto (completado)
-- Endpoint `POST /api/routes`
-- Geocoding backend con Nominatim
-- Grafo bike de Madrid cacheado (OSMnx GraphML)
-- Cálculo shortest-path por `length`
-- Pintado de ruta real en mapa + resumen de distancia
+1. **Experiencia base de mapa y UX de búsqueda.**
+2. **Integración de estaciones Bicimad con estrategias de fallback.**
+3. **Backend API estable para health, estaciones y rutas.**
+4. **Routing shortest-path real sobre OSMnx.**
+5. **Capa de seguridad (grid + resumen) y visualización en frontend.**
+6. **Routing multicriterio seguro/nocturno con explicaciones deterministas.**
+7. **Índice de ciclabilidad por barrio (ranking, detalle y comparación).**
+8. **Routing multimodal con Bicimad (segmentación por modo).**
+9. **Consolidación funcional y preparación para operación continua.**
 
-## Slice 5 — Score de seguridad + heatmap (completado)
-- Grid de seguridad ciclista v1 por celdas
-- API `GET /api/safety/grid` y `GET /api/safety/summary`
-- Visualización choropleth con leyenda y popups
+## Próxima etapa (open source y madurez)
 
-## Slice 6 — Rutas seguras y nocturnas (completado)
-- Perfil seguro y nocturno
-- Reglas para horario/luz y vías preferentes
+### Prioridad alta
+- Estabilizar documentación pública y guías de contribución.
+- Ampliar cobertura de tests de integración E2E frontend-backend.
+- Versionado semántico y política de releases.
 
-## Slice 7 — Índice por barrio + panel (completado)
-- Score de ciclabilidad por barrio
-- Panel comparativo y visualizaciones
+### Prioridad media
+- CI/CD pública (lint + build + tests backend) con checks obligatorios.
+- Observabilidad básica (latencias, errores por endpoint, salud de proveedores).
+- Optimización incremental de precálculos/caches GIS.
 
-## Slice 8 — Routing multimodal Bicimad (completado)
-- Opción real “Usar Bicimad” sobre perfiles existentes fastest/safe/balanced/night
-- Ruta en tres tramos: walk + bike + walk
-- Selección de estaciones por score de viaje completo (no solo cercanía)
-- GBFS `station_information` + `station_status` con fallback estable
-- Visualización multimodal y desglose por segmentos en UI
+### Prioridad baja
+- Internacionalización (ES/EN) de interfaz y documentación.
+- Mejoras de accesibilidad AA en paneles y controles del mapa.
+- Dataset complementario para enriquecer criterios de seguridad.
+
+## Historial detallado
+
+El detalle histórico por fase se conserva en `docs/slices/` como archivo de decisiones y contexto de implementación.
+

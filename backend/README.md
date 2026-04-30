@@ -1,37 +1,14 @@
 # Brisa Backend
 
-Backend FastAPI para routing ciclista multicriterio de Brisa.
+API FastAPI para geocoding, routing ciclista multicriterio, multimodal Bicimad, safety y ciclabilidad por barrios.
 
-## Endpoints
-- `GET /health`
-- `GET /api/stations`
-- `GET /api/geocoding/suggest`
-- `POST /api/routes` (`fastest`, `balanced`, `safe`, `night`)
-- `GET /api/cyclability/neighborhoods`
-- `GET /api/cyclability/neighborhoods/geojson`
-- `GET /api/cyclability/neighborhoods/{id}`
-- `GET /api/cyclability/neighborhoods/compare`
+## Requisitos
 
-## Enfoque de routing (Slice 6.5)
-- Unidad de decisión: **edge/tramo**.
-- Filtro duro de legalidad ciclista sobre el grafo OSM antes de rutear.
-- Métricas de seguridad por edge cacheadas en disco.
-- Runtime orientado a lectura de cachés (sin recomputar la red completa en cada request).
-
-## Precompute recomendado
-```bash
-cd backend
-python -m app.pipelines.build_routing_cache
-python -m app.pipelines.build_neighborhood_cyclability
-```
-
-Esto regenera:
-- `backend/data/routing/edge_metrics_<version>.json`
-- `backend/data/routing/route_metadata_<version>.json`
-- `backend/data/cyclability/neighborhoods_scores.json`
-- `backend/data/cyclability/neighborhoods_scores.geojson`
+- Python 3.10+
+- Dependencias en `requirements.txt`
 
 ## Arranque local
+
 ```bash
 cd backend
 python3 -m venv .venv
@@ -39,3 +16,41 @@ source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
+
+## Endpoints
+
+- `GET /health`
+- `GET /api/stations`
+- `GET /api/geocoding/suggest`
+- `GET /api/safety/grid`
+- `GET /api/safety/summary`
+- `GET /api/cyclability/neighborhoods`
+- `GET /api/cyclability/neighborhoods/geojson`
+- `GET /api/cyclability/neighborhoods/{id}`
+- `GET /api/cyclability/neighborhoods/compare`
+- `POST /api/routes`
+
+## Precompute recomendado
+
+```bash
+cd backend
+python -m app.pipelines.build_routing_cache
+python -m app.pipelines.build_neighborhood_cyclability
+```
+
+Esto genera/actualiza artefactos en `backend/data/` para acelerar peticiones y evitar recomputación pesada.
+
+## Principios de implementación
+
+- Routers finos + servicios de dominio dedicados.
+- Contratos estables en `backend/app/schemas` y `docs/contracts`.
+- Normalización de proveedores externos aislada en `clients`/`utils`.
+- Lógica GIS y de scoring mantenida exclusivamente en backend.
+
+## Testing
+
+```bash
+cd backend
+pytest
+```
+

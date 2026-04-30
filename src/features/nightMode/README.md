@@ -1,3 +1,5 @@
 # Feature: nightMode
 
-Placeholder para recomendaciones nocturnas seguras (Slice 6).
+Contiene piezas de UX y presentación relacionadas con el modo nocturno.
+
+El scoring nocturno y sus heurísticas viven exclusivamente en backend.
