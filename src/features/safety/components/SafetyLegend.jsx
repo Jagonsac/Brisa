@@ -5,7 +5,7 @@ export function SafetyLegend({ visible, summary }) {
 
   return (
     <div className={styles.legend}>
-      <h4>Seguridad ciclista v1</h4>
+      <h4>Seguridad Ciclista</h4>
       <div className={styles.scale}>
         <span className={styles.low}>Menos segura</span>
         <span className={styles.mid}>Intermedia</span>
