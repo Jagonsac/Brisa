@@ -12,6 +12,21 @@
 body {
   margin: 0;
   background: #f5f8ff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+input,
+button,
+select,
+textarea {
+  font: inherit;
+}
+
+@media (max-width: 768px) {
+  body {
+    overscroll-behavior-y: none;
+  }
 }
 
 h1,

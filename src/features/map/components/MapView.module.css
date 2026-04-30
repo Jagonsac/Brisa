@@ -87,6 +87,27 @@
   }
 }
 
+@media (max-width: 768px) {
+  .map {
+    min-height: 46vh;
+  }
+
+  .hoverHint {
+    left: 8px;
+    top: 8px;
+    font-size: 0.7rem;
+    max-width: 180px;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .cyclabilityLegend {
+    right: 8px;
+    bottom: 8px;
+    font-size: 0.7rem;
+    padding: 0.28rem 0.42rem;
+  }
+}
+
 .cyclabilityLegend {
   position: absolute;
   right: 12px;

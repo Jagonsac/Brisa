@@ -14,6 +14,7 @@
   border-radius: 10px;
   padding: 0.6rem 0.75rem;
   font-size: 0.95rem;
+  min-height: 44px;
 }
 
 .form input:focus {
@@ -42,7 +43,7 @@
   background: transparent;
   width: 100%;
   text-align: left;
-  padding: 0.5rem 0.65rem;
+  padding: 0.65rem 0.7rem;
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -57,9 +58,40 @@
   border-radius: 10px;
   background: #1f6feb;
   color: #ffffff;
-  padding: 0.7rem;
+  padding: 0.8rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .form {
+    gap: 0.55rem;
+  }
+
+  .form label {
+    font-size: 0.86rem;
+    font-weight: 600;
+  }
+
+  .form input {
+    font-size: 1rem;
+    border-radius: 12px;
+  }
+
+  .suggestionList {
+    border-radius: 12px;
+  }
+
+  .suggestionButton {
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  .form button {
+    border-radius: 12px;
+    font-size: 0.98rem;
+    min-height: 46px;
+  }
 }
 
 .form button:hover {

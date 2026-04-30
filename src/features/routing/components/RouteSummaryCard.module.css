@@ -85,3 +85,24 @@
   display: grid;
   gap: 0.35rem;
 }
+
+@media (max-width: 768px) {
+  .card {
+    border-radius: 14px;
+    padding: 0.7rem;
+  }
+
+  .pills {
+    gap: 0.35rem;
+  }
+
+  .pill {
+    font-size: 0.72rem;
+    padding: 0.22rem 0.42rem;
+  }
+
+  .summaryList {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+}

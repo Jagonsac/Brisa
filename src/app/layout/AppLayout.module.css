@@ -104,6 +104,7 @@
 }
 
 .mapContainer {
+  position: relative;
   min-height: 560px;
   background: #ffffff;
   border: 1px solid #d8e1f2;
@@ -125,6 +126,11 @@
 
   .mapContainer {
     min-height: 420px;
+    order: 1;
+  }
+
+  .sidebar {
+    order: 2;
   }
 }
 
@@ -218,4 +224,83 @@
   margin-top: 0.45rem;
   font-size: 0.78rem;
   color: #5f6f8e;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 0.6rem;
+  }
+
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 800;
+    margin: 0 0 0.65rem;
+    padding: 0.7rem 0.75rem;
+    border: 1px solid #d8e1f2;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 22px rgba(25, 52, 96, 0.12);
+  }
+
+  .header h1 {
+    font-size: 1.35rem;
+  }
+
+  .header p {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+  }
+
+  .mainLayout {
+    min-height: auto;
+    gap: 0.65rem;
+  }
+
+  .mapContainer {
+    min-height: 46vh;
+    border-radius: 18px;
+  }
+
+  .sidebar {
+    gap: 0.7rem;
+  }
+
+  .panelCard {
+    border-radius: 18px;
+    padding: 0.85rem;
+  }
+
+  .panelCard h2 {
+    font-size: 1rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .toggleLabel {
+    min-height: 42px;
+    font-size: 0.92rem;
+    border: 1px solid #dfE8f8;
+    padding: 0.5rem 0.6rem;
+    margin-top: 0.6rem;
+  }
+
+  .toggleLabel input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .layerSelectorCard {
+    border-radius: 14px;
+    margin-top: 0.7rem;
+  }
+
+  .layerSelectorGroup {
+    gap: 0.55rem;
+  }
+
+  .layerOptionButton {
+    min-height: 46px;
+    font-size: 0.9rem;
+  }
 }
