@@ -372,7 +372,65 @@ class CyclabilityService:
                 + row["bicimad_score"] * weights["bicimad"]
             ) / weight_sum
             row["cyclability_score"] = round(max(0.0, min(100.0, total)), 2)
+            row["rebalancing"] = self._compute_park_rebalancing(row)
+            if row["rebalancing"]["applied"]:
+                row["cyclability_score"] = row["rebalancing"]["adjustedScore"]
         return rows
+
+    def _compute_park_rebalancing(self, row: dict) -> dict:
+        metrics = row.get("metrics", {})
+        raw = row.get("raw", {})
+        current = float(row.get("cyclability_score", 0.0))
+        if not cyclability_config.park_rebalance_enabled:
+            return {"applied": False, "profile": "standard", "boost": 0.0, "adjustedScore": round(current, 2), "reasons": ["disabled"]}
+
+        green_share = float(metrics.get("greenCyclableShare", 0.0))
+        hostile_share = float(metrics.get("hostileShare", 1.0))
+        network_km = float(metrics.get("networkKm", 0.0))
+        bike_acc_rel = float(metrics.get("bikeAccidentRelative", 1.0))
+        green_score = float(row.get("green_cyclable_score", 0.0))
+        hostility_score = float(row.get("low_hostility_score", 0.0))
+        safety_score = float(row.get("safety_score", 0.0))
+
+        eligible = (
+            green_share >= cyclability_config.park_green_share_threshold
+            and hostile_share <= cyclability_config.park_hostile_share_max
+            and network_km >= cyclability_config.park_network_km_min
+            and bike_acc_rel <= cyclability_config.park_bike_accident_relative_max
+            and green_score >= cyclability_config.park_green_score_threshold
+            and hostility_score >= cyclability_config.park_hostility_score_threshold
+            and safety_score >= cyclability_config.park_safety_score_threshold
+        )
+        if not eligible:
+            return {"applied": False, "profile": "standard", "boost": 0.0, "adjustedScore": round(current, 2), "reasons": ["eligibility_not_met"]}
+
+        park_weights = cyclability_config.park_weights
+        park_weight_sum = sum(park_weights.values()) or 1.0
+        park_total = (
+            row["safety_score"] * park_weights["safety"]
+            + row["bike_infra_score"] * park_weights["bike_infra"]
+            + row["low_hostility_score"] * park_weights["low_hostility"]
+            + row["green_cyclable_score"] * park_weights["green_cyclable"]
+            + row["night_score"] * park_weights["night"]
+            + row["junction_score"] * park_weights["junction"]
+            + row["bicimad_score"] * park_weights["bicimad"]
+        ) / park_weight_sum
+
+        high_quality = self._clamp01(float(raw.get("green_cyclable", 0.0)) * 0.55 + float(raw.get("low_hostility", 0.0)) * 0.45)
+        floor = cyclability_config.park_floor_high if high_quality >= cyclability_config.park_floor_high_trigger else cyclability_config.park_floor_base
+        adjusted = max(current, park_total, floor)
+        adjusted = round(max(0.0, min(100.0, adjusted)), 2)
+        return {
+            "applied": True,
+            "profile": "park_rebalanced",
+            "boost": round(adjusted - current, 2),
+            "adjustedScore": adjusted,
+            "reasons": [
+                "high_green_cyclable_share",
+                "low_hostility_network",
+                "sufficient_rideable_network",
+            ],
+        }
 
     def _build_ranked_payload(self, rows: list[dict]) -> list[dict]:
         ordered = sorted(rows, key=lambda item: item["cyclability_score"], reverse=True)
@@ -406,6 +464,7 @@ class CyclabilityService:
                     "status": "fully_observed" if row["metrics"]["networkKm"] > 0 else "fallbacked",
                     "fallbacks": [],
                 },
+                "rebalancing": row.get("rebalancing", {"applied": False, "profile": "standard", "boost": 0.0}),
                 "geometry": row["geometry"],
             }
             for row in ordered

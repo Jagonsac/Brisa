@@ -22,6 +22,17 @@
           "junctionScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "bicimadScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "rank": { "type": "integer", "minimum": 1 }
+          ,
+          "rebalancing": {
+            "type": "object",
+            "properties": {
+              "applied": { "type": "boolean" },
+              "profile": { "type": "string" },
+              "boost": { "type": "number" },
+              "adjustedScore": { "type": "number", "minimum": 0, "maximum": 100 },
+              "reasons": { "type": "array", "items": { "type": "string" } }
+            }
+          }
         }
       }
     },
