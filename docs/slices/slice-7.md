@@ -54,6 +54,17 @@ Cada barrio incluye:
 - Se reduce sesgo de barrios grandes con componente no urbana al usar `infraDensityKmPerServedKm2` junto a la densidad clásica por km² total.
 - La accidentalidad mantiene suavizado bayesiano del edge-level y se corrige por exposición ciclista aproximada (`bikePresenceScore` con fallback estable) para aproximar riesgo por uso.
 
+### Rebalanceo específico de parques ciclables (PCR)
+- Se añade un guardrail de **perfil parque** para barrios con red ciclable verde intensa y hostilidad baja:
+  - `greenCyclableShare >= 0.45`
+  - `hostileShare <= 0.20`
+  - `networkKm >= 15`
+  - `bikeAccidentRelative <= 0.85`
+  - subscore mínimo en `greenCyclableScore`, `lowHostilityScore` y `safetyScore`.
+- Si el barrio pasa el gating, se recalcula un score alternativo con pesos park-profile (más peso en `greenCyclable` y `lowHostility`, menos en `bikeInfra` y `bicimad`) y se aplica un floor condicionado (`60` o `70`) según calidad conjunta verde/hostilidad.
+- El payload expone trazabilidad mediante `rebalancing.applied/profile/boost/reasons`, permitiendo auditar cuándo el ajuste entró en juego.
+- Se añade un override explícito de outlier para `Casa de Campo` (`profile=park_outlier_override`) con floor >70 cuando la señal de datos observada no representa su uso ciclista real.
+
 ### Nota de calibración (antes/después)
 - **Casa de Campo**: mejora esperada en `bikeInfraScore` y `greenCyclableScore`; deja de quedar artificialmente en cola por baja densidad territorial bruta y baja presencia Bicimad.
 - **Sol (control urbano denso)**: se mantiene alto en infraestructura/servicio, sin saltos abruptos en ranking.
