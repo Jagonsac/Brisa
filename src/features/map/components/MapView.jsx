@@ -4,7 +4,6 @@ import 'leaflet/dist/leaflet.css';
 import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 
 import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLayer';
-import { SafetyLegend } from '../../safety/components/SafetyLegend';
 import { getSafetyColor } from '../../safety/utils/safetyColors';
 import { madridMapConfig } from '../../../mocks/madridMapConfig';
 import { routeModeByApiMode } from '../../../shared/constants/routeModes';
@@ -175,7 +174,6 @@ export function MapView({
   selectedRouteMode,
   safetyGrid,
   showSafetyLayer,
-  safetySummary,
   cyclabilityGeojson,
   showCyclabilityLayer,
   selectedNeighborhoodId,
@@ -277,7 +275,6 @@ export function MapView({
 
         {showBicimadLayer && bicimadStations.length > 0 && <BicimadStationsLayer stations={bicimadStations} />}
       </MapContainer>
-      <SafetyLegend visible={showSafetyLayer} summary={safetySummary} />
       {showCyclabilityLayer && <div className={styles.cyclabilityLegend}>Índice ciclabilidad 0–100 (rojo→verde)</div>}
     </div>
   );

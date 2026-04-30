@@ -556,7 +556,6 @@ export function AppLayout() {
               selectedDestinationPlace={selectedPlaces.destination}
               safetyGrid={safetyState.grid}
               showSafetyLayer={showSafetyLayer && safetyLayerEnabled}
-              safetySummary={safetyState.summary}
               cyclabilityGeojson={cyclabilityState.geojson}
               showCyclabilityLayer={showCyclabilityLayer && featureFlags.enableNeighborhoodCyclability}
               selectedNeighborhoodId={selectedNeighborhoodId}
