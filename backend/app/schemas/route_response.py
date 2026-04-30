@@ -65,6 +65,7 @@ class RouteMeta(BaseModel):
     liveStatusUsed: bool | None = None
     fallbackUsed: bool | None = None
     evaluatedPairs: int | None = None
+    discardedPairs: int | None = None
 
 
 class RouteResponse(BaseModel):
