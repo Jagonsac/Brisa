@@ -396,7 +396,6 @@ class CyclabilityService:
                 ],
             }
 
-
         if not cyclability_config.park_rebalance_enabled:
             return {"applied": False, "profile": "standard", "boost": 0.0, "adjustedScore": round(current, 2), "reasons": ["disabled"]}
 
