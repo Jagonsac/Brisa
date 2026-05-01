@@ -21,6 +21,15 @@
           "nightScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "junctionScore": { "type": "number", "minimum": 0, "maximum": 100 },
           "bicimadScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "dataQuality": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string", "enum": ["fully_observed", "partially_observed", "fallbacked"] },
+              "fallbacks": { "type": "array", "items": { "type": "string" } },
+              "performanceFlags": { "type": "array", "items": { "type": "string" } },
+              "normalizationFlags": { "type": "array", "items": { "type": "string" } }
+            }
+          },
           "rank": { "type": "integer", "minimum": 1 }
           ,
           "rebalancing": {

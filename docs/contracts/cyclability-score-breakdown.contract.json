@@ -6,7 +6,7 @@
   "properties": {
     "data": {
       "type": "object",
-      "required": ["neighborhoodId", "cyclabilityScore", "breakdown", "metrics", "dataGaps"],
+      "required": ["neighborhoodId", "cyclabilityScore", "breakdown", "metrics", "dataGaps", "performanceFlags", "normalizationFlags"],
       "properties": {
         "neighborhoodId": { "type": "string" },
         "name": { "type": "string" },
@@ -27,7 +27,9 @@
           }
         },
         "metrics": { "type": "object" },
-        "dataGaps": { "type": "array", "items": { "type": "string" } }
+        "dataGaps": { "type": "array", "items": { "type": "string" } },
+        "performanceFlags": { "type": "array", "items": { "type": "string" } },
+        "normalizationFlags": { "type": "array", "items": { "type": "string" } }
       }
     },
     "meta": { "type": "object" }
