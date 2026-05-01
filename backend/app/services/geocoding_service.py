@@ -46,7 +46,7 @@ class GeocodingService:
         if len(clean_query) < 3:
             return []
 
-        payload = await self._search_nominatim(clean_query, limit=5, dedupe=0)
+        payload = await self._search_for_suggestions(clean_query, limit=5)
         if not isinstance(payload, list):
             raise GeocodingError("invalid_provider_payload", "No hemos podido obtener sugerencias en este momento.")
 
@@ -73,6 +73,60 @@ class GeocodingService:
             )
 
         return suggestions
+
+
+    async def _search_for_suggestions(self, query: str, *, limit: int) -> list[dict]:
+        structured_street = self._to_structured_street_query(query)
+        if structured_street:
+            payload = await self._search_nominatim_structured(street=structured_street, city="Madrid", country="Spain", limit=limit)
+            if isinstance(payload, list) and len(payload) > 0:
+                return payload
+
+        return await self._search_nominatim(query, limit=limit, dedupe=0)
+
+    async def _search_nominatim_structured(self, *, street: str, city: str, country: str, limit: int) -> list[dict]:
+        params = {
+            "format": "jsonv2",
+            "street": street,
+            "city": city,
+            "country": country,
+            "limit": limit,
+            "countrycodes": settings.nominatim_country_codes,
+            "addressdetails": 1,
+            "dedupe": 0,
+        }
+
+        payload = await self.client.fetch_json(
+            settings.nominatim_base_url,
+            params=params,
+            headers={"User-Agent": settings.nominatim_user_agent},
+        )
+        return payload
+
+    @staticmethod
+    def _to_structured_street_query(query: str) -> str | None:
+        clean_query = " ".join(query.strip().split())
+        if not clean_query:
+            return None
+
+        tokens = clean_query.replace(",", " ").split()
+        if len(tokens) < 2:
+            return None
+
+        number_index = next((index for index, token in enumerate(tokens) if any(char.isdigit() for char in token)), None)
+        if number_index is None or number_index == 0:
+            return None
+
+        house_number = tokens[number_index]
+        street_tokens = tokens[:number_index] + tokens[number_index + 1 :]
+        if len(street_tokens) == 0:
+            return None
+
+        street_name = " ".join(street_tokens).strip()
+        if not street_name:
+            return None
+
+        return f"{house_number} {street_name}"
 
     async def _search_nominatim(self, query: str, *, limit: int, dedupe: int = 1) -> list[dict]:
         enriched_query = self._to_madrid_query(query)
