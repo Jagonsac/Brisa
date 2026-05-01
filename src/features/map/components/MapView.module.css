@@ -129,3 +129,61 @@
 .liftedNeighborhood {
   filter: drop-shadow(0 2px 3px rgba(20, 36, 64, 0.2)) drop-shadow(0 7px 14px rgba(20, 36, 64, 0.18));
 }
+
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 620;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(9, 20, 39, 0.28);
+  backdrop-filter: blur(1.5px);
+  pointer-events: all;
+}
+
+.loadingCard {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #173766;
+  border: 1px solid #d7e1f3;
+  border-radius: 999px;
+  padding: 0.5rem 0.95rem;
+  box-shadow: 0 12px 28px rgba(22, 43, 79, 0.2);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.loadingCard p {
+  margin: 0;
+}
+
+.loadingSpinner {
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  border: 2px solid rgba(31, 111, 235, 0.22);
+  border-top-color: #1f6feb;
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .loadingCard {
+    font-size: 0.8rem;
+    padding: 0.42rem 0.8rem;
+  }
+
+  .loadingSpinner {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+}

@@ -579,6 +579,7 @@ export function AppLayout() {
               showCyclabilityLayer={showCyclabilityLayer && featureFlags.enableNeighborhoodCyclability}
               selectedNeighborhoodId={selectedNeighborhoodId}
               onSelectNeighborhood={setSelectedNeighborhoodId}
+              loading={routeLoading}
             />
           ) : (
             <p>Mapa desactivado por feature flag.</p>

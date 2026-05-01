@@ -178,6 +178,7 @@ export function MapView({
   showCyclabilityLayer,
   selectedNeighborhoodId,
   onSelectNeighborhood,
+  loading = false,
 }) {
   const routeEntries = Object.entries(routesByMode);
   const routeFeatures = routeEntries
@@ -293,6 +294,14 @@ export function MapView({
 
         {showBicimadLayer && bicimadStations.length > 0 && <BicimadStationsLayer stations={bicimadStations} />}
       </MapContainer>
+      {loading && (
+        <div className={styles.loadingOverlay} role="status" aria-live="polite" aria-label="Calculando rutas">
+          <div className={styles.loadingCard}>
+            <span className={styles.loadingSpinner} aria-hidden="true" />
+            <p>Calculando rutas…</p>
+          </div>
+        </div>
+      )}
       {showCyclabilityLayer && <div className={styles.cyclabilityLegend}>Índice ciclabilidad 0–100 (rojo→verde)</div>}
     </div>
   );
