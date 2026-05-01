@@ -122,15 +122,14 @@ class CyclabilityService:
             )
 
         metrics = item.get("metrics", {})
+        quality = item.get("dataQuality", {})
         data_gaps = []
         if float(metrics.get("networkKm", 0)) <= 0:
             data_gaps.append("Sin red ciclable observada en el grafo para el barrio.")
         if int(metrics.get("bicimadStationsCount", 0)) <= 0 and float(metrics.get("bicimadCoverage", 0)) <= 0:
             data_gaps.append("Sin estaciones BiciMAD dentro de geometría o cobertura de buffers cercana.")
-        if float(item.get("bikeInfraScore", 0)) <= 0:
-            data_gaps.append("Infraestructura ciclista en percentil inferior tras normalización robusta.")
-        if float(item.get("safetyScore", 0)) <= 0:
-            data_gaps.append("Indicadores de seguridad en percentil inferior tras normalización robusta.")
+        if not data_gaps and quality.get("status") == "partially_observed":
+            data_gaps.append("Cobertura parcial de datos en una o más señales del índice.")
 
         return {
             "data": {
@@ -142,6 +141,8 @@ class CyclabilityService:
                 "breakdown": breakdown,
                 "metrics": metrics,
                 "dataGaps": data_gaps,
+                "performanceFlags": quality.get("performanceFlags", []),
+                "normalizationFlags": quality.get("normalizationFlags", []),
             },
             "meta": payload["metadata"],
         }
@@ -410,14 +411,18 @@ class CyclabilityService:
         return {"neighborhoods": neighborhoods_payload, "geojson": geojson, "metadata": metadata}
 
     def _normalize_scores(self, rows: list[dict]) -> list[dict]:
-        keys = ["safety", "bike_infra", "low_hostility", "green_cyclable", "night", "junction", "bicimad"]
-        for key in keys:
-            values = [float(row["raw"][key]) for row in rows]
-            low = self._percentile(values, cyclability_config.robust_p_low)
-            high = self._percentile(values, cyclability_config.robust_p_high)
-            for row in rows:
-                clipped = min(high, max(low, float(row["raw"][key])))
-                row[f"{key}_score"] = round(self._scale_0_100(clipped, low, high), 2)
+        for row in rows:
+            metrics = row.get("metrics", {})
+            raw = row.get("raw", {})
+            row["safety_score"] = round(self._objective_safety_score(raw, metrics), 2)
+            row["bike_infra_score"] = round(self._objective_bike_infra_score(raw, metrics), 2)
+            row["low_hostility_score"] = round(self._objective_low_hostility_score(raw, metrics), 2)
+            row["green_cyclable_score"] = round(self._objective_green_cyclable_score(raw, metrics), 2)
+            row["night_score"] = round(self._objective_night_score(raw, metrics), 2)
+            row["junction_score"] = round(self._objective_junction_score(raw, metrics), 2)
+            row["bicimad_score"] = round(self._objective_bicimad_score(raw, metrics), 2)
+
+            self._apply_soft_floor(row)
 
         weights = cyclability_config.weights
         weight_sum = sum(weights.values()) or 1.0
@@ -436,6 +441,68 @@ class CyclabilityService:
             if row["rebalancing"]["applied"]:
                 row["cyclability_score"] = row["rebalancing"]["adjustedScore"]
         return rows
+
+    def _apply_soft_floor(self, row: dict) -> None:
+        metrics = row.get("metrics", {})
+        if float(metrics.get("networkKm", 0.0)) < 2.0:
+            return
+        floor = 15.0
+        hard_zero_thresholds = {
+            "safety_score": float(metrics.get("avgDayRisk", 0.0)) >= 0.92 and float(metrics.get("highRiskShare", 0.0)) >= 0.45,
+            "bike_infra_score": float(metrics.get("infraShare", 0.0)) <= 0.01 and float(metrics.get("infraDensityKmPerServedKm2", 0.0)) <= 0.6,
+            "low_hostility_score": float(metrics.get("hostileShare", 0.0)) >= 0.96,
+            "green_cyclable_score": float(metrics.get("greenCyclableShare", 0.0)) <= 0.001 and float(metrics.get("networkKm", 0.0)) >= 5.0,
+            "night_score": float(metrics.get("avgNightRisk", 0.0)) >= 0.97 and float(metrics.get("avgLightingDeficit", 0.0)) >= 0.92,
+            "junction_score": float(metrics.get("avgJunctionComplexity", 0.0)) >= 0.95,
+            "bicimad_score": int(metrics.get("bicimadStationsCount", 0)) <= 0 and float(metrics.get("bicimadCoverage", 0.0)) <= 0.001,
+        }
+        for key, is_hard_zero in hard_zero_thresholds.items():
+            value = float(row.get(key, 0.0))
+            if value <= 0 and not is_hard_zero:
+                row[key] = floor
+
+    def _objective_safety_score(self, raw: dict, metrics: dict) -> float:
+        return self._clamp01(
+            float(raw.get("safety", 0.0)) * 0.65
+            + self._clamp01(1 - float(metrics.get("avgDayRisk", 1.0))) * 0.20
+            + self._clamp01(float(metrics.get("lowRiskShare", 0.0)) / 0.85) * 0.15
+        ) * 100.0
+
+    def _objective_bike_infra_score(self, raw: dict, metrics: dict) -> float:
+        density = self._clamp01(float(metrics.get("infraDensityKmPerServedKm2", 0.0)) / 12.0)
+        share = self._clamp01(float(metrics.get("infraShare", 0.0)) / 0.28)
+        protected = self._clamp01(float(metrics.get("protectedShare", 0.0)) / 0.15)
+        raw_component = self._clamp01(float(raw.get("bike_infra", 0.0)))
+        return self._clamp01(raw_component * 0.40 + density * 0.35 + share * 0.20 + protected * 0.05) * 100.0
+
+    def _objective_low_hostility_score(self, raw: dict, metrics: dict) -> float:
+        host = self._clamp01(1 - float(metrics.get("hostileShare", 1.0)))
+        traffic = self._clamp01(1 - float(metrics.get("avgTrafficExposure", 1.0)))
+        raw_component = self._clamp01(float(raw.get("low_hostility", 0.0)))
+        return self._clamp01(raw_component * 0.50 + host * 0.30 + traffic * 0.20) * 100.0
+
+    def _objective_green_cyclable_score(self, raw: dict, metrics: dict) -> float:
+        share = self._clamp01(float(metrics.get("greenCyclableShare", 0.0)) / 0.35)
+        quality = self._clamp01(float(metrics.get("greenCyclableQuality", 0.0)) / 0.75)
+        raw_component = self._clamp01(float(raw.get("green_cyclable", 0.0)))
+        return self._clamp01(raw_component * 0.50 + share * 0.30 + quality * 0.20) * 100.0
+
+    def _objective_night_score(self, raw: dict, metrics: dict) -> float:
+        night_risk = self._clamp01(1 - float(metrics.get("avgNightRisk", 1.0)))
+        lighting = self._clamp01(1 - float(metrics.get("avgLightingDeficit", 1.0)))
+        raw_component = self._clamp01(float(raw.get("night", 0.0)))
+        return self._clamp01(raw_component * 0.60 + night_risk * 0.25 + lighting * 0.15) * 100.0
+
+    def _objective_junction_score(self, raw: dict, metrics: dict) -> float:
+        junction = self._clamp01(1 - float(metrics.get("avgJunctionComplexity", 1.0)))
+        raw_component = self._clamp01(float(raw.get("junction", 0.0)))
+        return self._clamp01(raw_component * 0.70 + junction * 0.30) * 100.0
+
+    def _objective_bicimad_score(self, raw: dict, metrics: dict) -> float:
+        density = self._clamp01(float(metrics.get("bicimadStationsDensity", 0.0)) / 6.0)
+        coverage = self._clamp01(float(metrics.get("bicimadCoverage", 0.0)) / 0.65)
+        raw_component = self._clamp01(float(raw.get("bicimad", 0.0)))
+        return self._clamp01(raw_component * 0.45 + density * 0.30 + coverage * 0.25) * 100.0
 
     def _compute_park_rebalancing(self, row: dict) -> dict:
         metrics = row.get("metrics", {})
@@ -536,8 +603,10 @@ class CyclabilityService:
                 "summary": row["summary"],
                 "metrics": row["metrics"],
                 "dataQuality": {
-                    "status": "fully_observed" if row["metrics"]["networkKm"] > 0 else "fallbacked",
-                    "fallbacks": [],
+                    "status": self._data_quality_status(row),
+                    "fallbacks": self._data_quality_fallbacks(row),
+                    "performanceFlags": self._performance_flags(row),
+                    "normalizationFlags": self._normalization_flags(row),
                 },
                 "rebalancing": row.get("rebalancing", {"applied": False, "profile": "standard", "boost": 0.0}),
                 "geometry": row["geometry"],
@@ -687,6 +756,47 @@ class CyclabilityService:
         if high <= low:
             return 50.0
         return ((value - low) / (high - low)) * 100.0
+
+    @staticmethod
+    def _data_quality_status(row: dict) -> str:
+        metrics = row.get("metrics", {})
+        if float(metrics.get("networkKm", 0.0)) <= 0:
+            return "fallbacked"
+        if int(metrics.get("bicimadStationsCount", 0)) <= 0 or float(metrics.get("avgTrafficExposure", 0.0)) <= 0:
+            return "partially_observed"
+        return "fully_observed"
+
+    @staticmethod
+    def _data_quality_fallbacks(row: dict) -> list[str]:
+        metrics = row.get("metrics", {})
+        fallbacks = []
+        if int(metrics.get("bicimadStationsCount", 0)) <= 0 and float(metrics.get("bicimadCoverage", 0.0)) <= 0:
+            fallbacks.append("bicimad_without_local_coverage")
+        if float(metrics.get("avgTrafficExposure", 0.0)) <= 0:
+            fallbacks.append("low_traffic_signal_coverage")
+        return fallbacks
+
+    @staticmethod
+    def _performance_flags(row: dict) -> list[str]:
+        metrics = row.get("metrics", {})
+        flags = []
+        if float(metrics.get("hostileShare", 0.0)) >= 0.80:
+            flags.append("high_hostile_share")
+        if float(metrics.get("avgNightRisk", 0.0)) >= 0.70:
+            flags.append("high_night_risk")
+        if float(metrics.get("infraShare", 0.0)) <= 0.10:
+            flags.append("low_bike_infrastructure_share")
+        return flags
+
+    @staticmethod
+    def _normalization_flags(row: dict) -> list[str]:
+        metrics = row.get("metrics", {})
+        flags = []
+        if float(metrics.get("networkKm", 0.0)) >= 2.0:
+            for key in ("safety_score", "bike_infra_score", "low_hostility_score", "green_cyclable_score", "night_score", "junction_score"):
+                if float(row.get(key, 0.0)) == 15.0:
+                    flags.append(f"{key}_soft_floor_applied")
+        return flags
 
     @staticmethod
     def _clamp01(value: float) -> float:
