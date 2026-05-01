@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from 'react-leaflet';
 
 import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLayer';
 import { getSafetyColor } from '../../safety/utils/safetyColors';
@@ -212,8 +212,10 @@ export function MapView({
       )}
       <MapContainer center={madridMapConfig.center} zoom={madridMapConfig.zoom} className={styles.map} scrollWheelZoom>
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={20}
         />
 
         {showCyclabilityLayer && cyclabilityGeojson && (
@@ -238,45 +240,63 @@ export function MapView({
           </Marker>
         )}
 
-        {[...routeEntries]
-          .sort(([modeA], [modeB]) => {
-            if (modeA === selectedRouteMode) return 1;
-            if (modeB === selectedRouteMode) return -1;
-            return 0;
-          })
-          .map(([modeKey, routeData]) => {
-            const modeMeta = routeModeByApiMode[modeKey];
-            const isActive = modeKey === selectedRouteMode;
-            if (Array.isArray(routeData?.segments) && modeKey === selectedRouteMode) {
-              return routeData.segments.map((segment, index) => (
+        <Pane name="routesSecondaryPane" style={{ zIndex: 430 }}>
+          {routeEntries
+            .filter(([modeKey]) => modeKey !== selectedRouteMode)
+            .map(([modeKey, routeData]) => {
+              const modeMeta = routeModeByApiMode[modeKey];
+              const routeFeature = routeData?.routeGeoJson;
+              if (!routeFeature) return null;
+              return (
                 <GeoJSON
-                  key={`${modeKey}-${segment.type}-${index}`}
-                  data={{ type: 'Feature', geometry: segment.geometry, properties: {} }}
+                  key={modeKey}
+                  data={routeFeature}
                   style={{
-                    color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
-                    weight: segment.type === 'walk' ? 4.6 : 7,
-                    opacity: segment.type === 'walk' ? 0.9 : 1,
-                    dashArray: segment.type === 'walk' ? '6 10' : undefined,
+                    color: modeMeta?.color || '#1f6feb',
+                    weight: 4,
+                    opacity: 0.64,
+                    dashArray: '8 6',
                   }}
                 />
-              ));
-            }
+              );
+            })}
+        </Pane>
 
-            const routeFeature = routeData?.routeGeoJson;
-            if (!routeFeature) return null;
-            return (
-              <GeoJSON
-                key={modeKey}
-                data={routeFeature}
-                style={{
-                  color: modeMeta?.color || '#1f6feb',
-                  weight: isActive ? 7 : 4,
-                  opacity: isActive ? 1 : 0.64,
-                  dashArray: isActive ? undefined : '8 6',
-                }}
-              />
-            );
-          })}
+        <Pane name="routeSelectedPane" style={{ zIndex: 460 }}>
+          {routeEntries
+            .filter(([modeKey]) => modeKey === selectedRouteMode)
+            .map(([modeKey, routeData]) => {
+              const modeMeta = routeModeByApiMode[modeKey];
+              if (Array.isArray(routeData?.segments)) {
+                return routeData.segments.map((segment, index) => (
+                  <GeoJSON
+                    key={`${modeKey}-${segment.type}-${index}`}
+                    data={{ type: 'Feature', geometry: segment.geometry, properties: {} }}
+                    style={{
+                      color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
+                      weight: segment.type === 'walk' ? 4.6 : 7,
+                      opacity: segment.type === 'walk' ? 0.9 : 1,
+                      dashArray: segment.type === 'walk' ? '6 10' : undefined,
+                    }}
+                  />
+                ));
+              }
+
+              const routeFeature = routeData?.routeGeoJson;
+              if (!routeFeature) return null;
+              return (
+                <GeoJSON
+                  key={modeKey}
+                  data={routeFeature}
+                  style={{
+                    color: modeMeta?.color || '#1f6feb',
+                    weight: 7,
+                    opacity: 1,
+                  }}
+                />
+              );
+            })}
+        </Pane>
 
         {selectedRouteData?.stations?.departure && (
           <Marker position={[selectedRouteData.stations.departure.lat, selectedRouteData.stations.departure.lon]} icon={bicimadStationIcon}>
