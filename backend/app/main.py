@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from os import getenv
 
 from fastapi import FastAPI
 
@@ -11,11 +12,18 @@ from app.routers.routes import warmup_route_graph
 from app.routers.stations import router as stations_router
 from app.routers.safety import router as safety_router
 from app.routers.cyclability import router as cyclability_router
+from app.services.safety_service import SafetyService
+
+
+def _should_precompute_on_startup() -> bool:
+    return getenv("PRECOMPUTE_CACHE_ON_STARTUP", "true").strip().lower() in {"1", "true", "yes", "on"}
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await warmup_route_graph()
+    if _should_precompute_on_startup():
+        SafetyService().get_neighborhood_grid()
     yield
 
 
