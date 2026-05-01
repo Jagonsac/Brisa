@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { GeoJSON, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from 'react-leaflet';
 
 import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLayer';
 import { getSafetyColor } from '../../safety/utils/safetyColors';
@@ -213,9 +213,12 @@ export function MapView({
       )}
       <MapContainer center={madridMapConfig.center} zoom={madridMapConfig.zoom} className={styles.map} scrollWheelZoom>
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
+
+        <Pane name="routes-inactive" style={{ zIndex: 430 }} />
+        <Pane name="routes-active" style={{ zIndex: 470 }} />
 
         {showCyclabilityLayer && cyclabilityGeojson && (
           <GeoJSON
@@ -252,6 +255,7 @@ export function MapView({
               return routeData.segments.map((segment, index) => (
                 <GeoJSON
                   key={`${modeKey}-${segment.type}-${index}`}
+                  pane="routes-active"
                   data={{ type: 'Feature', geometry: segment.geometry, properties: {} }}
                   style={{
                     color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
@@ -268,6 +272,7 @@ export function MapView({
             return (
               <GeoJSON
                 key={modeKey}
+                pane={isActive ? 'routes-active' : 'routes-inactive'}
                 data={routeFeature}
                 style={{
                   color: modeMeta?.color || '#1f6feb',
