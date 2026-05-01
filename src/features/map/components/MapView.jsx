@@ -178,6 +178,7 @@ export function MapView({
   showCyclabilityLayer,
   selectedNeighborhoodId,
   onSelectNeighborhood,
+  loading = false,
 }) {
   const routeEntries = Object.entries(routesByMode);
   const routeFeatures = routeEntries
@@ -205,6 +206,14 @@ export function MapView({
 
   return (
     <div className={styles.wrapper}>
+      {loading && (
+        <div className={styles.loadingOverlay} role="status" aria-live="polite" aria-label="Calculando rutas">
+          <div className={styles.loadingCard}>
+            <span className={styles.spinner} aria-hidden="true" />
+            <p>Calculando rutas…</p>
+          </div>
+        </div>
+      )}
       {showSafetyLayer && safetyGrid && (
         <div className={styles.hoverHint}>
           <strong>Tip:</strong> pasa el cursor por un barrio para ver su detalle de seguridad.
