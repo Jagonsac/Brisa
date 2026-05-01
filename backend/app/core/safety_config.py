@@ -107,5 +107,21 @@ class SafetyConfig:
     hostile_highway_classes: tuple[str, ...] = ("trunk", "primary", "secondary", "trunk_link", "primary_link", "secondary_link")
     bike_friendly_highway_classes: tuple[str, ...] = ("cycleway", "residential", "living_street")
 
+    @dataclass(frozen=True)
+    class GridWeights:
+        accidents: float
+        traffic: float
+        hostile_roads: float
+        bike_infra: float
+
+    weights: GridWeights = field(
+        default_factory=lambda: SafetyConfig.GridWeights(
+            accidents=float(getenv("SAFETY_GRID_W_ACCIDENTS", "0.40")),
+            traffic=float(getenv("SAFETY_GRID_W_TRAFFIC", "0.25")),
+            hostile_roads=float(getenv("SAFETY_GRID_W_HOSTILE_ROADS", "0.25")),
+            bike_infra=float(getenv("SAFETY_GRID_W_BIKE_INFRA", "0.20")),
+        )
+    )
+
 
 safety_config = SafetyConfig()
