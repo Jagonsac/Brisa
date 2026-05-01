@@ -314,7 +314,11 @@ class CyclabilityService:
             low_hostility_raw = self._clamp01((1 - hostile_share) * 0.55 + (1 - avg_traffic) * 0.30 + (1 - (bucket.road_hostility_length_sum / total)) * 0.15)
             night_raw = self._clamp01((1 - avg_night_risk) * 0.55 + (1 - avg_lighting_deficit) * 0.30 + (1 - avg_traffic) * 0.15)
             junction_raw = self._clamp01((1 - avg_junction) * 0.8 + (1 - hostile_share) * 0.2)
-            bicimad_raw = self._clamp01(self._clamp01(bm["stationsDensity"] / 6.0) * 0.55 + bm["coverageRatio"] * 0.45)
+            density_utility = math.sqrt(self._clamp01(bm["stationsDensity"] / 6.0))
+            coverage_utility = math.sqrt(self._clamp01(bm["coverageRatio"]))
+            bicimad_raw = self._clamp01(density_utility * 0.55 + coverage_utility * 0.45)
+            if (bm["stationsCount"] > 0 or bm["coverageRatio"] > 0.0) and bicimad_raw < 0.06:
+                bicimad_raw = 0.06
 
             rows.append(
                 {
@@ -411,13 +415,25 @@ class CyclabilityService:
 
     def _normalize_scores(self, rows: list[dict]) -> list[dict]:
         keys = ["safety", "bike_infra", "low_hostility", "green_cyclable", "night", "junction", "bicimad"]
+        normalization_summary = {}
         for key in keys:
             values = [float(row["raw"][key]) for row in rows]
             low = self._percentile(values, cyclability_config.robust_p_low)
             high = self._percentile(values, cyclability_config.robust_p_high)
+            normalization_summary[key] = {"low": round(low, 4), "high": round(high, 4)}
             for row in rows:
-                clipped = min(high, max(low, float(row["raw"][key])))
-                row[f"{key}_score"] = round(self._scale_0_100(clipped, low, high), 2)
+                row.setdefault("normalizationFlags", {})
+                row.setdefault("performanceFlags", {})
+                score, n_flag, p_flag = self._normalize_component(
+                    key=key,
+                    value=float(row["raw"][key]),
+                    low=low,
+                    high=high,
+                    metrics=row.get("metrics", {}),
+                )
+                row[f"{key}_score"] = round(score, 2)
+                row["normalizationFlags"][key] = n_flag
+                row["performanceFlags"][key] = p_flag
 
         weights = cyclability_config.weights
         weight_sum = sum(weights.values()) or 1.0
@@ -435,6 +451,7 @@ class CyclabilityService:
             row["rebalancing"] = self._compute_park_rebalancing(row)
             if row["rebalancing"]["applied"]:
                 row["cyclability_score"] = row["rebalancing"]["adjustedScore"]
+            row["normalizationSummary"] = normalization_summary
         return rows
 
     def _compute_park_rebalancing(self, row: dict) -> dict:
@@ -539,6 +556,9 @@ class CyclabilityService:
                     "status": "fully_observed" if row["metrics"]["networkKm"] > 0 else "fallbacked",
                     "fallbacks": [],
                 },
+                "performanceFlags": row.get("performanceFlags", {}),
+                "normalizationFlags": row.get("normalizationFlags", {}),
+                "normalizationSummary": row.get("normalizationSummary", {}),
                 "rebalancing": row.get("rebalancing", {"applied": False, "profile": "standard", "boost": 0.0}),
                 "geometry": row["geometry"],
             }
@@ -687,6 +707,37 @@ class CyclabilityService:
         if high <= low:
             return 50.0
         return ((value - low) / (high - low)) * 100.0
+
+    def _normalize_component(self, *, key: str, value: float, low: float, high: float, metrics: dict) -> tuple[float, str, str]:
+        if high <= low:
+            return 50.0, "compressed_distribution", "neutral"
+
+        clipped = min(high, max(low, value))
+        base = self._scale_0_100(clipped, low, high)
+        norm_flag = "ok"
+        if value < low:
+            norm_flag = "below_low_percentile_clipped"
+        elif value > high:
+            norm_flag = "above_high_percentile_clipped"
+
+        perf_flag = "ok"
+        if base <= 2:
+            perf_flag = "extreme_low_observed"
+
+        technical_floor = 0.0
+        if key == "bicimad":
+            has_signal = float(metrics.get("bicimadCoverage", 0.0)) > 0 or int(metrics.get("bicimadStationsCount", 0)) > 0
+            if has_signal:
+                technical_floor = 6.0
+        elif key in {"bike_infra", "low_hostility", "night", "junction", "green_cyclable"}:
+            network_km = float(metrics.get("networkKm", 0.0))
+            if network_km > 0.4 and value > 0.03:
+                technical_floor = 2.5
+        if technical_floor > 0 and base < technical_floor:
+            if norm_flag == "ok":
+                norm_flag = "anti_zero_floor_applied"
+            return technical_floor, norm_flag, perf_flag
+        return base, norm_flag, perf_flag
 
     @staticmethod
     def _clamp01(value: float) -> float:

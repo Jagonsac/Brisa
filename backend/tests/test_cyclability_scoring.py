@@ -62,3 +62,34 @@ def test_bike_accident_exposure_proxy_is_stable():
     low_exposure = service._bike_exposure_proxy(bike_presence=0.0, bike_metric=0.0)
     assert high_exposure > low_exposure
     assert low_exposure == 0.05
+
+
+def test_bicimad_signal_does_not_collapse_to_zero():
+    service = CyclabilityService()
+    rows = [
+        _row("dense", {"safety": 0.7, "bike_infra": 0.6, "low_hostility": 0.6, "green_cyclable": 0.5, "night": 0.6, "junction": 0.6, "bicimad": 0.8}),
+        _row("with_signal", {"safety": 0.7, "bike_infra": 0.6, "low_hostility": 0.6, "green_cyclable": 0.5, "night": 0.6, "junction": 0.6, "bicimad": 0.02}),
+        _row("none", {"safety": 0.7, "bike_infra": 0.6, "low_hostility": 0.6, "green_cyclable": 0.5, "night": 0.6, "junction": 0.6, "bicimad": 0.0}),
+    ]
+    rows[1]["metrics"].update({"bicimadStationsCount": 2, "bicimadCoverage": 0.08})
+    rows[2]["metrics"].update({"bicimadStationsCount": 0, "bicimadCoverage": 0.0})
+
+    ranked = service._build_ranked_payload(service._normalize_scores(rows))
+    index = {row["neighborhoodId"]: row for row in ranked}
+    assert index["with_signal"]["bicimadScore"] >= 6.0
+    assert index["none"]["bicimadScore"] <= index["with_signal"]["bicimadScore"]
+
+
+def test_data_gap_and_normalization_flags_are_separated():
+    service = CyclabilityService()
+    rows = [
+        _row("low", {"safety": 0.1, "bike_infra": 0.03, "low_hostility": 0.2, "green_cyclable": 0.1, "night": 0.2, "junction": 0.2, "bicimad": 0.1}),
+        _row("high", {"safety": 0.9, "bike_infra": 0.8, "low_hostility": 0.9, "green_cyclable": 0.7, "night": 0.8, "junction": 0.8, "bicimad": 0.8}),
+    ]
+    rows[0]["metrics"]["networkKm"] = 1.0
+    ranked = service._build_ranked_payload(service._normalize_scores(rows))
+    low_row = next(row for row in ranked if row["neighborhoodId"] == "low")
+
+    assert low_row["dataQuality"]["status"] == "fully_observed"
+    assert "bike_infra" in low_row["normalizationFlags"]
+    assert "bike_infra" in low_row["performanceFlags"]
