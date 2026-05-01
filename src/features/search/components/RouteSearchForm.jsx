@@ -10,7 +10,7 @@ function SuggestionList({ id, suggestions, onSelect }) {
   return (
     <ul id={id} className={styles.suggestionList} role="listbox">
       {suggestions.map((item, index) => (
-        <li key={`${item.label}-${index}`}>
+        <li key={`${item.displayText || item.value || item.label}-${index}`}>
           <button
             type="button"
             onMouseDown={(event) => {
@@ -19,7 +19,7 @@ function SuggestionList({ id, suggestions, onSelect }) {
             }}
             className={styles.suggestionButton}
           >
-            {item.label}
+            {item.displayText || item.value || item.label}
           </button>
         </li>
       ))}
