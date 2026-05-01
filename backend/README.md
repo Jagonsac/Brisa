@@ -2,6 +2,8 @@
 
 API FastAPI para geocoding, routing ciclista multicriterio, multimodal Bicimad, safety y ciclabilidad por barrios.
 
+> Estado actual Bicimad: la API sirve estaciones desde snapshot local (`backend/app/data/bicimad_stations_snapshot.json`) como estrategia estable por defecto.
+
 ## Requisitos
 
 - Python 3.10+
@@ -20,7 +22,7 @@ uvicorn app.main:app --reload --port 8000
 ## Endpoints
 
 - `GET /health`
-- `GET /api/stations`
+- `GET /api/stations` (por defecto usa snapshot local; `source=remote` solo para diagnóstico)
 - `GET /api/geocoding/suggest`
 - `GET /api/safety/grid`
 - `GET /api/safety/summary`

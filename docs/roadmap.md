@@ -7,7 +7,7 @@ Brisa ha completado nueve fases internas de desarrollo y cuenta con una base fun
 ## Capacidades entregadas (resumen unificado)
 
 1. **Experiencia base de mapa y UX de búsqueda.**
-2. **Integración de estaciones Bicimad con estrategias de fallback.**
+2. **Integración de estaciones Bicimad usando snapshot local estable.**
 3. **Backend API estable para health, estaciones y rutas.**
 4. **Routing shortest-path real sobre OSMnx.**
 5. **Capa de seguridad (grid + resumen) y visualización en frontend.**
@@ -28,6 +28,7 @@ Brisa ha completado nueve fases internas de desarrollo y cuenta con una base fun
 - Observabilidad básica (latencias, errores por endpoint, salud de proveedores).
 - Optimización incremental de precálculos/caches GIS.
 - Reintroducir `station_status` en multimodal Bicimad como optimización no bloqueante (ranking por disponibilidad y replanificación), manteniendo fallback determinista por cercanía cuando falle el dato en vivo.
+- Diseñar e integrar un dataset de estaciones Bicimad en vivo con `bicis_disponibles` y `anclajes_disponibles`, con caché y degradación controlada a snapshot.
 
 ### Prioridad baja
 - Internacionalización (ES/EN) de interfaz y documentación.

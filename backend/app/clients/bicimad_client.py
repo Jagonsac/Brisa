@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 import httpx
@@ -14,7 +15,12 @@ class BicimadClient:
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> Any:
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.get(url, params=params, headers=headers)
-            response.raise_for_status()
-            return response.json()
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                response = await client.get(url, params=params, headers=headers)
+                response.raise_for_status()
+                return response.json()
+        except asyncio.CancelledError as error:
+            raise RuntimeError(f"La petición HTTP fue cancelada para: {url}") from error
+        except httpx.HTTPError as error:
+            raise RuntimeError(f"No se pudo obtener respuesta HTTP desde: {url}") from error

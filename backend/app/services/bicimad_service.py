@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Literal
@@ -18,7 +19,17 @@ class BicimadService:
     async def get_stations(self, source_mode: StationsSourceMode = "auto") -> StationsResponse:
         warnings: list[str] = []
 
-        if source_mode in ("auto", "remote"):
+        if source_mode in ("auto", "snapshot"):
+            stations = self._load_snapshot_stations()
+            if stations:
+                return StationsResponse(
+                    data=stations,
+                    meta={"count": len(stations), "source": "local-snapshot", "fallbackUsed": True, "warnings": warnings},
+                )
+
+            raise RuntimeError("No fue posible cargar estaciones desde el snapshot local de Bicimad.")
+
+        if source_mode == "remote":
             try:
                 gbfs_payload = await self.client.fetch_json(settings.bicimad_stations_url)
                 stations = normalize_gbfs_stations(gbfs_payload)
@@ -28,7 +39,7 @@ class BicimadService:
                         meta={"count": len(stations), "source": "gbfs-station-information", "fallbackUsed": False, "warnings": warnings},
                     )
                 warnings.append("GBFS no devolvió estaciones válidas.")
-            except Exception as error:
+            except (RuntimeError, asyncio.CancelledError) as error:
                 warnings.append(f"GBFS falló: {error}")
 
             try:
@@ -40,21 +51,16 @@ class BicimadService:
                         meta={"count": len(stations), "source": "emt-geojson-fallback", "fallbackUsed": True, "warnings": warnings},
                     )
                 warnings.append("Fallback GeoJSON no devolvió estaciones válidas.")
-            except Exception as error:
+            except (RuntimeError, asyncio.CancelledError) as error:
                 warnings.append(f"GeoJSON oficial falló: {error}")
 
             if source_mode == "remote":
                 raise RuntimeError(" | ".join(warnings) or "No fue posible cargar estaciones remotas.")
+        raise RuntimeError("No fue posible cargar estaciones Bicimad.")
 
+    def _load_snapshot_stations(self) -> list[dict]:
         snapshot_payload = self._load_snapshot()
-        stations = normalize_snapshot_stations(snapshot_payload)
-        if stations:
-            return StationsResponse(
-                data=stations,
-                meta={"count": len(stations), "source": "local-snapshot-fallback", "fallbackUsed": True, "warnings": warnings},
-            )
-
-        raise RuntimeError(" | ".join(warnings) or "No fue posible cargar estaciones Bicimad.")
+        return normalize_snapshot_stations(snapshot_payload)
 
     def _load_snapshot(self) -> list[dict]:
         if not self.snapshot_path.exists():
