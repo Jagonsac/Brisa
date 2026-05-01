@@ -25,12 +25,32 @@ async function fetchJson(path) {
   return payload;
 }
 
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const responseCache = new Map();
+
+function getCachedOrFetch(key, fetcher) {
+  const now = Date.now();
+  const cached = responseCache.get(key);
+
+  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
+    return cached.promise;
+  }
+
+  const promise = fetcher().catch((error) => {
+    responseCache.delete(key);
+    throw error;
+  });
+
+  responseCache.set(key, { timestamp: now, promise });
+  return promise;
+}
+
 export function getNeighborhoodCyclabilityList() {
-  return fetchJson('/api/cyclability/neighborhoods');
+  return getCachedOrFetch('cyclability-list', () => fetchJson('/api/cyclability/neighborhoods'));
 }
 
 export function getNeighborhoodCyclabilityGeojson() {
-  return fetchJson('/api/cyclability/neighborhoods/geojson');
+  return getCachedOrFetch('cyclability-geojson', () => fetchJson('/api/cyclability/neighborhoods/geojson'));
 }
 
 export function compareNeighborhoods(left, right) {

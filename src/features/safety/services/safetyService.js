@@ -25,10 +25,31 @@ async function fetchJson(path) {
   return payload;
 }
 
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const responseCache = new Map();
+
+function getCachedOrFetch(key, fetcher) {
+  const now = Date.now();
+  const cached = responseCache.get(key);
+
+  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
+    return cached.promise;
+  }
+
+  const promise = fetcher().catch((error) => {
+    responseCache.delete(key);
+    throw error;
+  });
+
+  responseCache.set(key, { timestamp: now, promise });
+  return promise;
+}
+
 export function getSafetyGrid(aggregation = 'neighborhood') {
-  return fetchJson(`/api/safety/grid?aggregation=${encodeURIComponent(aggregation)}`);
+  const key = `safety-grid:${aggregation}`;
+  return getCachedOrFetch(key, () => fetchJson(`/api/safety/grid?aggregation=${encodeURIComponent(aggregation)}`));
 }
 
 export function getSafetySummary() {
-  return fetchJson('/api/safety/summary');
+  return getCachedOrFetch('safety-summary', () => fetchJson('/api/safety/summary'));
 }

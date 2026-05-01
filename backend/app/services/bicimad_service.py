@@ -24,7 +24,7 @@ class BicimadService:
             if stations:
                 return StationsResponse(
                     data=stations,
-                    meta={"count": len(stations), "source": "local-snapshot", "fallbackUsed": True, "warnings": warnings},
+                    meta={"count": len(stations), "source": "local-snapshot-fallback", "fallbackUsed": True, "warnings": warnings},
                 )
 
             raise RuntimeError("No fue posible cargar estaciones desde el snapshot local de Bicimad.")
