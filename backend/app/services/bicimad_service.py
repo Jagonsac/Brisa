@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Literal
@@ -23,24 +24,26 @@ class BicimadService:
                 gbfs_payload = await self.client.fetch_json(settings.bicimad_stations_url)
                 stations = normalize_gbfs_stations(gbfs_payload)
                 if stations:
+                    self._persist_snapshot(stations)
                     return StationsResponse(
                         data=stations,
                         meta={"count": len(stations), "source": "gbfs-station-information", "fallbackUsed": False, "warnings": warnings},
                     )
                 warnings.append("GBFS no devolvió estaciones válidas.")
-            except Exception as error:
+            except (Exception, asyncio.CancelledError) as error:
                 warnings.append(f"GBFS falló: {error}")
 
             try:
                 fallback_payload = await self.client.fetch_json(settings.bicimad_fallback_url)
                 stations = normalize_geojson_stations(fallback_payload)
                 if stations:
+                    self._persist_snapshot(stations)
                     return StationsResponse(
                         data=stations,
                         meta={"count": len(stations), "source": "emt-geojson-fallback", "fallbackUsed": True, "warnings": warnings},
                     )
                 warnings.append("Fallback GeoJSON no devolvió estaciones válidas.")
-            except Exception as error:
+            except (Exception, asyncio.CancelledError) as error:
                 warnings.append(f"GeoJSON oficial falló: {error}")
 
             if source_mode == "remote":
@@ -62,3 +65,10 @@ class BicimadService:
 
         with self.snapshot_path.open("r", encoding="utf-8") as snapshot_file:
             return json.load(snapshot_file)
+
+    def _persist_snapshot(self, stations: list[dict]) -> None:
+        try:
+            self.snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+            self.snapshot_path.write_text(json.dumps(stations, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
