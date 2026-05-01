@@ -35,10 +35,22 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 cd backend
 python -m app.pipelines.build_routing_cache
+python -m app.pipelines.build_safety_cache
 python -m app.pipelines.build_neighborhood_cyclability
 ```
 
 Esto genera/actualiza artefactos en `backend/data/` para acelerar peticiones y evitar recomputación pesada.
+
+### Artefactos esperados de safety
+
+Tras ejecutar el precompute de safety (o al arrancar la API con `PRECOMPUTE_CACHE_ON_STARTUP=true`), deben existir:
+
+- `backend/data/safety/processed/madrid_safety_grid_v1.geojson`
+- `backend/data/safety/processed/safety_metadata_v1.json`
+- `backend/data/safety/processed/madrid_safety_neighborhood_grid_v2.geojson`
+- `backend/data/safety/processed/safety_neighborhood_metadata_v2.json`
+
+Si faltan, el backend intentará reconstruirlos en la primera petición a `/api/safety/*`.
 
 ## Principios de implementación
 
@@ -53,4 +65,3 @@ Esto genera/actualiza artefactos en `backend/data/` para acelerar peticiones y e
 cd backend
 pytest
 ```
-
