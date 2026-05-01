@@ -59,6 +59,14 @@ Si faltan, el backend intentará reconstruirlos en la primera petición a `/api/
 - Normalización de proveedores externos aislada en `clients`/`utils`.
 - Lógica GIS y de scoring mantenida exclusivamente en backend.
 
+## Optimización multimodal Bicimad (selección de estaciones)
+
+- Selección de candidatas por anillos de distancia configurables: `0-400m`, `400-900m`, `900-1500m`, `1500-2200m`.
+- Priorización determinista de anillos cercanos y corte temprano cuando ya hay suficientes candidatas prometedoras.
+- Evaluación de pares con estrategia `branch-and-bound` usando cotas inferiores admisibles (walking + bike optimistas) para podar combinaciones sin potencial.
+- Fallback escalonado en dos etapas (`8x8` y `12x12`) para evitar saltar de forma inmediata a búsqueda exhaustiva.
+- Instrumentación interna en metadatos de respuesta: `generatedPairs`, `evaluatedPairs`, `prunedPairs`, `discardedPairs`, y tiempos por fase.
+
 ## Testing
 
 ```bash
