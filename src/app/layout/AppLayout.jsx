@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useBicimadStations } from '../../features/bicimad/hooks/useBicimadStations';
 import { MapView } from '../../features/map/components/MapView';
-import { NeighborhoodCyclabilityPanel } from '../../features/neighborhoods/components/NeighborhoodCyclabilityPanel';
 import { useNeighborhoodCyclability } from '../../features/neighborhoods/hooks/useNeighborhoodCyclability';
 import { RouteModeSelector } from '../../features/search/components/RouteModeSelector';
 import { RouteSearchForm } from '../../features/search/components/RouteSearchForm';
@@ -416,15 +415,33 @@ export function AppLayout() {
                 onSelectSuggestion={handleSelectSuggestion}
               />
 
-              <label className={styles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={includeNightRoute}
-                  onChange={(event) => setIncludeNightRoute(event.target.checked)}
-                  disabled={!ROUTE_MODES.NIGHT.available}
-                />
-                Incluir también ruta nocturna (farolas e iluminación)
-              </label>
+              <div className={styles.togglesRow}>
+                <label className={styles.toggleCard}>
+                  <input
+                    type="checkbox"
+                    checked={includeNightRoute}
+                    onChange={(event) => setIncludeNightRoute(event.target.checked)}
+                    disabled={!ROUTE_MODES.NIGHT.available}
+                  />
+                  <span className={styles.toggleSwitch} aria-hidden="true" />
+                  <span className={styles.toggleTextGroup}>
+                    <strong>Modo nocturno</strong>
+                    <small>Farolas e iluminación</small>
+                  </span>
+                </label>
+                <label className={styles.toggleCard}>
+                  <input
+                    type="checkbox"
+                    checked={useBicimadRouting}
+                    onChange={(event) => setUseBicimadRouting(event.target.checked)}
+                  />
+                  <span className={styles.toggleSwitch} aria-hidden="true" />
+                  <span className={styles.toggleTextGroup}>
+                    <strong>Bicimad</strong>
+                    <small>Ruta multimodal</small>
+                  </span>
+                </label>
+              </div>
 
               <RouteModeSelector
                 routesByMode={routesByMode}
@@ -432,69 +449,6 @@ export function AppLayout() {
                 onSelectMode={setSelectedRouteMode}
                 loading={routeLoading}
               />
-
-              <label className={styles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={useBicimadRouting}
-                  onChange={(event) => setUseBicimadRouting(event.target.checked)}
-                />
-                Usar Bicimad (ruta multimodal)
-              </label>
-              <div className={styles.layerSelectorCard}>
-                <h3>Visualización principal del mapa</h3>
-                <p>Elige un único índice para evitar ruido visual y comparar mejor.</p>
-                <div
-                  className={styles.layerSelectorGroup}
-                  role="radiogroup"
-                  aria-label="Seleccionar índice principal del mapa"
-                >
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={activeInsightLayer === LAYER_VISIBILITY_MODE.SAFETY}
-                    className={`${styles.layerOptionButton} ${
-                      activeInsightLayer === LAYER_VISIBILITY_MODE.SAFETY ? styles.layerOptionButtonActive : ''
-                    }`}
-                    onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.SAFETY)}
-                    disabled={!safetyLayerAvailable}
-                  >
-                    Índice de seguridad
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={activeInsightLayer === LAYER_VISIBILITY_MODE.CYCLABILITY}
-                    className={`${styles.layerOptionButton} ${
-                      activeInsightLayer === LAYER_VISIBILITY_MODE.CYCLABILITY ? styles.layerOptionButtonActive : ''
-                    }`}
-                    onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.CYCLABILITY)}
-                    disabled={!cyclabilityLayerAvailable}
-                  >
-                    Índice de ciclabilidad
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={activeInsightLayer === LAYER_VISIBILITY_MODE.NONE}
-                    className={`${styles.layerOptionButton} ${
-                      activeInsightLayer === LAYER_VISIBILITY_MODE.NONE ? styles.layerOptionButtonActive : ''
-                    }`}
-                    onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.NONE)}
-                  >
-                    Sin índice
-                  </button>
-                </div>
-                {Object.keys(routesByMode).length > 0 && (
-                <RouteModeSelector
-                  routesByMode={routesByMode}
-                  selectedMode={selectedRouteMode}
-                  onSelectMode={setSelectedRouteMode}
-                  loading={routeLoading}
-                  compact
-                />
-                )}
-              </div>
               {safetyState.error && <p className={styles.warningText}>Capa de seguridad no disponible: {safetyState.error}</p>}
               {cyclabilityState.error && <p className={styles.warningText}>Índice por barrio no disponible: {cyclabilityState.error}</p>}
               {infoMessage && <p className={styles.infoText}>{infoMessage}</p>}
@@ -509,15 +463,6 @@ export function AppLayout() {
             </section>
           )}
 
-          {featureFlags.enableNeighborhoodCyclability && (
-            <NeighborhoodCyclabilityPanel
-              neighborhoods={cyclabilityState.list}
-              selectedNeighborhoodId={selectedNeighborhoodId}
-              onSelectNeighborhood={setSelectedNeighborhoodId}
-              comparison={cyclabilityState.comparison}
-              onCompare={cyclabilityState.runComparison}
-            />
-          )}
         </aside>}
 
         <section className={styles.mapContainer}>
@@ -539,13 +484,15 @@ export function AppLayout() {
                   onSelectSuggestion={handleSelectSuggestion}
                 />
                 <div className={styles.mobileToggles}>
-                  <label className={styles.toggleLabel}>
+                  <label className={styles.toggleCard}>
                     <input type="checkbox" checked={includeNightRoute} onChange={(event) => setIncludeNightRoute(event.target.checked)} disabled={!ROUTE_MODES.NIGHT.available} />
-                    Modo nocturno
+                    <span className={styles.toggleSwitch} aria-hidden="true" />
+                    <span className={styles.toggleTextGroup}><strong>Nocturno</strong><small>Iluminación</small></span>
                   </label>
-                  <label className={styles.toggleLabel}>
+                  <label className={styles.toggleCard}>
                     <input type="checkbox" checked={useBicimadRouting} onChange={(event) => setUseBicimadRouting(event.target.checked)} />
-                    Bicimad
+                    <span className={styles.toggleSwitch} aria-hidden="true" />
+                    <span className={styles.toggleTextGroup}><strong>Bicimad</strong><small>Multimodal</small></span>
                   </label>
                 </div>
                 {Object.keys(routesByMode).length > 0 && (
@@ -564,6 +511,13 @@ export function AppLayout() {
                 <button type="button" className={`${styles.layerOptionButton} ${activeInsightLayer === LAYER_VISIBILITY_MODE.NONE ? styles.layerOptionButtonActive : ''}`} onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.NONE)}>Ninguno</button>
               </div>
             </>
+          )}
+          {!isMobile && (
+            <div className={styles.desktopMapControls} role="radiogroup" aria-label="Visualización principal del mapa">
+              <button type="button" className={`${styles.layerOptionButton} ${activeInsightLayer === LAYER_VISIBILITY_MODE.SAFETY ? styles.layerOptionButtonActive : ''}`} onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.SAFETY)} disabled={!safetyLayerAvailable}>Seguridad</button>
+              <button type="button" className={`${styles.layerOptionButton} ${activeInsightLayer === LAYER_VISIBILITY_MODE.CYCLABILITY ? styles.layerOptionButtonActive : ''}`} onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.CYCLABILITY)} disabled={!cyclabilityLayerAvailable}>Ciclabilidad</button>
+              <button type="button" className={`${styles.layerOptionButton} ${activeInsightLayer === LAYER_VISIBILITY_MODE.NONE ? styles.layerOptionButtonActive : ''}`} onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.NONE)}>Sin índice</button>
+            </div>
           )}
           {featureFlags.enableMap ? (
             <MapView
