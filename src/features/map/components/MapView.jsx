@@ -284,9 +284,9 @@ export function MapView({
                     data={{ type: 'Feature', geometry: segment.geometry, properties: {} }}
                     style={{
                       color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
-                      weight: segment.type === 'walk' ? 4.6 : 7,
+                      weight: segment.type === 'walk' ? 6.2 : 7,
                       opacity: segment.type === 'walk' ? 0.9 : 1,
-                      dashArray: segment.type === 'walk' ? '1 14' : undefined,
+                      dashArray: segment.type === 'walk' ? '2 8' : undefined,
                       lineCap: segment.type === 'walk' ? 'round' : 'butt',
                       className: segment.type === 'walk' ? 'walkSegmentDots' : undefined,
                     }}
