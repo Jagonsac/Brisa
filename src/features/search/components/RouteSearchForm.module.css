@@ -63,6 +63,26 @@
   cursor: pointer;
 }
 
+.secondaryButton {
+  margin-top: 0.2rem;
+  border: 1px solid #9ab0d8;
+  border-radius: 10px;
+  background: #f3f7ff;
+  color: #1f437a;
+  padding: 0.55rem 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondaryButton:hover {
+  background: #e7efff;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
 @media (max-width: 768px) {
   .form {
     gap: 0.55rem;
@@ -122,6 +142,14 @@
   margin-top: 0.2rem;
   min-height: 38px;
   padding: 0.55rem 0.7rem;
+}
+
+.formCompact .secondaryButton {
+  grid-column: 2 / -1;
+  margin-top: 0;
+  min-height: 34px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.82rem;
 }
 
 .formCompact .suggestionState,
