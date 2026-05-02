@@ -211,7 +211,7 @@ export function MapView({
           <div className={styles.loadingCard}>
             <span className={styles.spinner} aria-hidden="true" />
             <p>Calculando rutas…</p>
-            <p>Este cálculo puede tardar algunos minutos. Gracias por tu paciencia, por favor espera.</p>
+            <p>Este cálculo puede tardar un poco. Gracias por tu paciencia.</p>
           </div>
         </div>
       )}
@@ -286,7 +286,9 @@ export function MapView({
                       color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
                       weight: segment.type === 'walk' ? 4.6 : 7,
                       opacity: segment.type === 'walk' ? 0.9 : 1,
-                      dashArray: segment.type === 'walk' ? '6 10' : undefined,
+                      dashArray: segment.type === 'walk' ? '1 14' : undefined,
+                      lineCap: segment.type === 'walk' ? 'round' : 'butt',
+                      className: segment.type === 'walk' ? 'walkSegmentDots' : undefined,
                     }}
                   />
                 ));
