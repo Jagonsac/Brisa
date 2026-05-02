@@ -79,27 +79,27 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = ROUTE_REQUEST
 }
 
 export async function createRoute({ origin, destination, mode, useBicimad = false }) {
-  const hasValidCoordinates = (point) => {
+  const getSanitizedCoordinates = (point) => {
     const lat = Number(point?.lat);
     const lon = Number(point?.lon ?? point?.lng);
-    return Number.isFinite(lat) && Number.isFinite(lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return null;
+    }
+
+    return { lat, lon };
   };
 
-  const originHasCoordinates = hasValidCoordinates(origin);
-  const destinationHasCoordinates = hasValidCoordinates(destination);
+  const originCoordinates = getSanitizedCoordinates(origin);
+  const destinationCoordinates = getSanitizedCoordinates(destination);
 
   const body = {
     origin: {
       query: origin.query,
-      ...(originHasCoordinates
-        ? { lat: Number(origin.lat), lon: Number(origin.lon ?? origin.lng) }
-        : {}),
+      ...(originCoordinates || {}),
     },
     destination: {
       query: destination.query,
-      ...(destinationHasCoordinates
-        ? { lat: Number(destination.lat), lon: Number(destination.lon ?? destination.lng) }
-        : {}),
+      ...(destinationCoordinates || {}),
     },
     mode,
     useBicimad,

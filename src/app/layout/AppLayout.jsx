@@ -211,8 +211,9 @@ export function AppLayout() {
       const timerId = setTimeout(async () => {
         const data = await getLocationSuggestions(value, { signal: controller.signal });
         const manualSuggestion = buildManualSuggestion(value);
+        const normalizedTypedQuery = value.trim().toLowerCase();
         const alreadyPresent = data.some(
-          (item) => (item.displayText || '').trim().toLowerCase() === value.trim().toLowerCase(),
+          (item) => (item.displayText || '').trim().toLowerCase() === normalizedTypedQuery,
         );
         const nextSuggestions = manualSuggestion && !alreadyPresent ? [manualSuggestion, ...data] : data;
         setSuggestions((prev) => ({ ...prev, [field]: nextSuggestions }));

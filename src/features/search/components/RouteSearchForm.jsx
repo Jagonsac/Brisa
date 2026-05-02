@@ -19,7 +19,7 @@ function SuggestionList({ id, suggestions, onSelect }) {
             }}
             className={styles.suggestionButton}
           >
-            {item.displayText || item.value || item.label}
+            {item.isManualEntry ? item.label : item.displayText || item.value || item.label}
           </button>
         </li>
       ))}
