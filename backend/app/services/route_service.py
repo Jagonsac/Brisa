@@ -24,13 +24,14 @@ class RouteServiceError(Exception):
 
 
 class RouteService:
-    CANDIDATE_RING_METERS = (400, 900, 1500, 2200)
-    CANDIDATE_RING_TARGETS = (4, 7, 10, 12)
-    MAX_CANDIDATES = 12
-    SEARCH_STAGES = ((8, 8), (12, 12))
+    CANDIDATE_RING_METERS = (2200,)
+    CANDIDATE_RING_TARGETS = (1,)
+    MAX_CANDIDATES = 1
+    SEARCH_STAGES = ((1, 1),)
     WALKING_SPEED_MPS = 1.32
     BIKE_SPEED_MPS = 4.2
     SHORT_BIKE_DISTANCE_PENALTY = 900
+    BICIMAD_MAX_PAIR_ROUTINGS = 1
 
     def __init__(self, graph_service: GraphService | None = None, geocoding_service: GeocodingService | None = None) -> None:
         self.graph_service = graph_service or GraphService()
@@ -157,7 +158,7 @@ class RouteService:
         if not arr_candidates:
             raise RouteServiceError("route_not_found", "No hay estaciones Bicimad de llegada razonables cerca del destino.")
 
-        best_plan, search_metrics = self._evaluate_station_pairs(
+        best_plan, search_metrics = self._build_single_station_plan(
             dep_candidates=dep_candidates,
             arr_candidates=arr_candidates,
             walk_graph=walk_graph,
@@ -288,6 +289,41 @@ class RouteService:
             }
         )
 
+    def _build_single_station_plan(self, *, dep_candidates: list[dict], arr_candidates: list[dict], walk_graph, bike_graph, edge_metrics: dict, bike_weight_name: str, origin: GeocodedPoint, destination: GeocodedPoint, mode: str) -> tuple[dict | None, dict]:
+        started = time.perf_counter()
+        dep = dep_candidates[0]
+        arr = self._first_distinct_arrival_candidate(arr_candidates=arr_candidates, dep_station_id=dep["station"].id)
+        metrics = {"pairs_generated": 1, "pairs_evaluated_full": 0, "pairs_pruned_bound": 0, "pairs_discarded_infeasible": 0, "pair_selection_ms": 0.0, "detailed_routing_ms": 0.0}
+        if arr is None:
+            metrics["pairs_discarded_infeasible"] = 1
+            metrics["pair_selection_ms"] = round((time.perf_counter() - started) * 1000, 2)
+            return None, metrics
+
+        metrics["pair_selection_ms"] = round((time.perf_counter() - started) * 1000, 2)
+        routing_started = time.perf_counter()
+        try:
+            walk1 = self._compute_walk_leg(walk_graph, origin.lat, origin.lon, dep["station"].lat, dep["station"].lon)
+            bike_leg = self._compute_bike_leg(bike_graph, edge_metrics, bike_weight_name, dep["station"].lat, dep["station"].lon, arr["station"].lat, arr["station"].lon)
+            walk2 = self._compute_walk_leg(walk_graph, arr["station"].lat, arr["station"].lon, destination.lat, destination.lon)
+        except Exception:
+            metrics["pairs_discarded_infeasible"] = 1
+            metrics["detailed_routing_ms"] = round((time.perf_counter() - routing_started) * 1000, 2)
+            return None, metrics
+
+        metrics["pairs_evaluated_full"] = 1
+        metrics["detailed_routing_ms"] = round((time.perf_counter() - routing_started) * 1000, 2)
+        score = self._multimodal_score(mode=mode, walk_duration_seconds=walk1["duration_seconds"] + walk2["duration_seconds"], bike_duration_seconds=bike_leg["duration_seconds"])
+        if bike_leg["distance_meters"] < 500:
+            score += self.SHORT_BIKE_DISTANCE_PENALTY
+        return {"dep": dep, "arr": arr, "walk1": walk1, "walk2": walk2, "bike": bike_leg, "score": score}, metrics
+
+    @staticmethod
+    def _first_distinct_arrival_candidate(*, arr_candidates: list[dict], dep_station_id: str | int) -> dict | None:
+        for candidate in arr_candidates:
+            if candidate["station"].id != dep_station_id:
+                return candidate
+        return None
+
     def _compute_walk_leg(self, graph, lat_a: float, lon_a: float, lat_b: float, lon_b: float) -> dict:
         node_a = self._resolve_nearest_node(graph, lat=lat_a, lon=lon_a)
         node_b = self._resolve_nearest_node(graph, lat=lat_b, lon=lon_b)
@@ -386,6 +422,7 @@ class RouteService:
         metrics = {"pairs_generated": 0, "pairs_evaluated_full": 0, "pairs_pruned_bound": 0, "pairs_discarded_infeasible": 0, "pair_selection_ms": 0.0, "detailed_routing_ms": 0.0}
         routing_time = 0.0
         selection_time = 0.0
+        full_routings = 0
         for dep_limit, arr_limit in self.SEARCH_STAGES:
             selection_start = time.perf_counter()
             stage_pairs = []
@@ -420,12 +457,17 @@ class RouteService:
                     routing_time += (time.perf_counter() - leg_start) * 1000
                     continue
                 metrics["pairs_evaluated_full"] += 1
+                full_routings += 1
                 score = self._multimodal_score(mode=mode, walk_duration_seconds=walk1["duration_seconds"] + walk2["duration_seconds"], bike_duration_seconds=bike_leg["duration_seconds"])
                 if bike_leg["distance_meters"] < 500:
                     score += self.SHORT_BIKE_DISTANCE_PENALTY
                 if score < best_score:
                     best_score = score
                     best_plan = {"dep": dep, "arr": arr, "walk1": walk1, "walk2": walk2, "bike": bike_leg, "score": score}
+                if full_routings >= self.BICIMAD_MAX_PAIR_ROUTINGS and best_plan is not None:
+                    break
+            if full_routings >= self.BICIMAD_MAX_PAIR_ROUTINGS and best_plan is not None:
+                break
             if best_plan is not None:
                 break
         metrics["pair_selection_ms"] = round(selection_time, 2)

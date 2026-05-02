@@ -41,6 +41,8 @@ python -m app.pipelines.build_neighborhood_cyclability
 
 Esto genera/actualiza artefactos en `backend/data/` para acelerar peticiones y evitar recomputación pesada.
 
+En particular, `python -m app.pipelines.build_routing_cache` genera `backend/data/routing/edge_metrics_<version>.json` (con métricas por arista, incluido riesgo nocturno) y `route_metadata_<version>.json`, que se cargan en runtime para evitar reconstrucción completa en cada petición de rutas.
+
 ### Artefactos esperados de safety
 
 Tras ejecutar el precompute de safety (o al arrancar la API con `PRECOMPUTE_CACHE_ON_STARTUP=true`), deben existir:
@@ -61,11 +63,9 @@ Si faltan, el backend intentará reconstruirlos en la primera petición a `/api/
 
 ## Optimización multimodal Bicimad (selección de estaciones)
 
-- Selección de candidatas por anillos de distancia configurables: `0-400m`, `400-900m`, `900-1500m`, `1500-2200m`.
-- Priorización determinista de anillos cercanos y corte temprano cuando ya hay suficientes candidatas prometedoras.
-- Evaluación de pares con estrategia `branch-and-bound` usando cotas inferiores admisibles (walking + bike optimistas) para podar combinaciones sin potencial.
-- Fallback escalonado en dos etapas (`8x8` y `12x12`) para evitar saltar de forma inmediata a búsqueda exhaustiva.
-- Instrumentación interna en metadatos de respuesta: `generatedPairs`, `evaluatedPairs`, `prunedPairs`, `discardedPairs`, y tiempos por fase.
+- Estrategia deliberadamente simple para priorizar latencia: estación de salida más cercana al origen y estación de llegada más cercana al destino (distinta de la de salida).
+- Se evalúa una sola combinación de estaciones (best-effort) para minimizar tiempos de respuesta.
+- Instrumentación interna en metadatos de respuesta: `generatedPairs`, `evaluatedPairs`, `discardedPairs`, y tiempos por fase.
 
 ## Testing
 

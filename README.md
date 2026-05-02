@@ -50,6 +50,16 @@ Backend en `http://localhost:8000`.
 
 > La primera ejecución puede tardar más por warmup de grafo y lectura/generación de cachés.
 
+### 3) Precompute recomendado (muy importante para onboarding)
+```bash
+cd backend
+python -m app.pipelines.build_routing_cache
+python -m app.pipelines.build_safety_cache
+python -m app.pipelines.build_neighborhood_cyclability
+```
+Esto deja precalculados los artefactos pesados en `backend/data/` y reduce mucho el tiempo en peticiones reales.  
+En routing, el comando `build_routing_cache` genera `edge_metrics_<version>.json` con señales por arista (incluyendo riesgo nocturno) que luego se reutilizan en `fastest/safe/balanced/night` sin recalcular esas señales en cada request.
+
 ## Endpoints principales
 
 - `GET /health`
@@ -92,4 +102,3 @@ Este repositorio está preparado para colaboración pública. Revisa:
 - `CODE_OF_CONDUCT.md`
 - `SECURITY.md`
 - `LICENSE`
-

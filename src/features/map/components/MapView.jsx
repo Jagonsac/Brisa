@@ -211,6 +211,7 @@ export function MapView({
           <div className={styles.loadingCard}>
             <span className={styles.spinner} aria-hidden="true" />
             <p>Calculando rutas…</p>
+            <p>Este cálculo puede tardar algunos minutos. Gracias por tu paciencia, por favor espera.</p>
           </div>
         </div>
       )}
