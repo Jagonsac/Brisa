@@ -39,6 +39,8 @@ export function RouteSearchForm({
   onCloseSuggestions,
   onCloseAllSuggestions,
   onSelectSuggestion,
+  onUseCurrentLocation,
+  usingCurrentLocation = false,
   compact = false,
 }) {
   const formRef = useRef(null);
@@ -70,6 +72,14 @@ export function RouteSearchForm({
         onBlur={() => onCloseSuggestions('origin')}
         onChange={(event) => onFieldChange('origin', event.target.value)}
       />
+      <button
+        type="button"
+        className={styles.secondaryButton}
+        onClick={onUseCurrentLocation}
+        disabled={usingCurrentLocation}
+      >
+        {usingCurrentLocation ? 'Obteniendo ubicación…' : 'Usar localización actual'}
+      </button>
       {suggestionLoading.origin && <p className={styles.suggestionState}>Buscando sugerencias...</p>}
       {suggestionOpen.origin && (
         <SuggestionList id="origin-suggestions" suggestions={suggestions.origin} onSelect={(item) => onSelectSuggestion('origin', item)} />

@@ -86,6 +86,7 @@ export function AppLayout() {
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const [suggestionLoading, setSuggestionLoading] = useState(INITIAL_LOADING);
   const [suggestionOpen, setSuggestionOpen] = useState(INITIAL_SUGGESTION_OPEN);
+  const [usingCurrentLocation, setUsingCurrentLocation] = useState(false);
   const isProgrammaticSelectionRef = useRef({ origin: false, destination: false });
 
   const bicimadLayerEnabled = featureFlags.enableBicimad && featureFlags.enableBicimadStationsLayer;
@@ -377,6 +378,54 @@ export function AppLayout() {
     setSuggestionOpen(INITIAL_SUGGESTION_OPEN);
   };
 
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setRouteError('Tu navegador no soporta geolocalización.');
+      return;
+    }
+
+    setUsingCurrentLocation(true);
+    setRouteError('');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = Number(position.coords.latitude.toFixed(6));
+        const lon = Number(position.coords.longitude.toFixed(6));
+        const displayText = `Mi ubicación actual (${lat}, ${lon})`;
+
+        isProgrammaticSelectionRef.current.origin = true;
+        setInputValues((prev) => ({ ...prev, origin: displayText }));
+        setSelectedPlaces((prev) => ({
+          ...prev,
+          origin: {
+            displayText,
+            label: 'Mi ubicación actual',
+            lat,
+            lon,
+          },
+        }));
+        setSuggestions((prev) => ({ ...prev, origin: [] }));
+        setSuggestionOpen((prev) => ({ ...prev, origin: false }));
+        setRoutesByMode({});
+        setInfoMessage('Origen actualizado con tu localización actual.');
+        setUsingCurrentLocation(false);
+      },
+      (error) => {
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? 'Permiso de ubicación denegado. No hemos podido usar tu localización actual.'
+            : 'No se ha podido obtener tu localización actual. Inténtalo de nuevo.';
+        setRouteError(message);
+        setUsingCurrentLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      },
+    );
+  };
+
   return (
     <div className={styles.page}>
       {appBooting && (
@@ -414,6 +463,8 @@ export function AppLayout() {
                 onCloseSuggestions={handleCloseSuggestions}
                 onCloseAllSuggestions={handleCloseAllSuggestions}
                 onSelectSuggestion={handleSelectSuggestion}
+                onUseCurrentLocation={handleUseCurrentLocation}
+                usingCurrentLocation={usingCurrentLocation}
               />
 
               <div className={styles.togglesRow}>
@@ -483,6 +534,8 @@ export function AppLayout() {
                   onCloseSuggestions={handleCloseSuggestions}
                   onCloseAllSuggestions={handleCloseAllSuggestions}
                   onSelectSuggestion={handleSelectSuggestion}
+                  onUseCurrentLocation={handleUseCurrentLocation}
+                  usingCurrentLocation={usingCurrentLocation}
                 />
                 <div className={styles.mobileToggles}>
                   <label className={styles.toggleCard}>
