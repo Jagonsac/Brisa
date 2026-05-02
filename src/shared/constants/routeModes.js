@@ -6,7 +6,7 @@ export const ROUTE_MODES = {
     apiMode: 'fastest',
     label: 'Rápida',
     shortDescription: 'Prioriza llegar antes al destino.',
-    color: '#2f6bff',
+    color: '#e63946',
     available: true,
   },
   SAFE: {

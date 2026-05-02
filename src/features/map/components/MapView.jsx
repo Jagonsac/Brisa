@@ -263,9 +263,8 @@ export function MapView({
                   data={routeFeature}
                   style={{
                     color: modeMeta?.color || '#1f6feb',
-                    weight: 4,
-                    opacity: 0.64,
-                    dashArray: '8 6',
+                    weight: 3.5,
+                    opacity: 0.68,
                   }}
                 />
               );
@@ -284,9 +283,9 @@ export function MapView({
                     data={{ type: 'Feature', geometry: segment.geometry, properties: {} }}
                     style={{
                       color: segment.type === 'walk' ? '#2f6bff' : modeMeta?.color || '#1f6feb',
-                      weight: segment.type === 'walk' ? 6.2 : 7,
-                      opacity: segment.type === 'walk' ? 0.9 : 1,
-                      dashArray: segment.type === 'walk' ? '2 8' : undefined,
+                      weight: segment.type === 'walk' ? 7.4 : 7,
+                      opacity: segment.type === 'walk' ? 0.95 : 1,
+                      dashArray: segment.type === 'walk' ? '0 11' : undefined,
                       lineCap: segment.type === 'walk' ? 'round' : 'butt',
                       className: segment.type === 'walk' ? 'walkSegmentDots' : undefined,
                     }}
