@@ -8,21 +8,22 @@ from app.core.cors import configure_cors
 from app.routers.geocoding import router as geocoding_router
 from app.routers.health import router as health_router
 from app.routers.routes import router as routes_router
-from app.routers.routes import warmup_route_graph
+from app.services.bootstrap_service import BootstrapService
 from app.routers.stations import router as stations_router
 from app.routers.safety import router as safety_router
 from app.routers.cyclability import router as cyclability_router
 from app.services.safety_service import SafetyService
 
 
-def _should_precompute_on_startup() -> bool:
-    return getenv("PRECOMPUTE_CACHE_ON_STARTUP", "true").strip().lower() in {"1", "true", "yes", "on"}
+def _env_flag(name: str, default: str = "true") -> bool:
+    return getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await warmup_route_graph()
-    if _should_precompute_on_startup():
+    if _env_flag("PRECOMPUTE_CACHE_ON_STARTUP", "true"):
+        BootstrapService().warmup(force_rebuild=_env_flag("FORCE_REBUILD_CACHE_ON_STARTUP", "false"))
+    else:
         SafetyService().get_neighborhood_grid()
     yield
 

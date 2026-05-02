@@ -39,20 +39,44 @@ python -m app.pipelines.build_safety_cache
 python -m app.pipelines.build_neighborhood_cyclability
 ```
 
-Esto genera/actualiza artefactos en `backend/data/` para acelerar peticiones y evitar recomputación pesada.
+## Precompute automático en startup (producción)
 
-En particular, `python -m app.pipelines.build_routing_cache` genera `backend/data/routing/edge_metrics_<version>.json` (con métricas por arista, incluido riesgo nocturno) y `route_metadata_<version>.json`, que se cargan en runtime para evitar reconstrucción completa en cada petición de rutas.
+Al arrancar la API, `BootstrapService` prepara todo lo pesado para que no lo pague el primer usuario:
 
-### Artefactos esperados de safety
+- carga/descarga grafos OSM (`data/graphs`)
+- genera cache de routing (`data/routing`)
+- genera safety grid + safety por barrio (`data/safety/processed`)
+- genera ciclabilidad por barrio (`data/cyclability`)
+- guarda estado de bootstrap en `data/cache/bootstrap_state_v1.json`
 
-Tras ejecutar el precompute de safety (o al arrancar la API con `PRECOMPUTE_CACHE_ON_STARTUP=true`), deben existir:
+Variables de entorno:
 
-- `backend/data/safety/processed/madrid_safety_grid_v1.geojson`
-- `backend/data/safety/processed/safety_metadata_v1.json`
-- `backend/data/safety/processed/madrid_safety_neighborhood_grid_v2.geojson`
-- `backend/data/safety/processed/safety_neighborhood_metadata_v2.json`
+- `PRECOMPUTE_CACHE_ON_STARTUP=true` (recomendado en Railway)
+- `FORCE_REBUILD_CACHE_ON_STARTUP=false` (poner `true` solo cuando quieras recalcular todo)
 
-Si faltan, el backend intentará reconstruirlos en la primera petición a `/api/safety/*`.
+## Guía de deploy backend en Railway (paso a paso)
+
+1. Crea un servicio en Railway apuntando a este repo y selecciona el directorio `backend` como root del servicio.
+2. Añade un **Volume** al servicio y móntalo en `/app/data`.
+3. Configura variables de entorno:
+   - `PRECOMPUTE_CACHE_ON_STARTUP=true`
+   - `FORCE_REBUILD_CACHE_ON_STARTUP=false`
+   - `BRISA_ENV=production`
+   - `FRONTEND_ORIGINS=https://<tu-frontend-vercel>.vercel.app`
+   - `NOMINATIM_USER_AGENT=Brisa/1.0 (production contacto@tu-dominio)`
+4. En Settings del servicio, define Start Command:
+   - `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+5. Lanza el primer deploy.
+6. Revisa logs del deploy hasta ver que termina el bootstrap y que arranca Uvicorn.
+7. Verifica salud:
+   - `GET /health`
+   - `GET /api/safety/summary`
+   - `GET /api/cyclability/neighborhoods`
+8. Haz un segundo deploy (sin tocar datos). Debe arrancar rápido y reutilizar `data/*` del volumen sin recomputar.
+9. Si alguna vez quieres regenerar todo por cambios de modelo/datos, cambia temporalmente:
+   - `FORCE_REBUILD_CACHE_ON_STARTUP=true`
+   - redeploy
+   - vuelve a `false` al terminar.
 
 ## Principios de implementación
 
@@ -60,12 +84,6 @@ Si faltan, el backend intentará reconstruirlos en la primera petición a `/api/
 - Contratos estables en `backend/app/schemas` y `docs/contracts`.
 - Normalización de proveedores externos aislada en `clients`/`utils`.
 - Lógica GIS y de scoring mantenida exclusivamente en backend.
-
-## Optimización multimodal Bicimad (selección de estaciones)
-
-- Estrategia deliberadamente simple para priorizar latencia: estación de salida más cercana al origen y estación de llegada más cercana al destino (distinta de la de salida).
-- Se evalúa una sola combinación de estaciones (best-effort) para minimizar tiempos de respuesta.
-- Instrumentación interna en metadatos de respuesta: `generatedPairs`, `evaluatedPairs`, `discardedPairs`, y tiempos por fase.
 
 ## Testing
 
