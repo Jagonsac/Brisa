@@ -158,7 +158,7 @@ class RouteService:
         if not arr_candidates:
             raise RouteServiceError("route_not_found", "No hay estaciones Bicimad de llegada razonables cerca del destino.")
 
-        best_plan, search_metrics = self._build_single_station_plan(
+        best_plan, search_metrics = self._evaluate_station_pairs(
             dep_candidates=dep_candidates,
             arr_candidates=arr_candidates,
             walk_graph=walk_graph,
@@ -168,6 +168,7 @@ class RouteService:
             origin=origin,
             destination=destination,
             mode=mode,
+            enable_bound=True,
         )
 
         if best_plan is None:
