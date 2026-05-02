@@ -107,6 +107,10 @@
 .spinner {
   width: 1rem;
   height: 1rem;
+  flex: 0 0 auto;
+  display: inline-block;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
   border-radius: 999px;
   border: 2px solid #b8cbe8;
   border-top-color: #2b66c3;
@@ -171,6 +175,11 @@
 
 :global(.leaflet-interactive) {
   transition: filter 160ms ease, stroke-width 160ms ease, fill-opacity 160ms ease;
+}
+
+
+:global(.walkSegmentDots) {
+  stroke-linecap: round;
 }
 
 .liftedNeighborhood {

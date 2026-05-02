@@ -108,7 +108,8 @@ export function AppLayout() {
   );
 
   const selectedRoute = routesByMode[selectedRouteMode] || null;
-  const showBicimadLayer = useBicimadRouting && bicimadLayerEnabled;
+  const hasActiveBicimadRoute = Boolean(useBicimadRouting && selectedRoute?.transportMode === 'bicimad');
+  const showBicimadLayer = useBicimadRouting && bicimadLayerEnabled && !hasActiveBicimadRoute;
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 768px)');
