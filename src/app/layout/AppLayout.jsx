@@ -51,6 +51,20 @@ const ESTIMATED_KMH_BY_MODE = {
   night: 13,
 };
 
+function buildManualSuggestion(query) {
+  const cleanQuery = query.trim();
+  if (cleanQuery.length < 3) {
+    return null;
+  }
+
+  return {
+    label: `Usar dirección escrita: ${cleanQuery}`,
+    displayText: cleanQuery,
+    value: cleanQuery,
+    isManualEntry: true,
+  };
+}
+
 function enrichRouteWithEstimatedDuration(routeData) {
   const mode = routeData?.summary?.mode;
   const speedKmh = ESTIMATED_KMH_BY_MODE[mode] || 15;
@@ -196,7 +210,12 @@ export function AppLayout() {
       setSuggestionLoading((prev) => ({ ...prev, [field]: true }));
       const timerId = setTimeout(async () => {
         const data = await getLocationSuggestions(value, { signal: controller.signal });
-        setSuggestions((prev) => ({ ...prev, [field]: data }));
+        const manualSuggestion = buildManualSuggestion(value);
+        const alreadyPresent = data.some(
+          (item) => (item.displayText || '').trim().toLowerCase() === value.trim().toLowerCase(),
+        );
+        const nextSuggestions = manualSuggestion && !alreadyPresent ? [manualSuggestion, ...data] : data;
+        setSuggestions((prev) => ({ ...prev, [field]: nextSuggestions }));
         setSuggestionLoading((prev) => ({ ...prev, [field]: false }));
       }, 320);
 
