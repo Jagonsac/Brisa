@@ -97,7 +97,7 @@ function darkenHexColor(hexColor, factor = 0.2) {
   return `rgb(${clamp(r)}, ${clamp(g)}, ${clamp(b)})`;
 }
 
-function desaturateHexColor(hexColor, factor = 0.72) {
+function toPastelHexColor(hexColor, desaturateFactor = 0.35, lightenFactor = 0.68) {
   const normalized = hexColor?.replace('#', '');
   if (!normalized || (normalized.length !== 3 && normalized.length !== 6)) return '#64748b';
 
@@ -111,8 +111,9 @@ function desaturateHexColor(hexColor, factor = 0.72) {
 
   const [r, g, b] = [0, 2, 4].map((start) => parseInt(expanded.slice(start, start + 2), 16));
   const gray = Math.round((r + g + b) / 3);
-  const mixChannel = (channel) => Math.round(channel * (1 - factor) + gray * factor);
-  return `rgb(${mixChannel(r)}, ${mixChannel(g)}, ${mixChannel(b)})`;
+  const desaturated = [r, g, b].map((channel) => Math.round(channel * (1 - desaturateFactor) + gray * desaturateFactor));
+  const pastelized = desaturated.map((channel) => Math.round(channel * (1 - lightenFactor) + 255 * lightenFactor));
+  return `rgb(${pastelized[0]}, ${pastelized[1]}, ${pastelized[2]})`;
 }
 
 function bindSafetyPopup(feature, layer) {
@@ -281,7 +282,7 @@ export function MapView({
                   key={modeKey}
                   data={routeFeature}
                   style={{
-                    color: desaturateHexColor(modeMeta?.color || '#1f6feb'),
+                    color: toPastelHexColor(modeMeta?.color || '#1f6feb'),
                     weight: 4.5,
                     opacity: 0.5,
                   }}
