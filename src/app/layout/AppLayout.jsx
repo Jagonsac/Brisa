@@ -109,6 +109,8 @@ export function AppLayout() {
   );
 
   const selectedRoute = routesByMode[selectedRouteMode] || null;
+  const hasCalculatedRoutes = Object.keys(routesByMode).length > 0;
+  const [mobileControlsCollapsed, setMobileControlsCollapsed] = useState(false);
   const hasActiveBicimadRoute = Boolean(useBicimadRouting && selectedRoute?.transportMode === 'bicimad');
   const showBicimadLayer = useBicimadRouting && bicimadLayerEnabled && !hasActiveBicimadRoute;
 
@@ -119,6 +121,17 @@ export function AppLayout() {
     media.addEventListener('change', handleChange);
     return () => media.removeEventListener('change', handleChange);
   }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileControlsCollapsed(false);
+      return;
+    }
+
+    if (hasCalculatedRoutes) {
+      setMobileControlsCollapsed(true);
+    }
+  }, [hasCalculatedRoutes, isMobile]);
 
   useEffect(() => {
     let isMounted = true;
@@ -479,7 +492,7 @@ export function AppLayout() {
                   />
                   <span className={styles.toggleSwitch} aria-hidden="true" />
                   <span className={styles.toggleTextGroup}>
-                    <strong>Modo nocturno</strong>
+                    <strong>Ruta Nocturna</strong>
                     <small>Farolas e iluminación</small>
                   </span>
                 </label>
@@ -522,7 +535,14 @@ export function AppLayout() {
         <section className={styles.mapContainer}>
           {isMobile && (
             <>
-              <div className={styles.mobileTopOverlay}>
+              <div className={`${styles.mobileTopOverlay} ${mobileControlsCollapsed ? styles.mobileTopOverlayCollapsed : ''}`}>
+                {mobileControlsCollapsed && (
+                  <button type="button" className={styles.expandMobileControlsButton} onClick={() => setMobileControlsCollapsed(false)}>
+                    Calcular otra ruta
+                  </button>
+                )}
+                {!mobileControlsCollapsed && (
+                  <>
                 <RouteSearchForm
                   compact={isMobile}
                   inputValues={inputValues}
@@ -543,7 +563,7 @@ export function AppLayout() {
                   <label className={styles.toggleCard}>
                     <input type="checkbox" checked={includeNightRoute} onChange={(event) => setIncludeNightRoute(event.target.checked)} disabled={!ROUTE_MODES.NIGHT.available} />
                     <span className={styles.toggleSwitch} aria-hidden="true" />
-                    <span className={styles.toggleTextGroup}><strong>Nocturno</strong><small>Iluminación</small></span>
+                    <span className={styles.toggleTextGroup}><strong>Ruta Nocturna</strong><small>Iluminación</small></span>
                   </label>
                   <label className={styles.toggleCard}>
                     <input type="checkbox" checked={useBicimadRouting} onChange={(event) => setUseBicimadRouting(event.target.checked)} />
@@ -551,7 +571,9 @@ export function AppLayout() {
                     <span className={styles.toggleTextGroup}><strong>Bicimad</strong><small>Multimodal</small></span>
                   </label>
                 </div>
-                {Object.keys(routesByMode).length > 0 && (
+                </>
+                )}
+                {hasCalculatedRoutes && (
                 <RouteModeSelector
                   routesByMode={routesByMode}
                   selectedMode={selectedRouteMode}

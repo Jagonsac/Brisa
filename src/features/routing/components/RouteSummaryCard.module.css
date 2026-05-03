@@ -85,6 +85,8 @@
   display: grid;
   gap: 0.35rem;
 }
+:global(body.dark-mode) .summaryList dt,
+:global(body.dark-mode) .explanations { color: #bdd0f3; }
 
 @media (max-width: 768px) {
   .card {

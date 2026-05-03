@@ -197,7 +197,7 @@ export function MapView({
   showCyclabilityLayer,
   selectedNeighborhoodId,
   onSelectNeighborhood,
-  loading = false,
+  loading = false
 }) {
   const routeEntries = Object.entries(routesByMode);
   const routeFeatures = routeEntries
