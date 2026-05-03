@@ -97,7 +97,7 @@ function darkenHexColor(hexColor, factor = 0.2) {
   return `rgb(${clamp(r)}, ${clamp(g)}, ${clamp(b)})`;
 }
 
-function toPastelHexColor(hexColor, desaturateFactor = 0.35, lightenFactor = 0.68) {
+function toPastelHexColor(hexColor, desaturateFactor = 0.25, lightenFactor = 0.45) {
   const normalized = hexColor?.replace('#', '');
   if (!normalized || (normalized.length !== 3 && normalized.length !== 6)) return '#64748b';
 
@@ -300,8 +300,8 @@ export function MapView({
                   data={routeFeature}
                   style={{
                     color: toPastelHexColor(modeMeta?.color || '#1f6feb'),
-                    weight: 4.5,
-                    opacity: 0.5,
+                    weight: 5,
+                    opacity: 0.72,
                   }}
                   eventHandlers={{
                     click: () => onSelectMode?.(modeKey),
