@@ -1,0 +1,140 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(10, 21, 43, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  position: relative;
+  width: min(760px, calc(100vw - 2rem));
+  max-height: min(84vh, 920px);
+  overflow-y: auto;
+  border-radius: 20px;
+  border: 1px solid #d2dff5;
+  background: linear-gradient(165deg, #ffffff 0%, #f5f9ff 45%, #f8fcf9 100%);
+  box-shadow: 0 24px 60px rgba(9, 26, 56, 0.28);
+  padding: 1.5rem 1.35rem 1.2rem;
+}
+
+.closeButton {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #9eb4dc;
+  border-radius: 999px;
+  background: #fff;
+  color: #16305e;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background: #edf4ff;
+  transform: scale(1.03);
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin: 0;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: #e9f2ff;
+  color: #1a3c74;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.modal h2 {
+  margin: 0.65rem 0 0.7rem;
+  line-height: 1.2;
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  color: #14305f;
+}
+
+.modal p {
+  margin: 0.65rem 0;
+  color: #274066;
+  line-height: 1.5;
+}
+
+.metricList {
+  margin: 0.65rem 0;
+  padding: 0.55rem 0.7rem 0.55rem 1.5rem;
+  border-radius: 12px;
+  background: rgba(236, 244, 255, 0.8);
+  border: 1px solid #d3e2fb;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.metricList li::marker {
+  color: #2d6dd6;
+}
+
+.modePill {
+  --mode-color: #2459b0;
+  display: inline-block;
+  padding: 0.04rem 0.42rem;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--mode-color), #ffffff 45%);
+  background: color-mix(in srgb, var(--mode-color), #ffffff 83%);
+  color: color-mix(in srgb, var(--mode-color), #000000 22%);
+  font-weight: 700;
+}
+
+.securityTag,
+.cyclabilityTag {
+  display: inline-block;
+  padding: 0.06rem 0.4rem;
+  border-radius: 0.4rem;
+  font-weight: 700;
+}
+
+.securityTag {
+  color: #0d6b4b;
+  background: #ddf7eb;
+}
+
+.cyclabilityTag {
+  color: #7b5603;
+  background: #ffefc8;
+}
+
+.ctaButton {
+  margin-top: 0.8rem;
+  border: 0;
+  border-radius: 12px;
+  padding: 0.72rem 1rem;
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(90deg, #2366d4 0%, #2bb274 100%);
+  box-shadow: 0 10px 22px rgba(22, 89, 173, 0.28);
+}
+
+.ctaButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(22, 89, 173, 0.35);
+}
+
+@media (max-width: 768px) {
+  .overlay {
+    padding: 0.7rem;
+  }
+
+  .modal {
+    width: min(760px, calc(100vw - 1.4rem));
+    max-height: 90vh;
+    padding: 1.15rem 1rem 1rem;
+  }
+}
