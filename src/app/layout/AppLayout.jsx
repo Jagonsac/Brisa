@@ -345,6 +345,7 @@ export function AppLayout() {
 
       const nextRoutesByMode = Object.fromEntries(responses);
       setRoutesByMode(nextRoutesByMode);
+      setActiveInsightLayer(LAYER_VISIBILITY_MODE.NONE);
 
       if (nextRoutesByMode[ROUTE_MODES.BALANCED.apiMode]) {
         setSelectedRouteMode(ROUTE_MODES.BALANCED.apiMode);
