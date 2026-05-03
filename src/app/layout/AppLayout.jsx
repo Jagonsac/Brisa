@@ -11,6 +11,7 @@ import { useSafetyLayer } from '../../features/safety/hooks/useSafetyLayer';
 import { createRoute, waitForRoutingBackendReady } from '../../features/routing/services/routesService';
 import { featureFlags } from '../../shared/config/featureFlags';
 import { defaultComparisonModes, ROUTE_MODES } from '../../shared/constants/routeModes';
+import { WelcomeModal } from './components/WelcomeModal';
 import styles from './AppLayout.module.css';
 
 const INITIAL_INPUT_VALUES = {
@@ -87,6 +88,7 @@ export function AppLayout() {
   const [suggestionLoading, setSuggestionLoading] = useState(INITIAL_LOADING);
   const [suggestionOpen, setSuggestionOpen] = useState(INITIAL_SUGGESTION_OPEN);
   const [usingCurrentLocation, setUsingCurrentLocation] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
   const isProgrammaticSelectionRef = useRef({ origin: false, destination: false });
 
   const bicimadLayerEnabled = featureFlags.enableBicimad && featureFlags.enableBicimadStationsLayer;
@@ -443,6 +445,7 @@ export function AppLayout() {
 
   return (
     <div className={styles.page}>
+      {showWelcomeModal && !appBooting && <WelcomeModal open={showWelcomeModal} onClose={() => setShowWelcomeModal(false)} />}
       {appBooting && (
         <div className={styles.bootOverlay} role="status" aria-live="polite">
           <div className={styles.bootCard}>
