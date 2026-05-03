@@ -97,6 +97,24 @@ function darkenHexColor(hexColor, factor = 0.2) {
   return `rgb(${clamp(r)}, ${clamp(g)}, ${clamp(b)})`;
 }
 
+function desaturateHexColor(hexColor, factor = 0.72) {
+  const normalized = hexColor?.replace('#', '');
+  if (!normalized || (normalized.length !== 3 && normalized.length !== 6)) return '#64748b';
+
+  const expanded =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => `${char}${char}`)
+          .join('')
+      : normalized;
+
+  const [r, g, b] = [0, 2, 4].map((start) => parseInt(expanded.slice(start, start + 2), 16));
+  const gray = Math.round((r + g + b) / 3);
+  const mixChannel = (channel) => Math.round(channel * (1 - factor) + gray * factor);
+  return `rgb(${mixChannel(r)}, ${mixChannel(g)}, ${mixChannel(b)})`;
+}
+
 function bindSafetyPopup(feature, layer) {
   const properties = feature?.properties ?? {};
   const explanation = Array.isArray(properties.explanation) ? properties.explanation.join('<br/>') : '';
@@ -172,6 +190,7 @@ export function MapView({
   showBicimadLayer,
   routesByMode,
   selectedRouteMode,
+  onSelectMode,
   safetyGrid,
   showSafetyLayer,
   cyclabilityGeojson,
@@ -262,9 +281,12 @@ export function MapView({
                   key={modeKey}
                   data={routeFeature}
                   style={{
-                    color: modeMeta?.color || '#1f6feb',
-                    weight: 3.5,
-                    opacity: 0.68,
+                    color: desaturateHexColor(modeMeta?.color || '#1f6feb'),
+                    weight: 4.5,
+                    opacity: 0.5,
+                  }}
+                  eventHandlers={{
+                    click: () => onSelectMode?.(modeKey),
                   }}
                 />
               );
