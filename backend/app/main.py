@@ -12,6 +12,7 @@ from app.services.bootstrap_service import BootstrapService
 from app.routers.stations import router as stations_router
 from app.routers.safety import router as safety_router
 from app.routers.cyclability import router as cyclability_router
+from app.routers.ai_insights import router as ai_insights_router
 from app.services.safety_service import SafetyService
 
 
@@ -37,3 +38,4 @@ app.include_router(routes_router)
 app.include_router(geocoding_router)
 app.include_router(safety_router)
 app.include_router(cyclability_router)
+app.include_router(ai_insights_router)

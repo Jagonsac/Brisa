@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from 'react-leaflet';
+import { CircleMarker, GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from 'react-leaflet';
 
 import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLayer';
 import { getSafetyColor } from '../../safety/utils/safetyColors';
@@ -198,7 +198,8 @@ export function MapView({
   showCyclabilityLayer,
   selectedNeighborhoodId,
   onSelectNeighborhood,
-  loading = false
+  loading = false,
+  showAiHazards = false,
 }) {
   const routeEntries = Object.entries(routesByMode);
   const routeFeatures = routeEntries
@@ -215,6 +216,10 @@ export function MapView({
     .filter((feature) => Boolean(feature));
 
   const selectedRouteData = routesByMode[selectedRouteMode] || null;
+
+  const hazardPoints = routeEntries.flatMap(([modeKey, routeData]) =>
+    (routeData?.hazardPoints || []).map((hazard, index) => ({ ...hazard, id: `${modeKey}-${index}`, modeKey })),
+  );
   const hasRoutes = routeEntries.length > 0;
   const originPoint = selectedOriginPlace || selectedRouteData?.origin || routeEntries[0]?.[1]?.origin || null;
   const destinationPoint = selectedDestinationPlace || selectedRouteData?.destination || routeEntries[0]?.[1]?.destination || null;
@@ -263,6 +268,18 @@ export function MapView({
             <Popup>Origen: {originPoint.label || originPoint.displayName || originPoint.query}</Popup>
           </Marker>
         )}
+
+
+        {showAiHazards && hazardPoints.map((hazard) => (
+          <CircleMarker
+            key={hazard.id}
+            center={[hazard.lat, hazard.lon]}
+            radius={7}
+            pathOptions={{ color: '#fff', weight: 1.2, fillColor: '#dc2626', fillOpacity: 0.95 }}
+          >
+            <Popup>⚠️ {hazard.label}<br/>Perfil: {hazard.modeKey}</Popup>
+          </CircleMarker>
+        ))}
 
         {destinationPosition && (
           <Marker position={destinationPosition} icon={destinationIcon}>

@@ -1,0 +1,5 @@
+.card{margin-top:.8rem;border:1px solid #d3e0f7;border-radius:12px;padding:.7rem;background:#f8fbff}
+.headerRow{display:flex;justify-content:space-between;align-items:center}.cta{width:100%;padding:.62rem;border-radius:10px;border:none;background:#1e63d6;color:#fff;font-weight:700}
+.closeButton{border:1px solid #c5d8f3;background:#fff;border-radius:8px;padding:.3rem .55rem}
+.routeBlock{border-top:1px dashed #cfdcf1;margin-top:.6rem;padding-top:.5rem}.overview{color:#1b365e}.error{color:#9f1c1c}
+.content{max-height:42vh;overflow:auto}
