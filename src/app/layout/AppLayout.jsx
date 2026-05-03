@@ -7,6 +7,8 @@ import { RouteModeSelector } from '../../features/search/components/RouteModeSel
 import { RouteSearchForm } from '../../features/search/components/RouteSearchForm';
 import { getLocationSuggestions } from '../../features/search/services/geocodingService';
 import { RouteSummaryCard } from '../../features/routing/components/RouteSummaryCard';
+import { AiRouteInsightsPanel } from '../../features/routing/components/AiRouteInsightsPanel';
+import { getAiRouteInsights } from '../../features/routing/services/aiInsightsService';
 import { useSafetyLayer } from '../../features/safety/hooks/useSafetyLayer';
 import { createRoute, waitForRoutingBackendReady } from '../../features/routing/services/routesService';
 import { featureFlags } from '../../shared/config/featureFlags';
@@ -113,6 +115,11 @@ export function AppLayout() {
   const selectedRoute = routesByMode[selectedRouteMode] || null;
   const hasCalculatedRoutes = Object.keys(routesByMode).length > 0;
   const [mobileControlsCollapsed, setMobileControlsCollapsed] = useState(false);
+  const [aiInsights, setAiInsights] = useState(null);
+  const [aiInsightsLoading, setAiInsightsLoading] = useState(false);
+  const [aiInsightsError, setAiInsightsError] = useState('');
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [showAiHazards, setShowAiHazards] = useState(false);
   const hasActiveBicimadRoute = Boolean(useBicimadRouting && selectedRoute?.transportMode === 'bicimad');
   const showBicimadLayer = useBicimadRouting && bicimadLayerEnabled && !hasActiveBicimadRoute;
 
@@ -290,6 +297,9 @@ export function AppLayout() {
     }
 
     setRouteLoading(true);
+    setAiInsights(null);
+    setAiPanelOpen(false);
+    setShowAiHazards(false);
     if (useBicimadRouting) {
       setInfoMessage('Calculando ruta multimodal con Bicimad...');
     } else {
@@ -444,6 +454,23 @@ export function AppLayout() {
     );
   };
 
+
+  const handleAnalyzeWithAi = async () => {
+    setAiPanelOpen(true);
+    if (aiInsights || aiInsightsLoading) return;
+    setAiInsightsLoading(true);
+    setAiInsightsError('');
+    try {
+      const data = await getAiRouteInsights(routesByMode);
+      setAiInsights(data);
+      setShowAiHazards(true);
+    } catch (error) {
+      setAiInsightsError(error instanceof Error ? error.message : 'No se pudo analizar con IA.');
+    } finally {
+      setAiInsightsLoading(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       {showWelcomeModal && !appBooting && <WelcomeModal open={showWelcomeModal} onClose={() => setShowWelcomeModal(false)} />}
@@ -531,6 +558,17 @@ export function AppLayout() {
                 error={routeError}
                 statusMessage={selectedRoute ? 'Rutas listas en mapa.' : 'Sin rutas calculadas todavía.'}
               />
+              {hasCalculatedRoutes && (
+                <AiRouteInsightsPanel
+                  insights={aiInsights}
+                  loading={aiInsightsLoading}
+                  error={aiInsightsError}
+                  onAnalyze={handleAnalyzeWithAi}
+                  onClose={() => setAiPanelOpen(false)}
+                  open={aiPanelOpen}
+                  disabled={!hasCalculatedRoutes}
+                />
+              )}
             </section>
           )}
 
@@ -617,6 +655,7 @@ export function AppLayout() {
               selectedNeighborhoodId={selectedNeighborhoodId}
               onSelectNeighborhood={setSelectedNeighborhoodId}
               loading={routeLoading}
+              showAiHazards={showAiHazards}
             />
           ) : (
             <p>Mapa desactivado por feature flag.</p>

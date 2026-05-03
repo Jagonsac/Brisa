@@ -116,6 +116,7 @@ class RouteService:
                         "nightRisk": self._label_for_night(leg["avg_night_risk"]),
                     },
                     "explanations": explanations,
+                    "hazardPoints": leg["hazard_points"],
                 },
                 "meta": {
                     "engine": "osmnx",
@@ -268,6 +269,7 @@ class RouteService:
                         "bikeDurationSeconds": round(bike_duration, 1),
                     },
                     "explanations": explanations,
+                    "hazardPoints": leg["hazard_points"],
                 },
                 "meta": {
                     "engine": "osmnx",
@@ -382,6 +384,24 @@ class RouteService:
         if len(coordinates) < 2:
             raise RouteServiceError("route_not_found", "No hemos encontrado una ruta válida entre esos puntos.")
 
+        hazard_points = []
+        for index in range(1, max(1, len(coordinates)-1), max(1, len(coordinates)//6)):
+            lon, lat = coordinates[index]
+            traffic = route_traffic[min(index-1, len(route_traffic)-1)] if route_traffic else 0
+            junction = route_junction[min(index-1, len(route_junction)-1)] if route_junction else 0
+            night = route_night[min(index-1, len(route_night)-1)] if route_night else 0
+            safety = route_day_risk[min(index-1, len(route_day_risk)-1)] if route_day_risk else 0
+            score, risk_type, label = max(
+                (traffic, "traffic", "Tramo con tráfico motorizado elevado"),
+                (junction, "junction", "Cruce potencialmente complejo"),
+                (night, "night", "Riesgo nocturno por histórico/entorno"),
+                (safety, "safety", "Tramo con menor seguridad ciclista"),
+                key=lambda item: item[0],
+            )
+            if score < 0.62:
+                continue
+            hazard_points.append({"lat": round(float(lat), 6), "lon": round(float(lon), 6), "riskType": risk_type, "severity": "high" if score >= 0.78 else "medium", "label": label})
+
         return {
             "coordinates": coordinates,
             "distance_meters": distance_meters,
@@ -391,6 +411,7 @@ class RouteService:
             "avg_traffic": round(sum(route_traffic) / len(route_traffic), 4) if route_traffic else 0.35,
             "avg_junction": round(sum(route_junction) / len(route_junction), 4) if route_junction else 0.35,
             "avg_bike_infra": round(sum(route_bike_infra) / len(route_bike_infra), 4) if route_bike_infra else 0.25,
+            "hazard_points": hazard_points[:6],
         }
 
     def _pick_station_candidates(self, stations, point: GeocodedPoint) -> list[dict]:

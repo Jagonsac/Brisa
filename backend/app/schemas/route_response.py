@@ -42,12 +42,22 @@ class RouteSummary(BaseModel):
     bikeDurationSeconds: float | None = None
 
 
+
+
+class RouteHazardPoint(BaseModel):
+    lat: float
+    lon: float
+    riskType: Literal["traffic", "junction", "night", "safety"]
+    severity: Literal["medium", "high"]
+    label: str
+
 class RouteData(BaseModel):
     routeGeoJson: RouteGeoJsonFeature
     origin: RouteLocation
     destination: RouteLocation
     summary: RouteSummary
     explanations: list[str]
+    hazardPoints: list[RouteHazardPoint] = []
     segments: list[dict] | None = None
     stations: dict | None = None
     bikeProfile: Literal["fastest", "safe", "balanced", "night"] | None = None
