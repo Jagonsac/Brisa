@@ -5,6 +5,14 @@
   background: linear-gradient(180deg, #f5f8ff 0%, #f7faf9 100%);
   color: #14213d;
 }
+.pageNight .header h1,
+.pageNight .panelCard h2 {
+  color: #e9f1ff;
+}
+.pageNight .header p,
+.pageNight .infoText {
+  color: #b8c7df;
+}
 
 .bootOverlay {
   position: fixed;
@@ -96,6 +104,13 @@
   border-radius: 16px;
   padding: 1rem;
   box-shadow: 0 10px 28px rgba(25, 52, 96, 0.08);
+}
+.pageNight .panelCard,
+.pageNight .mapContainer,
+.pageNight .bootCard {
+  background: #111c2f;
+  border-color: #2a3c5e;
+  box-shadow: 0 12px 30px rgba(2, 8, 20, 0.5);
 }
 
 .panelCard h2 {
@@ -350,10 +365,26 @@
     backdrop-filter: blur(8px);
     box-shadow: 0 8px 18px rgba(25, 52, 96, 0.18);
   }
+  .mobileTopOverlayCollapsed {
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+    justify-items: start;
+  }
+  .expandMobileControlsButton {
+    border: 1px solid #3c70cc;
+    border-radius: 999px;
+    background: rgba(19, 45, 88, 0.9);
+    color: #fff;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
 
   .mobileToggles {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 0.45rem;
     margin-top: 0.1rem;
   }

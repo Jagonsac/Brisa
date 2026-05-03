@@ -3,6 +3,17 @@
   height: 100%;
   width: 100%;
 }
+.wrapperDark .hoverHint,
+.wrapperDark .cyclabilityLegend {
+  background: rgba(17, 28, 47, 0.92);
+  border-color: #2f456a;
+  color: #dbe8ff;
+}
+.wrapperDark :global(.leaflet-popup.safetyPopup .leaflet-popup-content),
+.wrapperDark :global(.leaflet-popup-content-wrapper),
+.wrapperDark :global(.leaflet-popup-content) {
+  color: #e2edff;
+}
 
 .hoverHint {
   position: absolute;
