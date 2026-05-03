@@ -73,7 +73,7 @@ export function AppLayout() {
   const [bootMessage, setBootMessage] = useState('Inicializando motor de rutas...');
   const [inputValues, setInputValues] = useState(INITIAL_INPUT_VALUES);
   const [selectedPlaces, setSelectedPlaces] = useState(INITIAL_SELECTED_PLACES);
-  const [selectedRouteMode, setSelectedRouteMode] = useState(ROUTE_MODES.FASTEST.apiMode);
+  const [selectedRouteMode, setSelectedRouteMode] = useState(ROUTE_MODES.BALANCED.apiMode);
   const [includeNightRoute, setIncludeNightRoute] = useState(false);
   const [useBicimadRouting, setUseBicimadRouting] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
@@ -331,7 +331,9 @@ export function AppLayout() {
       const nextRoutesByMode = Object.fromEntries(responses);
       setRoutesByMode(nextRoutesByMode);
 
-      if (!nextRoutesByMode[selectedRouteMode]) {
+      if (nextRoutesByMode[ROUTE_MODES.BALANCED.apiMode]) {
+        setSelectedRouteMode(ROUTE_MODES.BALANCED.apiMode);
+      } else if (!nextRoutesByMode[selectedRouteMode]) {
         const [firstAvailableMode] = Object.keys(nextRoutesByMode);
         if (firstAvailableMode) {
           setSelectedRouteMode(firstAvailableMode);
@@ -579,6 +581,7 @@ export function AppLayout() {
               showBicimadLayer={showBicimadLayer && bicimadLayerEnabled}
               routesByMode={routesByMode}
               selectedRouteMode={selectedRouteMode}
+              onSelectMode={setSelectedRouteMode}
               selectedOriginPlace={selectedPlaces.origin}
               selectedDestinationPlace={selectedPlaces.destination}
               safetyGrid={safetyState.grid}
