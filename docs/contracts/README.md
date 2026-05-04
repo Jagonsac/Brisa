@@ -21,6 +21,7 @@ Este directorio define la interfaz de datos pública y estable usada por Brisa e
 - Estaciones Bicimad: `stations.contract.json` + `stations.mapping.md`
 - Geocoding: `geocoding-suggest-response.contract.json`
 - Routing: `route-request.contract.json`, `route-response.contract.json`
+- Insights IA de rutas: `ai-route-insights.contract.json`
 - Safety: `safety-grid-response.contract.json`, `safety-summary-response.contract.json`
 - Ciclabilidad barrios: `cyclability-neighborhoods.contract.json`, `neighborhood-score.contract.json`
 - Debug de score por barrio (temporal): `cyclability-score-breakdown.contract.json`

@@ -29,6 +29,7 @@ uvicorn app.main:app --reload --port 8000
 - `GET /api/cyclability/neighborhoods/{id}`
 - `GET /api/cyclability/neighborhoods/compare`
 - `POST /api/routes`
+- `POST /api/ai/route-insights`
 
 ## Precompute recomendado
 
@@ -57,6 +58,11 @@ Variables de entorno:
 - `JUNCTION_RISK_MIN=0.7` umbral mínimo del `junctionComplexityScore` para reportar `dangerous_junction`.
 - `ACCIDENT_HOTSPOT_MIN=0.75` umbral mínimo de severidad agregada para reportar `bike_accident_hotspot`.
 - `LOW_CYCLABILITY_PERCENTILE_MAX=10` percentil máximo para reportar `low_cyclability_neighborhood`.
+- `OPENAI_API_KEY=<secret>` clave para habilitar insights IA.
+- `OPENAI_ROUTE_INSIGHTS_MODEL=gpt-5.4-mini` modelo usado para insights IA de rutas.
+- `OPENAI_ROUTE_INSIGHTS_TIMEOUT_SECONDS=12` timeout de llamada al proveedor IA.
+- `AI_ROUTE_INSIGHTS_RATE_LIMIT=20` límite de peticiones IA por ventana y por IP.
+- `AI_ROUTE_INSIGHTS_WINDOW_SECONDS=300` ventana (segundos) para rate limit IA.
 
 ## Guía de deploy backend en Railway (paso a paso)
 

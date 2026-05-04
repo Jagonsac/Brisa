@@ -1,0 +1,68 @@
+{
+  "name": "AiRouteInsightsResponse",
+  "description": "Contrato de respuesta para POST /api/ai/route-insights. El backend solo devuelve insights generados por IA externa.",
+  "request": {
+    "type": "object",
+    "required": ["routes"],
+    "properties": {
+      "routes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["mode"],
+          "properties": {
+            "mode": { "type": "string" },
+            "distanceKm": { "type": ["number", "null"] },
+            "relativeSafety": { "type": ["number", "null"] },
+            "lightingQuality": { "type": ["number", "null"] },
+            "nightRisk": { "type": ["string", "null"], "enum": ["low", "medium", "high", null] },
+            "hazardPoints": { "type": "array", "items": { "type": "object" } },
+            "explanations": { "type": "array", "items": { "type": "object" } }
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "additionalProperties": true
+  },
+  "response": {
+    "type": "object",
+    "required": ["data", "meta"],
+    "properties": {
+      "data": {
+        "type": "object",
+        "required": ["overview", "routes", "globalTips"],
+        "properties": {
+          "overview": { "type": "string" },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["mode", "best", "worst", "riskLevel", "tips"],
+              "properties": {
+                "mode": { "type": "string" },
+                "best": { "type": "string" },
+                "worst": { "type": "string" },
+                "riskLevel": { "type": "string", "enum": ["low", "medium", "high"] },
+                "tips": { "type": "array", "items": { "type": "string" } }
+              },
+              "additionalProperties": false
+            }
+          },
+          "globalTips": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      },
+      "meta": {
+        "type": "object",
+        "required": ["model", "cached"],
+        "properties": {
+          "model": { "type": "string" },
+          "cached": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "additionalProperties": true
+  }
+}

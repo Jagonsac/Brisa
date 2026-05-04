@@ -10,6 +10,7 @@ Capacidades principales disponibles:
 - Routing real sobre red OSM para modos `fastest`, `safe`, `balanced` y `night`.
 - Comparativa de rutas y resumen explicable por métricas.
 - Soporte multimodal opcional con Bicimad (`walk + bike + walk`).
+- Insights IA opcionales para comparar alternativas de ruta (requiere proveedor IA configurado en backend).
 - Capa de seguridad ciclista y resumen agregado de riesgo.
 - Índice de ciclabilidad por barrio (listado, detalle, comparación, geojson).
 - Sugerencias de geocoding para origen/destino.
@@ -72,6 +73,7 @@ En routing, el comando `build_routing_cache` genera `edge_metrics_<version>.json
 - `GET /api/cyclability/neighborhoods/{id}`
 - `GET /api/cyclability/neighborhoods/compare?a=<id>&b=<id>`
 - `POST /api/routes`
+- `POST /api/ai/route-insights`
 
 ## Calidad y checks
 
