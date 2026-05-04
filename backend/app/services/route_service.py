@@ -128,7 +128,7 @@ class RouteService:
                         "nightRisk": self._label_for_night(leg["avg_night_risk"]),
                     },
                     "explanations": explanations,
-                    "hazardPoints": best_plan["bike"]["hazard_points"],
+                    "hazardPoints": leg["hazard_points"],
                 },
                 "meta": {
                     "engine": "osmnx",
