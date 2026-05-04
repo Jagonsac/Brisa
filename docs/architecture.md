@@ -38,6 +38,15 @@ Reglas:
 - **Safety layer:** grid y resumen de seguridad para visualización y explicabilidad.
 - **Cyclability neighborhoods:** score por barrio, detalle y comparación.
 - **Geocoding:** sugerencias de ubicación para origen/destino.
+- **Insights IA de rutas:** análisis textual comparativo de seguridad a partir de métricas calculadas por backend.
+
+## Capa IA (route insights)
+
+- Endpoint: `POST /api/ai/route-insights`.
+- Entrada: lista de rutas resumidas (modo, distancia, seguridad relativa, iluminación, riesgo nocturno, puntos de peligro y explicaciones).
+- Implementación: `backend/app/services/ai_route_insights_service.py` llama a proveedor externo vía API de respuestas y exige salida JSON con esquema estricto.
+- Comportamiento ante error: si no hay configuración IA o falla el proveedor, el endpoint responde error controlado (503/502) y no genera análisis alternativo.
+- Safety/arquitectura: la IA no calcula geometría ni scoring; solo interpreta señales ya calculadas por servicios de routing/safety.
 
 ## Flujo de una petición de rutas
 
@@ -58,4 +67,3 @@ Reglas:
 - Backend-first para cálculos geoespaciales.
 - Contratos de integración como frontera explícita.
 - Evolución incremental por capacidades, preservando compatibilidad.
-

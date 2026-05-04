@@ -54,37 +54,6 @@ class AIRouteInsightsService:
             )
         return {"city": "Madrid", "routeCount": len(sanitized), "hasNightRoute": any(str(item.get("mode", "")).lower() == "night" for item in sanitized), "routes": sanitized}
 
-    def _build_fallback_insights(self, routes: list[dict[str, Any]]) -> dict[str, Any]:
-        normalized_routes = []
-        for route in routes:
-            mode = str(route.get("mode", "desconocido"))
-            risk = str(route.get("nightRisk", "medium")).lower()
-            if risk not in {"low", "medium", "high"}:
-                risk = "medium"
-            hazards = route.get("hazardPoints", route.get("hazards", [])) or []
-            hazard_count = len(hazards) if isinstance(hazards, list) else 0
-            normalized_routes.append(
-                {
-                    "mode": mode,
-                    "best": "Menor exposición nocturna y mejor continuidad ciclista según métricas de la ruta.",
-                    "worst": f"Se detectan {hazard_count} puntos de peligro reportados en este itinerario.",
-                    "riskLevel": risk,
-                    "tips": [
-                        "Prioriza vías con carril bici segregado cuando sea posible.",
-                        "Reduce velocidad al aproximarte a cruces complejos.",
-                        "En horario nocturno, usa iluminación activa y chaleco reflectante.",
-                    ],
-                }
-            )
-        return {
-            "overview": "Análisis temporal generado sin IA externa; revisa especialmente cruces y tramos con mayor exposición.",
-            "routes": normalized_routes,
-            "globalTips": [
-                "Una concentración alta de accidentes puede reflejar también mayor volumen ciclista, no solo mayor peligro intrínseco.",
-                "Compara riesgo nocturno y puntos de peligro antes de elegir la ruta final.",
-            ],
-        }
-
     async def analyze_routes(self, *, routes: list[dict[str, Any]], client_key: str) -> dict[str, Any]:
         if not self.api_key:
             raise AIRouteInsightsError("ai_not_configured", "La IA no está configurada en el servidor.", 503)
@@ -124,10 +93,10 @@ class AIRouteInsightsService:
                         "max_output_tokens": 650,
                     },
                 )
-        except httpx.HTTPError:
-            return self._build_fallback_insights(routes)
+        except httpx.HTTPError as error:
+            raise AIRouteInsightsError("ai_provider_unavailable", "El proveedor de IA no está disponible temporalmente.", 502) from error
         if response.status_code >= 400:
-            return self._build_fallback_insights(routes)
+            raise AIRouteInsightsError("ai_provider_error", "El proveedor de IA devolvió un error.", 502)
 
         payload = response.json()
         output_json = None
@@ -152,7 +121,7 @@ class AIRouteInsightsService:
             try:
                 data = json.loads(output_text)
             except json.JSONDecodeError:
-                return self._build_fallback_insights(routes)
+                raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502)
 
         if not isinstance(data, dict) or "routes" not in data:
             raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un esquema incompleto.", 502)
