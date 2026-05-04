@@ -81,8 +81,14 @@ class AIRouteInsightsService:
                         output_json = content.get("json")
                     elif isinstance(content.get("json"), str):
                         output_fragments.append(content.get("json", ""))
-                if content_type in {"output_text", "text"} and isinstance(content.get("text"), str):
-                    output_fragments.append(content.get("text", ""))
+                if content_type in {"output_text", "text"}:
+                    text_payload = content.get("text", "")
+                    if isinstance(text_payload, str):
+                        output_fragments.append(text_payload)
+                    elif isinstance(text_payload, dict):
+                        text_value = text_payload.get("value")
+                        if isinstance(text_value, str):
+                            output_fragments.append(text_value)
 
         if isinstance(output_json, dict):
             return output_json
@@ -128,14 +134,53 @@ class AIRouteInsightsService:
             "Devuelve exactamente una entrada por modo, sin añadir ni quitar modos. "
             f"Modos permitidos y obligatorios: {expected_modes_json}."
         )
+        expected_modes_set = {mode for mode in expected_modes if mode}
+        extra_focus = []
+        if "night" in expected_modes_set:
+            extra_focus.append("En rutas nocturnas explica explícitamente iluminación y riesgo nocturno.")
+        if "bicimad" in expected_modes_set:
+            extra_focus.append("En rutas bicimad evalúa el impacto de transbordos pie+bici y posible disponibilidad de estaciones.")
+
         user_prompt = (
             "Devuelve ÚNICAMENTE el objeto JSON que exige el esquema. "
             "Cada campo textual: máximo 2 frases. Máximo 3 consejos por ruta. "
-            "Incluye en el razonamiento de rutas nocturnas la iluminación y el riesgo nocturno. "
-            "Incluye en rutas bicimad el impacto de transbordos pie+bici y posible disponibilidad de estaciones. "
-            "Aclara que una concentración alta de accidentes puede reflejar más volumen ciclista, no solo mayor peligro intrínseco.\n"
-            f"Datos de entrada: {json.dumps(prompt_payload, ensure_ascii=False, allow_nan=False)}"
+            "No añadas modos nuevos ni elimines modos existentes del input. "
+            "Aclara que una concentración alta de accidentes puede reflejar más volumen ciclista, no solo mayor peligro intrínseco. "
+            + " ".join(extra_focus)
+            + "\n"
+            + f"Datos de entrada: {json.dumps(prompt_payload, ensure_ascii=False, allow_nan=False)}"
         )
+
+        mode_schema: dict[str, Any] = {"type": "string"}
+        if expected_modes:
+            mode_schema = {"type": "string", "enum": expected_modes}
+
+        response_schema: dict[str, Any] = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "overview": {"type": "string"},
+                "routes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "mode": mode_schema,
+                            "best": {"type": "string"},
+                            "worst": {"type": "string"},
+                            "riskLevel": {"type": "string", "enum": ["low", "medium", "high"]},
+                            "tips": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
+                        },
+                        "required": ["mode", "best", "worst", "riskLevel", "tips"],
+                    },
+                    "minItems": len(expected_modes),
+                    "maxItems": len(expected_modes),
+                },
+                "globalTips": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["overview", "routes", "globalTips"],
+        }
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
@@ -148,7 +193,7 @@ class AIRouteInsightsService:
                             {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
                             {"role": "user", "content": [{"type": "input_text", "text": user_prompt}]},
                         ],
-                        "text": {"format": {"type": "json_schema", "name": "route_insights", "strict": True, "schema": {"type": "object", "additionalProperties": False, "properties": {"overview": {"type": "string"}, "routes": {"type": "array", "items": {"type": "object", "additionalProperties": False, "properties": {"mode": {"type": "string"}, "best": {"type": "string"}, "worst": {"type": "string"}, "riskLevel": {"type": "string", "enum": ["low", "medium", "high"]}, "tips": {"type": "array", "items": {"type": "string"}}}, "required": ["mode", "best", "worst", "riskLevel", "tips"]}}, "globalTips": {"type": "array", "items": {"type": "string"}}}, "required": ["overview", "routes", "globalTips"]}}},
+                        "text": {"format": {"type": "json_schema", "name": "route_insights", "strict": True, "schema": response_schema}},
                         "max_output_tokens": 650,
                     },
                 )
