@@ -67,6 +67,9 @@ class AIRouteInsightsService:
         output_json = None
         output_fragments: list[str] = []
 
+        if isinstance(payload.get("output_parsed"), dict):
+            return payload["output_parsed"]
+
         if isinstance(payload.get("output_text"), str) and payload.get("output_text"):
             output_fragments.append(payload["output_text"])
 
@@ -118,20 +121,20 @@ class AIRouteInsightsService:
         expected_modes_json = json.dumps(expected_modes, ensure_ascii=False)
         system_prompt = (
             "Eres el copiloto ciclista de Brisa (Madrid). "
-            "Analiza SOLO seguridad ciclista de rutas proporcionadas. "
-            "Responde SIEMPRE JSON válido y nada más. "
-            "Prioriza incidencias concretas de puntos de peligro antes que puntuaciones globales. Evita anglicismos (por ejemplo, usa 'puntos de peligro' y no 'hotspots'). "
-            "Si una ruta no tiene hazardPoints, indícalo explícitamente. "
-            "Si faltan datos, dilo con prudencia. No inventes calles, barrios, eventos ni coordenadas. "
-            f"Respeta exactamente estos modos de entrada y devuelve exactamente una entrada por cada modo (sin añadir ni quitar): {expected_modes_json}."
+            "Analiza SOLO la seguridad ciclista de las rutas proporcionadas. "
+            "No inventes calles, barrios, eventos ni coordenadas. "
+            "Si faltan datos o una ruta no tiene puntos de peligro, indícalo con prudencia. "
+            "Prioriza incidencias concretas de puntos de peligro antes que puntuaciones globales. "
+            "Devuelve exactamente una entrada por modo, sin añadir ni quitar modos. "
+            f"Modos permitidos y obligatorios: {expected_modes_json}."
         )
         user_prompt = (
-            "Genera JSON con esta forma exacta: "
-            "{\"overview\":string,\"routes\":[{\"mode\":string,\"best\":string,\"worst\":string,\"riskLevel\":\"low\"|\"medium\"|\"high\",\"tips\":[string]}],\"globalTips\":[string]}. "
-            "Máximo 2 frases por campo textual y máximo 3 consejos por ruta. Explica que una alta concentración de accidentes también puede reflejar mayor volumen de tráfico ciclista en la zona, no solo mayor peligro intrínseco. "
-            "Si hay ruta nocturna (mode=night), tenlo en cuenta explícitamente en el análisis de esa alternativa. "
-            "Si hay ruta bicimad (mode=bicimad), ten en cuenta explícitamente transbordos pie+bici y disponibilidad potencial de estaciones en origen/destino.\n"
-            f"Datos: {json.dumps(prompt_payload, ensure_ascii=False)}"
+            "Devuelve ÚNICAMENTE el objeto JSON que exige el esquema. "
+            "Cada campo textual: máximo 2 frases. Máximo 3 consejos por ruta. "
+            "Incluye en el razonamiento de rutas nocturnas la iluminación y el riesgo nocturno. "
+            "Incluye en rutas bicimad el impacto de transbordos pie+bici y posible disponibilidad de estaciones. "
+            "Aclara que una concentración alta de accidentes puede reflejar más volumen ciclista, no solo mayor peligro intrínseco.\n"
+            f"Datos de entrada: {json.dumps(prompt_payload, ensure_ascii=False, allow_nan=False)}"
         )
 
         try:
@@ -145,7 +148,7 @@ class AIRouteInsightsService:
                             {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
                             {"role": "user", "content": [{"type": "input_text", "text": user_prompt}]},
                         ],
-                        "text": {"format": {"type": "json_schema", "name": "route_insights", "schema": {"type": "object", "additionalProperties": False, "properties": {"overview": {"type": "string"}, "routes": {"type": "array", "items": {"type": "object", "additionalProperties": False, "properties": {"mode": {"type": "string"}, "best": {"type": "string"}, "worst": {"type": "string"}, "riskLevel": {"type": "string", "enum": ["low", "medium", "high"]}, "tips": {"type": "array", "items": {"type": "string"}}}, "required": ["mode", "best", "worst", "riskLevel", "tips"]}}, "globalTips": {"type": "array", "items": {"type": "string"}}}, "required": ["overview", "routes", "globalTips"]}}},
+                        "text": {"format": {"type": "json_schema", "name": "route_insights", "strict": True, "schema": {"type": "object", "additionalProperties": False, "properties": {"overview": {"type": "string"}, "routes": {"type": "array", "items": {"type": "object", "additionalProperties": False, "properties": {"mode": {"type": "string"}, "best": {"type": "string"}, "worst": {"type": "string"}, "riskLevel": {"type": "string", "enum": ["low", "medium", "high"]}, "tips": {"type": "array", "items": {"type": "string"}}}, "required": ["mode", "best", "worst", "riskLevel", "tips"]}}, "globalTips": {"type": "array", "items": {"type": "string"}}}, "required": ["overview", "routes", "globalTips"]}}},
                         "max_output_tokens": 650,
                     },
                 )
