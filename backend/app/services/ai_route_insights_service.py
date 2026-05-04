@@ -63,6 +63,48 @@ class AIRouteInsightsService:
             "routes": sanitized,
         }
 
+    def _extract_ai_json(self, payload: dict[str, Any]) -> dict[str, Any]:
+        output_json = None
+        output_fragments: list[str] = []
+
+        if isinstance(payload.get("output_text"), str) and payload.get("output_text"):
+            output_fragments.append(payload["output_text"])
+
+        for item in payload.get("output", []):
+            for content in item.get("content", []):
+                content_type = content.get("type")
+                if content_type == "output_json":
+                    if isinstance(content.get("json"), dict):
+                        output_json = content.get("json")
+                    elif isinstance(content.get("json"), str):
+                        output_fragments.append(content.get("json", ""))
+                if content_type in {"output_text", "text"} and isinstance(content.get("text"), str):
+                    output_fragments.append(content.get("text", ""))
+
+        if isinstance(output_json, dict):
+            return output_json
+
+        output_text = "".join(output_fragments).strip()
+        if not output_text:
+            raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió una respuesta vacía.", 502)
+        try:
+            return json.loads(output_text)
+        except json.JSONDecodeError:
+            fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", output_text, flags=re.DOTALL | re.IGNORECASE)
+            if fenced:
+                try:
+                    return json.loads(fenced.group(1))
+                except json.JSONDecodeError as error:
+                    raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502) from error
+
+            embedded_json = re.search(r"(\{[\s\S]*\"routes\"[\s\S]*\})", output_text, flags=re.IGNORECASE)
+            if embedded_json:
+                try:
+                    return json.loads(embedded_json.group(1))
+                except json.JSONDecodeError:
+                    pass
+            raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502)
+
     async def analyze_routes(self, *, routes: list[dict[str, Any]], client_key: str) -> dict[str, Any]:
         if not self.api_key:
             raise AIRouteInsightsError("ai_not_configured", "La IA no está configurada en el servidor.", 503)
@@ -113,36 +155,7 @@ class AIRouteInsightsService:
             raise AIRouteInsightsError("ai_provider_error", "El proveedor de IA devolvió un error.", 502)
 
         payload = response.json()
-        output_json = None
-        output_fragments: list[str] = []
-        if isinstance(payload.get("output_text"), str) and payload.get("output_text"):
-            output_fragments.append(payload["output_text"])
-
-        for item in payload.get("output", []):
-            for content in item.get("content", []):
-                content_type = content.get("type")
-                if content_type == "output_json" and isinstance(content.get("json"), dict):
-                    output_json = content.get("json")
-                if content_type in {"output_text", "text"} and isinstance(content.get("text"), str):
-                    output_fragments.append(content.get("text", ""))
-
-        if output_json is not None:
-            data = output_json
-        else:
-            output_text = "".join(output_fragments).strip()
-            if not output_text:
-                raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió una respuesta vacía.", 502)
-            try:
-                data = json.loads(output_text)
-            except json.JSONDecodeError:
-                fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", output_text, flags=re.DOTALL | re.IGNORECASE)
-                if fenced:
-                    try:
-                        data = json.loads(fenced.group(1))
-                    except json.JSONDecodeError as error:
-                        raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502) from error
-                else:
-                    raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502)
+        data = self._extract_ai_json(payload)
 
         if not isinstance(data, dict) or "routes" not in data:
             raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un esquema incompleto.", 502)
