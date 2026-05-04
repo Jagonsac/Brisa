@@ -88,7 +88,7 @@ class AIRouteInsightsService:
                         {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
                         {"role": "user", "content": [{"type": "input_text", "text": user_prompt}]},
                     ],
-                    "text": {"format": {"type": "json_object"}},
+                    "text": {"format": {"type": "json_schema", "name": "route_insights", "schema": {"type": "object", "additionalProperties": False, "properties": {"overview": {"type": "string"}, "routes": {"type": "array", "items": {"type": "object", "additionalProperties": False, "properties": {"mode": {"type": "string"}, "best": {"type": "string"}, "worst": {"type": "string"}, "riskLevel": {"type": "string", "enum": ["low", "medium", "high"]}, "tips": {"type": "array", "items": {"type": "string"}}}, "required": ["mode", "best", "worst", "tips"]}}, "globalTips": {"type": "array", "items": {"type": "string"}}}, "required": ["overview", "routes", "globalTips"]}}},
                     "max_output_tokens": 650,
                 },
             )
@@ -96,11 +96,13 @@ class AIRouteInsightsService:
             raise AIRouteInsightsError("openai_error", "No se pudo generar el análisis IA en este momento.", 502)
 
         payload = response.json()
-        output_text = ""
+        output_text = payload.get("output_text", "") or ""
         for item in payload.get("output", []):
             for content in item.get("content", []):
-                if content.get("type") == "output_text":
+                if content.get("type") in {"output_text", "text"}:
                     output_text += content.get("text", "")
+                if content.get("type") == "output_json":
+                    output_text += json.dumps(content.get("json", {}), ensure_ascii=False)
         if not output_text:
             raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió una respuesta vacía.", 502)
 
@@ -111,5 +113,20 @@ class AIRouteInsightsService:
 
         if not isinstance(data, dict) or "routes" not in data:
             raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un esquema incompleto.", 502)
+
+        data.setdefault("overview", "")
+        data.setdefault("globalTips", [])
+        normalized_routes = []
+        for route in data.get("routes", []):
+            if not isinstance(route, dict):
+                continue
+            normalized_routes.append({
+                "mode": str(route.get("mode", "")),
+                "best": str(route.get("best", "")),
+                "worst": str(route.get("worst", "")),
+                "riskLevel": route.get("riskLevel", "medium"),
+                "tips": [str(tip) for tip in (route.get("tips") or [])][:3],
+            })
+        data["routes"] = normalized_routes
 
         return data
