@@ -138,3 +138,6 @@
     padding: 1.15rem 1rem 1rem;
   }
 }
+
+.iaGradient{background:linear-gradient(90deg,#2266d6,#7a39d9,#23b574);background-size:200% 200%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:iaFlow 3.2s ease infinite;font-weight:800}
+@keyframes iaFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}

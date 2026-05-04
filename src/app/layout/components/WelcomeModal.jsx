@@ -41,11 +41,11 @@ export function WelcomeModal({ open, onClose }) {
         </button>
 
         <p className={styles.eyebrow}>👋 Bienvenida/o a Brisa</p>
-        <h2 id="welcome-modal-title">Tu copiloto ciclista para moverte más segura/o por Madrid</h2>
+        <h2 id="welcome-modal-title">Tu copiloto ciclista para moverte más segura/o por Madrid, potenciado por la <span className={styles.iaGradient}>IA</span></h2>
 
         <p>
           <strong>Brisa</strong> es un proyecto gratuito que te ayuda a elegir rutas en bici de forma fácil, visual y
-          con criterio de seguridad real. Solo tienes que indicar origen y destino y comparar alternativas en segundos.
+          con criterio de seguridad real y análisis inteligente de riesgos. Solo tienes que indicar origen y destino y comparar alternativas en segundos.
         </p>
 
         <p>
@@ -65,6 +65,10 @@ export function WelcomeModal({ open, onClose }) {
           <span style={{ '--mode-color': ROUTE_MODES.BALANCED.color }} className={styles.modePill}>Equilibrada</span>.
           Además, el <span style={{ '--mode-color': ROUTE_MODES.NIGHT.color }} className={styles.modePill}>Modo nocturno</span> tiene en cuenta
           tráfico nocturno, accidentalidad nocturna y luminosidad de las calles para proponer la opción más segura al anochecer.
+        </p>
+
+        <p>
+          La IA también compara alternativas, detecta puntos de peligro en el trazado y te explica con lenguaje claro por qué una ruta puede ser más segura que otra.
         </p>
 
         <p>

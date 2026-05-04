@@ -1,5 +1,13 @@
-.card{margin-top:.8rem;border:1px solid #d3e0f7;border-radius:12px;padding:.7rem;background:#f8fbff}
-.headerRow{display:flex;justify-content:space-between;align-items:center}.cta{width:100%;padding:.62rem;border-radius:10px;border:none;background:#1e63d6;color:#fff;font-weight:700}
-.closeButton{border:1px solid #c5d8f3;background:#fff;border-radius:8px;padding:.3rem .55rem}
+.card{border:1px solid #d3e0f7;border-radius:12px;padding:.65rem;background:#f8fbff;box-shadow:0 10px 20px rgba(20,42,78,.16)}
+.desktopAnchor{min-width:260px;max-width:320px}
+.desktopOpen{min-width:320px;max-width:420px}
+.expanded{max-width:520px}
+.mobileAnchor{min-width:170px;max-width:220px}
+.mobileOpen{position:absolute;inset:0;border-radius:0;z-index:820;padding:.8rem;background:#fff}
+.headerRow{display:flex;justify-content:space-between;gap:.55rem;align-items:flex-start}.headerRow h3{margin:0;font-size:.82rem;line-height:1.2;color:#12376e}
+.actions{display:flex;gap:.35rem}.cta{width:100%;padding:.62rem;border-radius:10px;border:none;background:#1e63d6;color:#fff;font-weight:700}
+.secondaryButton,.closeButton{border:1px solid #c5d8f3;background:#fff;border-radius:8px;padding:.3rem .55rem;font-size:.72rem;font-weight:700}
 .routeBlock{border-top:1px dashed #cfdcf1;margin-top:.6rem;padding-top:.5rem}.overview{color:#1b365e}.error{color:#9f1c1c}
-.content{max-height:42vh;overflow:auto}
+.content{max-height:36vh;overflow:auto;font-size:.84rem}
+.expanded .content{max-height:56vh}
+.mobileOpen .content{max-height:calc(100vh - 140px)}

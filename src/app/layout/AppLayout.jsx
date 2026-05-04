@@ -558,7 +558,7 @@ export function AppLayout() {
                 error={routeError}
                 statusMessage={selectedRoute ? 'Rutas listas en mapa.' : 'Sin rutas calculadas todavía.'}
               />
-              {hasCalculatedRoutes && (
+              {hasCalculatedRoutes && !isMobile && (
                 <AiRouteInsightsPanel
                   insights={aiInsights}
                   loading={aiInsightsLoading}
@@ -567,6 +567,7 @@ export function AppLayout() {
                   onClose={() => setAiPanelOpen(false)}
                   open={aiPanelOpen}
                   disabled={!hasCalculatedRoutes}
+                  isMobile={false}
                 />
               )}
             </section>
@@ -639,6 +640,35 @@ export function AppLayout() {
               <button type="button" className={`${styles.layerOptionButton} ${activeInsightLayer === LAYER_VISIBILITY_MODE.NONE ? styles.layerOptionButtonActive : ''}`} onClick={() => setActiveInsightLayer(LAYER_VISIBILITY_MODE.NONE)}>Sin índice</button>
             </div>
           )}
+                    {hasCalculatedRoutes && (
+            <div className={styles.aiMapPanelDesktop}>
+              <AiRouteInsightsPanel
+                insights={aiInsights}
+                loading={aiInsightsLoading}
+                error={aiInsightsError}
+                onAnalyze={handleAnalyzeWithAi}
+                onClose={() => setAiPanelOpen(false)}
+                open={aiPanelOpen}
+                disabled={!hasCalculatedRoutes}
+                isMobile={false}
+              />
+            </div>
+          )}
+          {isMobile && hasCalculatedRoutes && (
+            <div className={styles.aiMapPanelMobile}>
+              <AiRouteInsightsPanel
+                insights={aiInsights}
+                loading={aiInsightsLoading}
+                error={aiInsightsError}
+                onAnalyze={handleAnalyzeWithAi}
+                onClose={() => setAiPanelOpen(false)}
+                open={aiPanelOpen}
+                disabled={!hasCalculatedRoutes}
+                isMobile
+              />
+            </div>
+          )}
+
           {featureFlags.enableMap ? (
             <MapView
               bicimadStations={bicimadState.stations}

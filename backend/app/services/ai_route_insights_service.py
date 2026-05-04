@@ -67,14 +67,14 @@ class AIRouteInsightsService:
             "Eres el copiloto ciclista de Brisa (Madrid). "
             "Analiza SOLO seguridad ciclista de rutas proporcionadas. "
             "Responde SIEMPRE JSON válido y nada más. "
-            "Prioriza incidencias concretas de hazardPoints antes que scores globales. "
+            "Prioriza incidencias concretas de puntos de peligro antes que puntuaciones globales. Evita anglicismos (por ejemplo, usa 'puntos de peligro' y no 'hotspots'). "
             "Si una ruta no tiene hazardPoints, indícalo explícitamente. "
             "Si faltan datos, dilo con prudencia. No inventes calles, barrios, eventos ni coordenadas."
         )
         user_prompt = (
             "Genera JSON con esta forma exacta: "
             "{\"overview\":string,\"routes\":[{\"mode\":string,\"best\":string,\"worst\":string,\"riskLevel\":\"low\"|\"medium\"|\"high\",\"tips\":[string]}],\"globalTips\":[string]}. "
-            "Máximo 2 frases por campo textual y máximo 3 tips por ruta.\n"
+            "Máximo 2 frases por campo textual y máximo 3 consejos por ruta. Explica que una alta concentración de accidentes también puede reflejar mayor volumen de tráfico ciclista en la zona, no solo mayor peligro intrínseco.\n"
             f"Datos: {json.dumps(prompt_payload, ensure_ascii=False)}"
         )
 

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { CircleMarker, GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from 'react-leaflet';
+import { GeoJSON, MapContainer, Marker, Pane, Popup, TileLayer, useMap } from 'react-leaflet';
 
 import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLayer';
 import { getSafetyColor } from '../../safety/utils/safetyColors';
@@ -27,6 +27,13 @@ const destinationIcon = L.divIcon({
   iconSize: [24, 24],
   iconAnchor: [12, 12],
 });
+const hazardBalloonIcon = L.divIcon({
+  className: styles.hazardBalloonMarker,
+  html: '<button type="button" class="hazardBalloonButton" aria-label="Punto de peligro"><span class="hazardBubble"><span class="hazardSign">!</span></span></button>',
+  iconSize: [40, 50],
+  iconAnchor: [20, 48],
+});
+
 const bicimadStationIcon = L.divIcon({
   className: styles.bicimadRecommendationMarker,
   html: '<span>B</span>',
@@ -271,14 +278,9 @@ export function MapView({
 
 
         {showAiHazards && hazardPoints.map((hazard) => (
-          <CircleMarker
-            key={hazard.id}
-            center={[hazard.lat, hazard.lon]}
-            radius={7}
-            pathOptions={{ color: '#fff', weight: 1.2, fillColor: '#dc2626', fillOpacity: 0.95 }}
-          >
-            <Popup>⚠️ {hazard.title}<br/>{hazard.description}<br/>Fuente: {hazard.evidence?.dataset}<br/>Perfil: {hazard.modeKey}</Popup>
-          </CircleMarker>
+          <Marker key={hazard.id} position={[hazard.lat, hazard.lon]} icon={hazardBalloonIcon} zIndexOffset={2000}>
+            <Popup>⚠️ {hazard.title}<br/>{hazard.description}<br/>Fuente: {hazard.evidence?.dataset}<br/>Ruta: {hazard.modeKey}</Popup>
+          </Marker>
         ))}
 
         {destinationPosition && (
