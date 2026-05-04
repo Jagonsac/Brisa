@@ -64,47 +64,49 @@ class AIRouteInsightsService:
         }
 
     def _extract_ai_json(self, payload: dict[str, Any]) -> dict[str, Any]:
+        output_json = None
+        output_fragments: list[str] = []
+
         if isinstance(payload.get("output_parsed"), dict):
             return payload["output_parsed"]
 
-        json_candidates: list[str] = []
-
-        if isinstance(payload.get("output_text"), str) and payload.get("output_text").strip():
-            json_candidates.append(payload["output_text"].strip())
+        if isinstance(payload.get("output_text"), str) and payload.get("output_text"):
+            output_fragments.append(payload["output_text"])
 
         for item in payload.get("output", []):
             for content in item.get("content", []):
                 content_type = content.get("type")
                 if content_type == "output_json":
                     if isinstance(content.get("json"), dict):
-                        return content.get("json")
-                    if isinstance(content.get("json"), str) and content.get("json").strip():
-                        json_candidates.append(content.get("json").strip())
-                if content_type in {"output_text", "text"} and isinstance(content.get("text"), str) and content.get("text").strip():
-                    json_candidates.append(content.get("text").strip())
+                        output_json = content.get("json")
+                    elif isinstance(content.get("json"), str):
+                        output_fragments.append(content.get("json", ""))
+                if content_type in {"output_text", "text"} and isinstance(content.get("text"), str):
+                    output_fragments.append(content.get("text", ""))
 
-        if not json_candidates:
+        if isinstance(output_json, dict):
+            return output_json
+
+        output_text = "".join(output_fragments).strip()
+        if not output_text:
             raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió una respuesta vacía.", 502)
+        try:
+            return json.loads(output_text)
+        except json.JSONDecodeError:
+            fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", output_text, flags=re.DOTALL | re.IGNORECASE)
+            if fenced:
+                try:
+                    return json.loads(fenced.group(1))
+                except json.JSONDecodeError as error:
+                    raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502) from error
 
-        for candidate in reversed(json_candidates):
-            try:
-                return json.loads(candidate)
-            except json.JSONDecodeError:
-                fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", candidate, flags=re.DOTALL | re.IGNORECASE)
-                if fenced:
-                    try:
-                        return json.loads(fenced.group(1))
-                    except json.JSONDecodeError:
-                        pass
-
-                embedded_json = re.search(r"(\{[\s\S]*\"routes\"[\s\S]*\})", candidate, flags=re.IGNORECASE)
-                if embedded_json:
-                    try:
-                        return json.loads(embedded_json.group(1))
-                    except json.JSONDecodeError:
-                        pass
-
-        raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502)
+            embedded_json = re.search(r"(\{[\s\S]*\"routes\"[\s\S]*\})", output_text, flags=re.IGNORECASE)
+            if embedded_json:
+                try:
+                    return json.loads(embedded_json.group(1))
+                except json.JSONDecodeError:
+                    pass
+            raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502)
 
     async def analyze_routes(self, *, routes: list[dict[str, Any]], client_key: str) -> dict[str, Any]:
         if not self.api_key:
