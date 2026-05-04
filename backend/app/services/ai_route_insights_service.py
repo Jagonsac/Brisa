@@ -90,13 +90,12 @@ class AIRouteInsightsService:
         output_text = "".join(output_fragments).strip()
         if not output_text:
             raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió una respuesta vacía.", 502)
-                for fenced in re.finditer(r"```(?:json)?\s*([\s\S]*?)\s*```", candidate, flags=re.IGNORECASE):
-                    fenced_content = fenced.group(1)
-                    for json_object in re.finditer(r"(\{.*?\})", fenced_content, flags=re.DOTALL):
-                        try:
-                            return json.loads(json_object.group(1))
-                        except json.JSONDecodeError:
-                            pass
+        try:
+            return json.loads(output_text)
+        except json.JSONDecodeError:
+            fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", output_text, flags=re.DOTALL | re.IGNORECASE)
+            if fenced:
+                try:
                     return json.loads(fenced.group(1))
                 except json.JSONDecodeError as error:
                     raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502) from error
