@@ -10,7 +10,7 @@ export function AiRouteInsightsPanel({ insights, loading, error, onAnalyze, onCl
     return (
       <section className={`${styles.card} ${isMobile ? styles.mobileAnchor : styles.desktopAnchor}`}>
         <button type="button" disabled={disabled || loading} onClick={onAnalyze} className={styles.cta}>
-          {loading ? 'ANALIZANDO RUTAS…' : 'ANALIZAR RUTAS CON IA'}
+          {loading ? 'ANALIZANDO RUTAS…' : insights ? 'VER ANÁLISIS IA' : 'ANALIZAR RUTAS CON IA'}
         </button>
       </section>
     );
@@ -26,7 +26,7 @@ export function AiRouteInsightsPanel({ insights, loading, error, onAnalyze, onCl
               {expanded ? 'MINIMIZAR' : 'AMPLIAR'}
             </button>
           )}
-          <button type="button" onClick={onClose} className={styles.closeButton}>CERRAR</button>
+          <button type="button" onClick={onClose} className={styles.closeIconButton} aria-label="Cerrar análisis de IA">×</button>
         </div>
       </div>
       <div className={styles.content}>
