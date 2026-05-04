@@ -54,6 +54,37 @@ class AIRouteInsightsService:
             )
         return {"city": "Madrid", "routes": sanitized}
 
+    def _build_fallback_insights(self, routes: list[dict[str, Any]]) -> dict[str, Any]:
+        normalized_routes = []
+        for route in routes:
+            mode = str(route.get("mode", "desconocido"))
+            risk = str(route.get("nightRisk", "medium")).lower()
+            if risk not in {"low", "medium", "high"}:
+                risk = "medium"
+            hazards = route.get("hazardPoints", route.get("hazards", [])) or []
+            hazard_count = len(hazards) if isinstance(hazards, list) else 0
+            normalized_routes.append(
+                {
+                    "mode": mode,
+                    "best": "Menor exposición nocturna y mejor continuidad ciclista según métricas de la ruta.",
+                    "worst": f"Se detectan {hazard_count} puntos de peligro reportados en este itinerario.",
+                    "riskLevel": risk,
+                    "tips": [
+                        "Prioriza vías con carril bici segregado cuando sea posible.",
+                        "Reduce velocidad al aproximarte a cruces complejos.",
+                        "En horario nocturno, usa iluminación activa y chaleco reflectante.",
+                    ],
+                }
+            )
+        return {
+            "overview": "Análisis temporal generado sin IA externa; revisa especialmente cruces y tramos con mayor exposición.",
+            "routes": normalized_routes,
+            "globalTips": [
+                "Una concentración alta de accidentes puede reflejar también mayor volumen ciclista, no solo mayor peligro intrínseco.",
+                "Compara riesgo nocturno y puntos de peligro antes de elegir la ruta final.",
+            ],
+        }
+
     async def analyze_routes(self, *, routes: list[dict[str, Any]], client_key: str) -> dict[str, Any]:
         if not self.api_key:
             raise AIRouteInsightsError("ai_not_configured", "La IA no está configurada en el servidor.", 503)
@@ -78,22 +109,25 @@ class AIRouteInsightsService:
             f"Datos: {json.dumps(prompt_payload, ensure_ascii=False)}"
         )
 
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/responses",
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
-                json={
-                    "model": self.model,
-                    "input": [
-                        {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
-                        {"role": "user", "content": [{"type": "input_text", "text": user_prompt}]},
-                    ],
-                    "text": {"format": {"type": "json_schema", "name": "route_insights", "schema": {"type": "object", "additionalProperties": False, "properties": {"overview": {"type": "string"}, "routes": {"type": "array", "items": {"type": "object", "additionalProperties": False, "properties": {"mode": {"type": "string"}, "best": {"type": "string"}, "worst": {"type": "string"}, "riskLevel": {"type": "string", "enum": ["low", "medium", "high"]}, "tips": {"type": "array", "items": {"type": "string"}}}, "required": ["mode", "best", "worst", "tips"]}}, "globalTips": {"type": "array", "items": {"type": "string"}}}, "required": ["overview", "routes", "globalTips"]}}},
-                    "max_output_tokens": 650,
-                },
-            )
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                response = await client.post(
+                    "https://api.openai.com/v1/responses",
+                    headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": self.model,
+                        "input": [
+                            {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
+                            {"role": "user", "content": [{"type": "input_text", "text": user_prompt}]},
+                        ],
+                        "text": {"format": {"type": "json_schema", "name": "route_insights", "schema": {"type": "object", "additionalProperties": False, "properties": {"overview": {"type": "string"}, "routes": {"type": "array", "items": {"type": "object", "additionalProperties": False, "properties": {"mode": {"type": "string"}, "best": {"type": "string"}, "worst": {"type": "string"}, "riskLevel": {"type": "string", "enum": ["low", "medium", "high"]}, "tips": {"type": "array", "items": {"type": "string"}}}, "required": ["mode", "best", "worst", "riskLevel", "tips"]}}, "globalTips": {"type": "array", "items": {"type": "string"}}}, "required": ["overview", "routes", "globalTips"]}}},
+                        "max_output_tokens": 650,
+                    },
+                )
+        except httpx.HTTPError:
+            return self._build_fallback_insights(routes)
         if response.status_code >= 400:
-            raise AIRouteInsightsError("openai_error", "No se pudo generar el análisis IA en este momento.", 502)
+            return self._build_fallback_insights(routes)
 
         payload = response.json()
         output_text = payload.get("output_text", "") or ""

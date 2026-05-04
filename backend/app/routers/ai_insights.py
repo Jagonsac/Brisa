@@ -9,8 +9,12 @@ service = AIRouteInsightsService()
 
 
 @router.post("/route-insights")
-async def route_insights(request: Request, payload: dict = Body(...)) -> dict:
-    routes = payload.get("routes")
+async def route_insights(request: Request, payload: dict | list = Body(...)) -> dict:
+    routes = payload.get("routes") if isinstance(payload, dict) else None
+    if routes is None and isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+        routes = payload["data"].get("routes")
+    if routes is None and isinstance(payload, list):
+        routes = payload
     if not isinstance(routes, list):
         raise HTTPException(status_code=400, detail={"code": "invalid_ai_request", "message": "El campo routes debe ser una lista."})
 

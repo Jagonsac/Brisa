@@ -281,7 +281,7 @@ class RouteService:
                         "bikeDurationSeconds": round(bike_duration, 1),
                     },
                     "explanations": explanations,
-                    "hazardPoints": leg["hazard_points"],
+                    "hazardPoints": best_plan["bike"]["hazard_points"],
                 },
                 "meta": {
                     "engine": "osmnx",
