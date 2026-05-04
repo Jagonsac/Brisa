@@ -558,18 +558,6 @@ export function AppLayout() {
                 error={routeError}
                 statusMessage={selectedRoute ? 'Rutas listas en mapa.' : 'Sin rutas calculadas todavía.'}
               />
-              {hasCalculatedRoutes && !isMobile && (
-                <AiRouteInsightsPanel
-                  insights={aiInsights}
-                  loading={aiInsightsLoading}
-                  error={aiInsightsError}
-                  onAnalyze={handleAnalyzeWithAi}
-                  onClose={() => setAiPanelOpen(false)}
-                  open={aiPanelOpen}
-                  disabled={!hasCalculatedRoutes}
-                  isMobile={false}
-                />
-              )}
             </section>
           )}
 

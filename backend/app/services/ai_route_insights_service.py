@@ -52,7 +52,7 @@ class AIRouteInsightsService:
                     "explanations": route.get("explanations", [])[:4],
                 }
             )
-        return {"city": "Madrid", "routes": sanitized}
+        return {"city": "Madrid", "routeCount": len(sanitized), "hasNightRoute": any(str(item.get("mode", "")).lower() == "night" for item in sanitized), "routes": sanitized}
 
     def _build_fallback_insights(self, routes: list[dict[str, Any]]) -> dict[str, Any]:
         normalized_routes = []
@@ -100,12 +100,12 @@ class AIRouteInsightsService:
             "Responde SIEMPRE JSON válido y nada más. "
             "Prioriza incidencias concretas de puntos de peligro antes que puntuaciones globales. Evita anglicismos (por ejemplo, usa 'puntos de peligro' y no 'hotspots'). "
             "Si una ruta no tiene hazardPoints, indícalo explícitamente. "
-            "Si faltan datos, dilo con prudencia. No inventes calles, barrios, eventos ni coordenadas."
+            "Si faltan datos, dilo con prudencia. No inventes calles, barrios, eventos ni coordenadas. Respeta exactamente los modos de entrada y devuelve una entrada por cada modo recibido (incluyendo night cuando exista)."
         )
         user_prompt = (
             "Genera JSON con esta forma exacta: "
             "{\"overview\":string,\"routes\":[{\"mode\":string,\"best\":string,\"worst\":string,\"riskLevel\":\"low\"|\"medium\"|\"high\",\"tips\":[string]}],\"globalTips\":[string]}. "
-            "Máximo 2 frases por campo textual y máximo 3 consejos por ruta. Explica que una alta concentración de accidentes también puede reflejar mayor volumen de tráfico ciclista en la zona, no solo mayor peligro intrínseco.\n"
+            "Máximo 2 frases por campo textual y máximo 3 consejos por ruta. Explica que una alta concentración de accidentes también puede reflejar mayor volumen de tráfico ciclista en la zona, no solo mayor peligro intrínseco. Si hay ruta nocturna (mode=night), tenlo en cuenta explícitamente en el análisis de esa alternativa.\n"
             f"Datos: {json.dumps(prompt_payload, ensure_ascii=False)}"
         )
 
@@ -130,20 +130,29 @@ class AIRouteInsightsService:
             return self._build_fallback_insights(routes)
 
         payload = response.json()
-        output_text = payload.get("output_text", "") or ""
+        output_json = None
+        output_fragments: list[str] = []
+        if isinstance(payload.get("output_text"), str) and payload.get("output_text"):
+            output_fragments.append(payload["output_text"])
+
         for item in payload.get("output", []):
             for content in item.get("content", []):
-                if content.get("type") in {"output_text", "text"}:
-                    output_text += content.get("text", "")
-                if content.get("type") == "output_json":
-                    output_text += json.dumps(content.get("json", {}), ensure_ascii=False)
-        if not output_text:
-            raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió una respuesta vacía.", 502)
+                content_type = content.get("type")
+                if content_type == "output_json" and isinstance(content.get("json"), dict):
+                    output_json = content.get("json")
+                if content_type in {"output_text", "text"} and isinstance(content.get("text"), str):
+                    output_fragments.append(content.get("text", ""))
 
-        try:
-            data = json.loads(output_text)
-        except json.JSONDecodeError as error:
-            raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un formato no válido.", 502) from error
+        if output_json is not None:
+            data = output_json
+        else:
+            output_text = "".join(output_fragments).strip()
+            if not output_text:
+                raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió una respuesta vacía.", 502)
+            try:
+                data = json.loads(output_text)
+            except json.JSONDecodeError:
+                return self._build_fallback_insights(routes)
 
         if not isinstance(data, dict) or "routes" not in data:
             raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un esquema incompleto.", 502)
