@@ -15,7 +15,7 @@ export async function getAiRouteInsights(routesByMode) {
     relativeSafety: route?.summary?.relativeSafety,
     lightingQuality: route?.summary?.lightingQuality,
     nightRisk: route?.summary?.nightRisk,
-    hazards: route?.hazardPoints || [],
+    hazardPoints: route?.hazardPoints || [],
     explanations: route?.explanations || [],
   }));
 

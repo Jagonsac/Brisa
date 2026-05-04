@@ -277,7 +277,7 @@ export function MapView({
             radius={7}
             pathOptions={{ color: '#fff', weight: 1.2, fillColor: '#dc2626', fillOpacity: 0.95 }}
           >
-            <Popup>⚠️ {hazard.label}<br/>Perfil: {hazard.modeKey}</Popup>
+            <Popup>⚠️ {hazard.title}<br/>{hazard.description}<br/>Fuente: {hazard.evidence?.dataset}<br/>Perfil: {hazard.modeKey}</Popup>
           </CircleMarker>
         ))}
 

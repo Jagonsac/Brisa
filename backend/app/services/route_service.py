@@ -2,17 +2,22 @@ import math
 import threading
 import time
 import logging
+import os
 
 import networkx as nx
 import numpy as np
 import osmnx as ox
+from shapely.geometry import Point
 
 from app.core.routing_profiles import routing_profiles_config
 from app.schemas.route_response import RouteResponse
+from app.services.accident_data_service import AccidentDataService
 from app.services.bicimad_service import BicimadService
+from app.services.cyclability_service import CyclabilityService
 from app.services.edge_weight_service import EdgeWeightService
 from app.services.geocoding_service import GeocodedPoint, GeocodingError, GeocodingService
 from app.services.graph_service import GraphService
+from app.services.neighborhood_service import NeighborhoodService
 from app.utils.geojson import build_route_geojson_feature
 
 
@@ -38,9 +43,16 @@ class RouteService:
         self.geocoding_service = geocoding_service or GeocodingService()
         self.edge_weight_service = EdgeWeightService()
         self.bicimad_service = BicimadService()
+        self.accident_data_service = AccidentDataService()
+        self.cyclability_service = CyclabilityService()
+        self.neighborhood_service = NeighborhoodService()
         self._weight_lock = threading.Lock()
         self._last_decorated_signature: tuple[int, str, int] | None = None
         self._logger = logging.getLogger(__name__)
+        self.risk_match_radius_m = float(os.getenv("RISK_MATCH_RADIUS_M", "45"))
+        self.junction_risk_min = float(os.getenv("JUNCTION_RISK_MIN", "0.7"))
+        self.accident_hotspot_min = float(os.getenv("ACCIDENT_HOTSPOT_MIN", "0.75"))
+        self.low_cyclability_percentile_max = float(os.getenv("LOW_CYCLABILITY_PERCENTILE_MAX", "10"))
 
     async def build_route(
         self,
@@ -384,23 +396,12 @@ class RouteService:
         if len(coordinates) < 2:
             raise RouteServiceError("route_not_found", "No hemos encontrado una ruta válida entre esos puntos.")
 
-        hazard_points = []
-        for index in range(1, max(1, len(coordinates)-1), max(1, len(coordinates)//6)):
-            lon, lat = coordinates[index]
-            traffic = route_traffic[min(index-1, len(route_traffic)-1)] if route_traffic else 0
-            junction = route_junction[min(index-1, len(route_junction)-1)] if route_junction else 0
-            night = route_night[min(index-1, len(route_night)-1)] if route_night else 0
-            safety = route_day_risk[min(index-1, len(route_day_risk)-1)] if route_day_risk else 0
-            score, risk_type, label = max(
-                (traffic, "traffic", "Tramo con tráfico motorizado elevado"),
-                (junction, "junction", "Cruce potencialmente complejo"),
-                (night, "night", "Riesgo nocturno por histórico/entorno"),
-                (safety, "safety", "Tramo con menor seguridad ciclista"),
-                key=lambda item: item[0],
-            )
-            if score < 0.62:
-                continue
-            hazard_points.append({"lat": round(float(lat), 6), "lon": round(float(lon), 6), "riskType": risk_type, "severity": "high" if score >= 0.78 else "medium", "label": label})
+        hazard_points = self._build_real_hazard_points(
+            graph=graph,
+            path_nodes=path,
+            route_coordinates=coordinates,
+            route_junction=route_junction,
+        )
 
         return {
             "coordinates": coordinates,
@@ -411,8 +412,48 @@ class RouteService:
             "avg_traffic": round(sum(route_traffic) / len(route_traffic), 4) if route_traffic else 0.35,
             "avg_junction": round(sum(route_junction) / len(route_junction), 4) if route_junction else 0.35,
             "avg_bike_infra": round(sum(route_bike_infra) / len(route_bike_infra), 4) if route_bike_infra else 0.25,
-            "hazard_points": hazard_points[:6],
+            "hazard_points": hazard_points,
         }
+
+    def _build_real_hazard_points(self, *, graph, path_nodes: list[int], route_coordinates: list[list[float]], route_junction: list[float]) -> list[dict]:
+        route_line = [(float(lat), float(lon)) for lon, lat in route_coordinates]
+        if len(route_line) < 2:
+            return []
+        distance_marks = self._build_distance_marks(route_line)
+        hazards: list[dict] = []
+
+        for i in range(1, len(path_nodes) - 1):
+            node = graph.nodes[path_nodes[i]]
+            lat = float(node.get("y"))
+            lon = float(node.get("x"))
+            dist = self._distance_to_route_meters(route_line, lat, lon)
+            junction_score = route_junction[min(i - 1, len(route_junction) - 1)] if route_junction else 0.0
+            if dist <= self.risk_match_radius_m and junction_score >= self.junction_risk_min:
+                hazards.append(self._hazard_payload(lat, lon, "dangerous_junction", junction_score, "Cruce con complejidad elevada", "La ruta atraviesa un cruce con señal de complejidad alta.", "edge_metrics", "crossings+bike_crossings", "junctionComplexityScore", junction_score, self.junction_risk_min, route_line, distance_marks))
+
+        accidents, _ = self.accident_data_service.load_accidents()
+        for point in accidents:
+            if point.weighted_score < self.accident_hotspot_min:
+                continue
+            dist = self._distance_to_route_meters(route_line, point.lat, point.lon)
+            if dist <= self.risk_match_radius_m:
+                hazards.append(self._hazard_payload(point.lat, point.lon, "bike_accident_hotspot", point.weighted_score, "Hotspot de accidentes ciclistas", "La ruta pasa cerca de un punto con severidad alta en el dataset de accidentes.", "accident_data_service", "accidentes_bici", "weighted_score", point.weighted_score, self.accident_hotspot_min, route_line, distance_marks))
+
+        cyclability = self.cyclability_service.list_neighborhoods().get("data", [])
+        index = {str(n.get("neighborhoodId")): n for n in cyclability}
+        neighborhoods, _ = self.neighborhood_service.load_boundaries()
+        for n in neighborhoods:
+            row = index.get(n.neighborhood_id)
+            percentile = float((row or {}).get("percentile", 100))
+            if percentile > self.low_cyclability_percentile_max:
+                continue
+            for lat, lon in route_line:
+                pt = Point(*self.neighborhood_service.to_projected.transform(lon, lat))
+                if n.projected_geometry.contains(pt):
+                    hazards.append(self._hazard_payload(lat, lon, "low_cyclability_neighborhood", percentile, f"Baja ciclabilidad: {n.name}", f"La ruta entra en {n.name} (percentil {round(percentile,2)}).", "cyclability_service", "neighborhoods_scores", "percentile", percentile, self.low_cyclability_percentile_max, route_line, distance_marks, extra={"neighborhoodId": n.neighborhood_id, "neighborhoodName": n.name, "cyclabilityScore": row.get("cyclabilityScore") if row else None}))
+                    break
+
+        return self._dedupe_hazards(hazards)
 
     def _pick_station_candidates(self, stations, point: GeocodedPoint) -> list[dict]:
         candidates = []
@@ -620,6 +661,48 @@ class RouteService:
         if avg_night_risk <= 0.66:
             return "medium"
         return "high"
+
+    def _hazard_payload(self, lat, lon, risk_type, value, title, description, source, dataset, metric, metric_value, threshold, route_line, distance_marks, *, extra=None):
+        payload = {
+            "lat": round(float(lat), 6),
+            "lon": round(float(lon), 6),
+            "riskType": risk_type,
+            "severity": "high" if float(value) >= max(float(threshold), 0.85) else "medium",
+            "title": title,
+            "description": description,
+            "evidence": {"source": source, "dataset": dataset, "metric": metric, "value": round(float(metric_value), 4), "threshold": threshold},
+            "routePosition": {"distanceFromStartMeters": round(self._distance_from_start(route_line, distance_marks, float(lat), float(lon)), 2)},
+        }
+        if extra:
+            payload["evidence"].update(extra)
+        return payload
+
+    def _build_distance_marks(self, route_line: list[tuple[float, float]]) -> list[float]:
+        marks = [0.0]
+        for i in range(1, len(route_line)):
+            marks.append(marks[-1] + self._haversine_meters(route_line[i - 1][0], route_line[i - 1][1], route_line[i][0], route_line[i][1]))
+        return marks
+
+    def _distance_to_route_meters(self, route_line: list[tuple[float, float]], lat: float, lon: float) -> float:
+        return min(self._haversine_meters(lat, lon, p_lat, p_lon) for p_lat, p_lon in route_line)
+
+    def _distance_from_start(self, route_line: list[tuple[float, float]], marks: list[float], lat: float, lon: float) -> float:
+        min_idx = min(range(len(route_line)), key=lambda i: self._haversine_meters(lat, lon, route_line[i][0], route_line[i][1]))
+        return marks[min_idx]
+
+    def _dedupe_hazards(self, hazards: list[dict]) -> list[dict]:
+        out: list[dict] = []
+        for hazard in sorted(hazards, key=lambda h: h["routePosition"]["distanceFromStartMeters"]):
+            duplicate = False
+            for existing in out:
+                if existing["riskType"] != hazard["riskType"]:
+                    continue
+                if self._haversine_meters(existing["lat"], existing["lon"], hazard["lat"], hazard["lon"]) <= self.risk_match_radius_m:
+                    duplicate = True
+                    break
+            if not duplicate:
+                out.append(hazard)
+        return out
 
     async def _resolve_point(self, *, query: str, point_label: str, lat: float | None, lon: float | None) -> GeocodedPoint:
         clean_query = query.strip()

@@ -47,9 +47,12 @@ class RouteSummary(BaseModel):
 class RouteHazardPoint(BaseModel):
     lat: float
     lon: float
-    riskType: Literal["traffic", "junction", "night", "safety"]
+    riskType: Literal["dangerous_junction", "bike_accident_hotspot", "low_cyclability_neighborhood"]
     severity: Literal["medium", "high"]
-    label: str
+    title: str
+    description: str
+    evidence: dict
+    routePosition: dict
 
 class RouteData(BaseModel):
     routeGeoJson: RouteGeoJsonFeature
