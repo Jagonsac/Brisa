@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from collections import defaultdict, deque
 from threading import Lock
@@ -52,7 +53,15 @@ class AIRouteInsightsService:
                     "explanations": route.get("explanations", [])[:4],
                 }
             )
-        return {"city": "Madrid", "routeCount": len(sanitized), "hasNightRoute": any(str(item.get("mode", "")).lower() == "night" for item in sanitized), "routes": sanitized}
+        modes = [str(item.get("mode", "")).strip().lower() for item in sanitized if str(item.get("mode", "")).strip()]
+        return {
+            "city": "Madrid",
+            "routeCount": len(sanitized),
+            "hasNightRoute": "night" in modes,
+            "hasBicimadRoute": "bicimad" in modes,
+            "inputModes": modes,
+            "routes": sanitized,
+        }
 
     async def analyze_routes(self, *, routes: list[dict[str, Any]], client_key: str) -> dict[str, Any]:
         if not self.api_key:
@@ -63,18 +72,23 @@ class AIRouteInsightsService:
         self._enforce_rate_limit(client_key)
 
         prompt_payload = self._build_prompt_payload(routes)
+        expected_modes = prompt_payload.get("inputModes", [])
+        expected_modes_json = json.dumps(expected_modes, ensure_ascii=False)
         system_prompt = (
             "Eres el copiloto ciclista de Brisa (Madrid). "
             "Analiza SOLO seguridad ciclista de rutas proporcionadas. "
             "Responde SIEMPRE JSON válido y nada más. "
             "Prioriza incidencias concretas de puntos de peligro antes que puntuaciones globales. Evita anglicismos (por ejemplo, usa 'puntos de peligro' y no 'hotspots'). "
             "Si una ruta no tiene hazardPoints, indícalo explícitamente. "
-            "Si faltan datos, dilo con prudencia. No inventes calles, barrios, eventos ni coordenadas. Respeta exactamente los modos de entrada y devuelve una entrada por cada modo recibido (incluyendo night cuando exista)."
+            "Si faltan datos, dilo con prudencia. No inventes calles, barrios, eventos ni coordenadas. "
+            f"Respeta exactamente estos modos de entrada y devuelve exactamente una entrada por cada modo (sin añadir ni quitar): {expected_modes_json}."
         )
         user_prompt = (
             "Genera JSON con esta forma exacta: "
             "{\"overview\":string,\"routes\":[{\"mode\":string,\"best\":string,\"worst\":string,\"riskLevel\":\"low\"|\"medium\"|\"high\",\"tips\":[string]}],\"globalTips\":[string]}. "
-            "Máximo 2 frases por campo textual y máximo 3 consejos por ruta. Explica que una alta concentración de accidentes también puede reflejar mayor volumen de tráfico ciclista en la zona, no solo mayor peligro intrínseco. Si hay ruta nocturna (mode=night), tenlo en cuenta explícitamente en el análisis de esa alternativa.\n"
+            "Máximo 2 frases por campo textual y máximo 3 consejos por ruta. Explica que una alta concentración de accidentes también puede reflejar mayor volumen de tráfico ciclista en la zona, no solo mayor peligro intrínseco. "
+            "Si hay ruta nocturna (mode=night), tenlo en cuenta explícitamente en el análisis de esa alternativa. "
+            "Si hay ruta bicimad (mode=bicimad), ten en cuenta explícitamente transbordos pie+bici y disponibilidad potencial de estaciones en origen/destino.\n"
             f"Datos: {json.dumps(prompt_payload, ensure_ascii=False)}"
         )
 
@@ -121,24 +135,51 @@ class AIRouteInsightsService:
             try:
                 data = json.loads(output_text)
             except json.JSONDecodeError:
-                raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502)
+                fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", output_text, flags=re.DOTALL | re.IGNORECASE)
+                if fenced:
+                    try:
+                        data = json.loads(fenced.group(1))
+                    except json.JSONDecodeError as error:
+                        raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502) from error
+                else:
+                    raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un JSON inválido.", 502)
 
         if not isinstance(data, dict) or "routes" not in data:
             raise AIRouteInsightsError("invalid_ai_response", "La IA devolvió un esquema incompleto.", 502)
 
         data.setdefault("overview", "")
         data.setdefault("globalTips", [])
-        normalized_routes = []
+        expected_modes = [str(mode).strip().lower() for mode in prompt_payload.get("inputModes", []) if str(mode).strip()]
+        parsed_by_mode: dict[str, dict[str, Any]] = {}
         for route in data.get("routes", []):
             if not isinstance(route, dict):
                 continue
-            normalized_routes.append({
-                "mode": str(route.get("mode", "")),
+            mode = str(route.get("mode", "")).strip().lower()
+            if not mode:
+                continue
+            parsed_by_mode[mode] = {
+                "mode": mode,
                 "best": str(route.get("best", "")),
                 "worst": str(route.get("worst", "")),
                 "riskLevel": route.get("riskLevel", "medium"),
                 "tips": [str(tip) for tip in (route.get("tips") or [])][:3],
-            })
+            }
+
+        normalized_routes = []
+        for mode in expected_modes:
+            normalized_routes.append(
+                parsed_by_mode.get(
+                    mode,
+                    {
+                        "mode": mode,
+                        "best": "",
+                        "worst": "",
+                        "riskLevel": "medium",
+                        "tips": [],
+                    },
+                )
+            )
+
         data["routes"] = normalized_routes
 
         return data
