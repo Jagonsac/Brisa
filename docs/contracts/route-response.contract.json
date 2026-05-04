@@ -160,6 +160,23 @@
           "items": {
             "type": "string"
           }
+        },
+        "hazardPoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["lat", "lon", "riskType", "severity", "title", "description", "evidence", "routePosition"],
+            "properties": {
+              "lat": {"type": "number"},
+              "lon": {"type": "number"},
+              "riskType": {"type": "string", "enum": ["dangerous_junction", "bike_accident_hotspot", "low_cyclability_neighborhood"]},
+              "severity": {"type": "string", "enum": ["medium", "high"]},
+              "title": {"type": "string"},
+              "description": {"type": "string"},
+              "evidence": {"type": "object"},
+              "routePosition": {"type": "object"}
+            }
+          }
         }
       },
       "additionalProperties": true

@@ -48,7 +48,7 @@ class AIRouteInsightsService:
                     "relativeSafety": route.get("relativeSafety"),
                     "lightingQuality": route.get("lightingQuality"),
                     "nightRisk": route.get("nightRisk"),
-                    "hazards": route.get("hazards", [])[:6],
+                    "hazardPoints": route.get("hazardPoints", route.get("hazards", []))[:20],
                     "explanations": route.get("explanations", [])[:4],
                 }
             )
@@ -67,7 +67,9 @@ class AIRouteInsightsService:
             "Eres el copiloto ciclista de Brisa (Madrid). "
             "Analiza SOLO seguridad ciclista de rutas proporcionadas. "
             "Responde SIEMPRE JSON válido y nada más. "
-            "Si faltan datos, dilo con prudencia. No inventes calles ni coordenadas."
+            "Prioriza incidencias concretas de hazardPoints antes que scores globales. "
+            "Si una ruta no tiene hazardPoints, indícalo explícitamente. "
+            "Si faltan datos, dilo con prudencia. No inventes calles, barrios, eventos ni coordenadas."
         )
         user_prompt = (
             "Genera JSON con esta forma exacta: "

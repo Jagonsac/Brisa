@@ -53,6 +53,10 @@ Variables de entorno:
 
 - `PRECOMPUTE_CACHE_ON_STARTUP=true` (recomendado en Railway)
 - `FORCE_REBUILD_CACHE_ON_STARTUP=false` (poner `true` solo cuando quieras recalcular todo)
+- `RISK_MATCH_RADIUS_M=45` radio (metros) para considerar que la ruta pasa por un evento puntual real.
+- `JUNCTION_RISK_MIN=0.7` umbral mínimo del `junctionComplexityScore` para reportar `dangerous_junction`.
+- `ACCIDENT_HOTSPOT_MIN=0.75` umbral mínimo de severidad agregada para reportar `bike_accident_hotspot`.
+- `LOW_CYCLABILITY_PERCENTILE_MAX=10` percentil máximo para reportar `low_cyclability_neighborhood`.
 
 ## Guía de deploy backend en Railway (paso a paso)
 
