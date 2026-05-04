@@ -426,3 +426,7 @@
     margin-top: 0.15rem;
   }
 }
+
+.aiMapPanelDesktop{position:absolute;top:.9rem;left:.9rem;z-index:780;pointer-events:auto}
+.aiMapPanelMobile{position:absolute;top:.75rem;right:.75rem;z-index:780;max-width:230px}
+@media (max-width:768px){.aiMapPanelMobile{max-width:220px}.aiMapPanelDesktop{display:none}}
