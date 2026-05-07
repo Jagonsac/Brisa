@@ -63,6 +63,8 @@ Variables de entorno:
 - `OPENAI_ROUTE_INSIGHTS_TIMEOUT_SECONDS=12` timeout de llamada al proveedor IA.
 - `AI_ROUTE_INSIGHTS_RATE_LIMIT=20` límite de peticiones IA por ventana y por IP.
 - `AI_ROUTE_INSIGHTS_WINDOW_SECONDS=300` ventana (segundos) para rate limit IA.
+- `RELEASE_ROUTING_MEMORY_AFTER_REQUEST=true` libera caches pesadas de routing al terminar cada `POST /api/routes` para priorizar bajo uso idle de RAM. Cambiar a `false` solo si prefieres acelerar rutas sucesivas y aceptas mantener grafos en memoria.
+- `TRIM_MEMORY_AFTER_ROUTE=true` solicita a glibc devolver memoria libre al sistema tras liberar caches; puede reducir el RSS observado en Railway.
 
 ## Guía de deploy backend en Railway (paso a paso)
 
@@ -74,6 +76,8 @@ Variables de entorno:
    - `BRISA_ENV=production`
    - `FRONTEND_ORIGINS=https://<tu-frontend-vercel>.vercel.app`
    - `NOMINATIM_USER_AGENT=Brisa/1.0 (production contacto@tu-dominio)`
+   - `RELEASE_ROUTING_MEMORY_AFTER_REQUEST=true`
+   - `TRIM_MEMORY_AFTER_ROUTE=true`
 4. En Settings del servicio, define Start Command:
    - `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 5. Lanza el primer deploy.
@@ -92,6 +96,7 @@ Variables de entorno:
 
 Para mantener bajo el uso idle de RAM, evita conservar en memoria el GeoJSON completo de celdas de seguridad. El endpoint `GET /api/safety/summary` lee solo metadatos y `PRECOMPUTE_CACHE_ON_STARTUP=false` no precarga capas al arrancar; la capa agregada por barrio se carga bajo demanda.
 
+El cálculo de rutas necesita cargar grafos OSMnx/NetworkX y métricas por edge. Por defecto `RELEASE_ROUTING_MEMORY_AFTER_REQUEST=true` limpia esos caches tras cada `POST /api/routes` y `TRIM_MEMORY_AFTER_ROUTE=true` intenta que el proceso devuelva memoria al sistema operativo. Esto reduce memoria idle a costa de recargar el grafo en la siguiente ruta.
 ## Principios de implementación
 
 - Routers finos + servicios de dominio dedicados.

@@ -18,6 +18,10 @@ class EdgeWeightService:
         self._lock = threading.Lock()
         self._cached: dict | None = None
 
+    def clear_cache(self) -> None:
+        with self._lock:
+            self._cached = None
+
     def get_edge_weights(self) -> dict:
         with self._lock:
             if self._cached is not None:

@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from os import getenv
 
 
+def _env_flag(name: str, default: str = "false") -> bool:
+    return getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Settings:
     service_name: str = "brisa-api"
@@ -28,6 +32,8 @@ class Settings:
     nominatim_base_url: str = getenv("NOMINATIM_BASE_URL", "https://nominatim.openstreetmap.org/search")
     nominatim_user_agent: str = getenv("NOMINATIM_USER_AGENT", "Brisa/0.1 (development)")
     nominatim_country_codes: str = getenv("NOMINATIM_COUNTRY_CODES", "es")
+    release_routing_memory_after_request: bool = _env_flag("RELEASE_ROUTING_MEMORY_AFTER_REQUEST", "true")
+    trim_memory_after_route: bool = _env_flag("TRIM_MEMORY_AFTER_ROUTE", "true")
 
     @property
     def frontend_origins(self) -> list[str]:
