@@ -54,6 +54,11 @@ class CyclabilityService:
         self._lock = threading.Lock()
         self._cached: dict | None = None
 
+    def clear_cache(self) -> None:
+        with self._lock:
+            self._cached = None
+            self.edge_weight_service.clear_cache()
+
     def list_neighborhoods(self) -> dict:
         payload = self._ensure_payload()
         return {

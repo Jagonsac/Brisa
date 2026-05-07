@@ -13,7 +13,6 @@ from app.routers.stations import router as stations_router
 from app.routers.safety import router as safety_router
 from app.routers.cyclability import router as cyclability_router
 from app.routers.ai_insights import router as ai_insights_router
-from app.services.safety_service import SafetyService
 
 
 def _env_flag(name: str, default: str = "true") -> bool:
@@ -24,8 +23,6 @@ def _env_flag(name: str, default: str = "true") -> bool:
 async def lifespan(_: FastAPI):
     if _env_flag("PRECOMPUTE_CACHE_ON_STARTUP", "true"):
         BootstrapService().warmup(force_rebuild=_env_flag("FORCE_REBUILD_CACHE_ON_STARTUP", "false"))
-    else:
-        SafetyService().get_neighborhood_grid()
     yield
 
 

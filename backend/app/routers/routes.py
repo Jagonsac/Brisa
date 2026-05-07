@@ -59,3 +59,5 @@ async def create_route(payload: dict = Body(...)) -> RouteResponse:
                 "message": "No fue posible calcular la ruta en este momento.",
             },
         ) from error
+    finally:
+        service.release_runtime_caches()

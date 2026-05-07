@@ -52,7 +52,7 @@ Al arrancar la API, `BootstrapService` prepara todo lo pesado para que no lo pag
 
 Variables de entorno:
 
-- `PRECOMPUTE_CACHE_ON_STARTUP=true` (recomendado en Railway)
+- `PRECOMPUTE_CACHE_ON_STARTUP=true` prepara grafos y caches al arrancar. En Railway puede consumir mucha RAM durante el arranque; si ya has subido `data/*` precomputado y quieres minimizar memoria idle, usa `false`.
 - `FORCE_REBUILD_CACHE_ON_STARTUP=false` (poner `true` solo cuando quieras recalcular todo)
 - `RISK_MATCH_RADIUS_M=45` radio (metros) para considerar que la ruta pasa por un evento puntual real.
 - `JUNCTION_RISK_MIN=0.7` umbral mínimo del `junctionComplexityScore` para reportar `dangerous_junction`.
@@ -63,17 +63,21 @@ Variables de entorno:
 - `OPENAI_ROUTE_INSIGHTS_TIMEOUT_SECONDS=12` timeout de llamada al proveedor IA.
 - `AI_ROUTE_INSIGHTS_RATE_LIMIT=20` límite de peticiones IA por ventana y por IP.
 - `AI_ROUTE_INSIGHTS_WINDOW_SECONDS=300` ventana (segundos) para rate limit IA.
+- `RELEASE_ROUTING_MEMORY_AFTER_REQUEST=true` libera caches pesadas de routing al terminar cada `POST /api/routes` para priorizar bajo uso idle de RAM. Cambiar a `false` solo si prefieres acelerar rutas sucesivas y aceptas mantener grafos en memoria.
+- `TRIM_MEMORY_AFTER_ROUTE=true` solicita a glibc devolver memoria libre al sistema tras liberar caches; puede reducir el RSS observado en Railway.
 
 ## Guía de deploy backend en Railway (paso a paso)
 
 1. Crea un servicio en Railway apuntando a este repo y selecciona el directorio `backend` como root del servicio.
 2. Añade un **Volume** al servicio y móntalo en `/app/data`.
 3. Configura variables de entorno:
-   - `PRECOMPUTE_CACHE_ON_STARTUP=true`
+   - `PRECOMPUTE_CACHE_ON_STARTUP=false` si has subido `data/*` precomputado y priorizas bajo consumo idle; usa `true` solo para preparar caches durante un deploy controlado.
    - `FORCE_REBUILD_CACHE_ON_STARTUP=false`
    - `BRISA_ENV=production`
    - `FRONTEND_ORIGINS=https://<tu-frontend-vercel>.vercel.app`
    - `NOMINATIM_USER_AGENT=Brisa/1.0 (production contacto@tu-dominio)`
+   - `RELEASE_ROUTING_MEMORY_AFTER_REQUEST=true`
+   - `TRIM_MEMORY_AFTER_ROUTE=true`
 4. En Settings del servicio, define Start Command:
    - `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 5. Lanza el primer deploy.
@@ -87,6 +91,12 @@ Variables de entorno:
    - `FORCE_REBUILD_CACHE_ON_STARTUP=true`
    - redeploy
    - vuelve a `false` al terminar.
+
+## Nota de memoria en Railway
+
+Para mantener bajo el uso idle de RAM, evita conservar en memoria el GeoJSON completo de celdas de seguridad. El endpoint `GET /api/safety/summary` lee solo metadatos y `PRECOMPUTE_CACHE_ON_STARTUP=false` no precarga capas al arrancar; la capa agregada por barrio se carga bajo demanda.
+
+El cálculo de rutas necesita cargar grafos OSMnx/NetworkX y métricas por edge. Por defecto `RELEASE_ROUTING_MEMORY_AFTER_REQUEST=true` limpia esos caches tras cada `POST /api/routes` y `TRIM_MEMORY_AFTER_ROUTE=true` intenta que el proceso devuelva memoria al sistema operativo. Esto reduce memoria idle a costa de recargar el grafo en la siguiente ruta.
 
 ## Principios de implementación
 

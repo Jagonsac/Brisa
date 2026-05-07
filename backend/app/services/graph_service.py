@@ -15,6 +15,18 @@ class GraphService:
     _shared_graph_sources: dict[str, str] = {}
     _shared_lock = threading.Lock()
 
+    @classmethod
+    def clear_shared_cache(cls, network_types: set[str] | None = None) -> None:
+        with cls._shared_lock:
+            if network_types is None:
+                cls._shared_graphs.clear()
+                cls._shared_graph_sources.clear()
+                return
+
+            for network_type in network_types:
+                cls._shared_graphs.pop(network_type, None)
+                cls._shared_graph_sources.pop(network_type, None)
+
     def __init__(self) -> None:
         self.graphs_dir = Path(__file__).resolve().parents[2] / "data" / "graphs"
         self.graph_path = self.graphs_dir / settings.osmnx_graph_filename

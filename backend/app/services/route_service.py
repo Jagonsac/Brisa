@@ -1,3 +1,5 @@
+import ctypes
+import gc
 import math
 import threading
 import time
@@ -9,6 +11,7 @@ import numpy as np
 import osmnx as ox
 from shapely.geometry import Point
 
+from app.core.config import settings
 from app.core.routing_profiles import routing_profiles_config
 from app.schemas.route_response import RouteResponse
 from app.services.accident_data_service import AccidentDataService
@@ -53,6 +56,30 @@ class RouteService:
         self.junction_risk_min = float(os.getenv("JUNCTION_RISK_MIN", "0.7"))
         self.accident_hotspot_min = float(os.getenv("ACCIDENT_HOTSPOT_MIN", "0.75"))
         self.low_cyclability_percentile_max = float(os.getenv("LOW_CYCLABILITY_PERCENTILE_MAX", "10"))
+
+    def release_runtime_caches(self) -> None:
+        if not settings.release_routing_memory_after_request:
+            return
+
+        GraphService.clear_shared_cache({"bike", "walk"})
+        self.edge_weight_service.clear_cache()
+        self.cyclability_service.clear_cache()
+        self._last_decorated_signature = None
+        gc.collect()
+
+        if settings.trim_memory_after_route:
+            self._trim_process_memory()
+
+    @staticmethod
+    def _trim_process_memory() -> None:
+        if os.name != "posix":
+            return
+
+        try:
+            libc = ctypes.CDLL("libc.so.6")
+            libc.malloc_trim(0)
+        except (AttributeError, OSError):
+            return
 
     async def build_route(
         self,
