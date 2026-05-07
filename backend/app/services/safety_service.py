@@ -18,7 +18,7 @@ class SafetyService:
         self.meta_path = self.data_dir / "safety_metadata_v1.json"
         self.neighborhood_grid_path = self.data_dir / "madrid_safety_neighborhood_grid_v2.geojson"
         self.neighborhood_meta_path = self.data_dir / "safety_neighborhood_metadata_v2.json"
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._cached_grid: dict | None = None
         self._cached_meta: dict | None = None
         self._cached_neighborhood_grid: dict | None = None
@@ -45,7 +45,7 @@ class SafetyService:
             return self._fallback_to_cell_collection(grid_collection, metadata, str(error))
 
     def get_summary(self) -> dict:
-        _, metadata = self._ensure_cached()
+        metadata = self._ensure_metadata()
         return {
             "version": metadata.get("version", safety_config.version),
             "cellCount": metadata.get("cellCount", 0),
@@ -65,7 +65,7 @@ class SafetyService:
             metadata["updatedAt"] = self._iso_now()
             self.grid_path.write_text(json.dumps(collection, ensure_ascii=False), encoding="utf-8")
             self.meta_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
-            self._cached_grid = collection
+            self._cached_grid = None
             self._cached_meta = metadata
             self._cached_neighborhood_grid = None
             self._cached_neighborhood_meta = None
@@ -146,12 +146,23 @@ class SafetyService:
 
             if self.grid_path.exists() and self.meta_path.exists():
                 collection = json.loads(self.grid_path.read_text(encoding="utf-8"))
-                metadata = json.loads(self.meta_path.read_text(encoding="utf-8"))
-                self._cached_grid = collection
-                self._cached_meta = metadata
+                metadata = self._ensure_metadata()
                 return collection, metadata
 
         return self.rebuild()
+
+    def _ensure_metadata(self) -> dict:
+        with self._lock:
+            if self._cached_meta is not None:
+                return self._cached_meta
+
+            if self.meta_path.exists():
+                metadata = json.loads(self.meta_path.read_text(encoding="utf-8"))
+                self._cached_meta = metadata
+                return metadata
+
+        _, metadata = self.rebuild()
+        return metadata
 
     def _ensure_neighborhood_cached(self) -> tuple[dict, dict]:
         with self._lock:
