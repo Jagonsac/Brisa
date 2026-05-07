@@ -52,7 +52,7 @@ Al arrancar la API, `BootstrapService` prepara todo lo pesado para que no lo pag
 
 Variables de entorno:
 
-- `PRECOMPUTE_CACHE_ON_STARTUP=true` (recomendado en Railway)
+- `PRECOMPUTE_CACHE_ON_STARTUP=true` prepara grafos y caches al arrancar. En Railway puede consumir mucha RAM durante el arranque; si ya has subido `data/*` precomputado y quieres minimizar memoria idle, usa `false`.
 - `FORCE_REBUILD_CACHE_ON_STARTUP=false` (poner `true` solo cuando quieras recalcular todo)
 - `RISK_MATCH_RADIUS_M=45` radio (metros) para considerar que la ruta pasa por un evento puntual real.
 - `JUNCTION_RISK_MIN=0.7` umbral mínimo del `junctionComplexityScore` para reportar `dangerous_junction`.
@@ -69,7 +69,7 @@ Variables de entorno:
 1. Crea un servicio en Railway apuntando a este repo y selecciona el directorio `backend` como root del servicio.
 2. Añade un **Volume** al servicio y móntalo en `/app/data`.
 3. Configura variables de entorno:
-   - `PRECOMPUTE_CACHE_ON_STARTUP=true`
+   - `PRECOMPUTE_CACHE_ON_STARTUP=false` si has subido `data/*` precomputado y priorizas bajo consumo idle; usa `true` solo para preparar caches durante un deploy controlado.
    - `FORCE_REBUILD_CACHE_ON_STARTUP=false`
    - `BRISA_ENV=production`
    - `FRONTEND_ORIGINS=https://<tu-frontend-vercel>.vercel.app`
@@ -87,6 +87,10 @@ Variables de entorno:
    - `FORCE_REBUILD_CACHE_ON_STARTUP=true`
    - redeploy
    - vuelve a `false` al terminar.
+
+## Nota de memoria en Railway
+
+Para mantener bajo el uso idle de RAM, evita conservar en memoria el GeoJSON completo de celdas de seguridad. El endpoint `GET /api/safety/summary` lee solo metadatos y `PRECOMPUTE_CACHE_ON_STARTUP=false` no precarga capas al arrancar; la capa agregada por barrio se carga bajo demanda.
 
 ## Principios de implementación
 
