@@ -97,7 +97,6 @@ Variables de entorno:
 Para mantener bajo el uso idle de RAM, evita conservar en memoria el GeoJSON completo de celdas de seguridad. El endpoint `GET /api/safety/summary` lee solo metadatos y `PRECOMPUTE_CACHE_ON_STARTUP=false` no precarga capas al arrancar; la capa agregada por barrio se carga bajo demanda.
 
 El cálculo de rutas necesita cargar grafos OSMnx/NetworkX y métricas por edge. Por defecto `RELEASE_ROUTING_MEMORY_AFTER_REQUEST=true` limpia esos caches tras cada `POST /api/routes` y `TRIM_MEMORY_AFTER_ROUTE=true` intenta que el proceso devuelva memoria al sistema operativo. Esto reduce memoria idle a costa de recargar el grafo en la siguiente ruta.
-
 ## Principios de implementación
 
 - Routers finos + servicios de dominio dedicados.
