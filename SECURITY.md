@@ -1,18 +1,9 @@
-# Security Policy
+# Security policy
 
-## Supported scope
+## Scope
 
-Brisa está en fase de consolidación open source. Se agradece el reporte responsable de vulnerabilidades en frontend y backend.
+Responsible reports of frontend and backend vulnerabilities are welcome as Brisa develops as an open-source project.
 
 ## Reporting a vulnerability
 
-Por favor, **no publiques vulnerabilidades directamente en issues públicos**.
-
-Envía un reporte privado a las personas mantenedoras con:
-- descripción del problema
-- impacto potencial
-- pasos de reproducción
-- propuesta de mitigación (si existe)
-
-Responderemos tan pronto como sea posible con estado y plan de remediación.
-
+Please **do not disclose vulnerabilities in public issues**. Send a private report to the maintainers with a description, potential impact, reproduction steps, and a proposed mitigation if available. Maintainers will respond with status and remediation plans as soon as possible.

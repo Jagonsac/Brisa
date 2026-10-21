@@ -1,8 +1,5 @@
-# Feature: safety
+# Safety visualization
 
-Módulo de visualización de seguridad ciclista:
-- capa grid en mapa
-- leyenda de interpretación
-- consumo de resumen agregado de seguridad
+Loads map safety GeoJSON and metadata for display. The API defaults to neighborhood aggregation; cell-level data is also available. The map safety model is distinct from edge routing risk, and score calculations stay in the backend.
 
-El cálculo del score se realiza en backend.
+See the [architecture](../../../docs/architecture.md#three-different-scoring-products).

@@ -1,9 +1,5 @@
-# Feature: bicimad
+# BiciMAD integration
 
-Integración frontend de estaciones Bicimad y soporte visual multimodal.
+Services load normalized station locations from the API, then direct providers or a local snapshot when needed. Utilities normalize provider shapes; hooks manage loading/error state; components render station markers and multimodal information.
 
-## Estructura
-- `services/`: consumo de endpoints y estrategia de fallback.
-- `utils/`: normalización a contrato interno estable.
-- `hooks/`: estado de carga/refresh de estaciones.
-- `components/`: render de capas y estado de disponibilidad.
+The current planner selects stations by proximity. Live bike/dock availability is not used for route selection, despite status-related feature flags and legacy UI text. See the [known issues](../../../docs/known-issues.md#bicimad-selection-and-explanation-disagree).

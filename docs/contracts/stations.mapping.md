@@ -1,53 +1,18 @@
-# Mapeo de estaciones Bicimad (Slice 3)
+# BiciMAD station mapping
 
-## Fuentes externas contempladas
-- Principal: `station_information` de GBFS Madrid.
-- Fallback remoto oficial: GeoJSON de EMT Madrid.
-- Fallback local: snapshot en `backend/app/data/bicimad_stations_snapshot.json`.
+The backend's [`station_normalizer.py`](../../backend/app/utils/station_normalizer.py) converts provider payloads into the [stations contract](stations.contract.json). Only entries with an ID, name, and valid coordinates survive normalization.
 
-## Campos del proveedor que usamos en Brisa
-### Desde GBFS `station_information`
-- `station_id` → `data[].id`
-- `name` → `data[].name`
-- `lat` → `data[].lat`
-- `lon` (o `lng` si aparece) → `data[].lon`
-- `address` → `data[].address`
-- `capacity` → `data[].capacity`
+| Brisa field | GBFS `data.stations[]` | EMT GeoJSON feature |
+| --- | --- | --- |
+| `id` | `station_id` | `properties.station_id`, `id`, or `number` |
+| `name` | `name` | `properties.name` or `nombre` |
+| `lat` | `lat` | `geometry.coordinates[1]` |
+| `lon` | `lon` or `lng` | `geometry.coordinates[0]` |
+| `address` | `address` | `properties.address` or `direccion` |
+| `capacity` | `capacity` | `properties.capacity` or `dock_bikes` |
 
-### Desde fallback GeoJSON EMT
-- `properties.station_id`/`properties.id`/`properties.number` → `data[].id`
-- `properties.name`/`properties.nombre` → `data[].name`
-- `geometry.coordinates[1]` → `data[].lat`
-- `geometry.coordinates[0]` → `data[].lon`
-- `properties.address`/`properties.direccion` → `data[].address`
-- `properties.capacity`/`properties.dock_bikes` → `data[].capacity`
+Numeric coordinates/capacity are parsed when possible. IDs become strings. Address and capacity may be null. Invalid coordinates, IDs, or names cause that station to be skipped.
 
-## Contrato API que consume el frontend
-```json
-{
-  "data": [
-    {
-      "id": "2255",
-      "name": "319 - Valdesangil",
-      "lat": 40.4684218,
-      "lon": -3.7166729,
-      "address": "Calle Valdesangil, 34",
-      "capacity": 44
-    }
-  ],
-  "meta": {
-    "count": 611,
-    "source": "gbfs-station-information",
-    "fallbackUsed": false,
-    "warnings": []
-  }
-}
-```
+`BicimadService` tries GBFS station information, then the official EMT GeoJSON, then the local snapshot when `source=auto`. `source=remote` permits the two remote sources but fails rather than using the local snapshot. Successful remote loads attempt to persist a new snapshot. Metadata reports `count`, `source`, `fallbackUsed`, and warnings; station count is not a fixed project statistic.
 
-## Campos fuera de alcance en Slice 3
-- Disponibilidad en tiempo real (`station_status`).
-- Predicción de estaciones recomendadas.
-- Unificación multimodal (bici + caminar + metro).
-
-## Preparación para slices futuros
-`meta` permite trazabilidad de fuentes y degradación para introducir `station_status`, cache y combinación de datasets sin romper el contrato de UI.
+The frontend has its own provider/snapshot normalization fallback. These are location feeds, not a guarantee of live bike/dock availability. Current route station choice does not consult the separate status service. See [known issues](../known-issues.md#bicimad-selection-and-explanation-disagree) and the [architecture](../architecture.md).
