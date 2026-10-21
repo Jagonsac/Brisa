@@ -12,9 +12,9 @@ Edges are keyed by `u:v:key`, preserving parallel directed segments. Length is t
 
 `nx.shortest_path` with an edge-weight attribute uses NetworkX's weighted Dijkstra path machinery (the single-source/target case uses bidirectional Dijkstra in NetworkX 3.5). Brisa does not implement a custom search algorithm. For each node pair on the path, it selects the parallel edge with minimum profile cost and assembles its geometry.
 
-$$
-P_m^*=\operatorname*{arg\,min}_{P:s\leadsto t}\sum_{e\in P}w_m(e)
-$$
+```math
+P_m^*=\arg\min_{P:s\leadsto t}\sum_{e\in P}w_m(e)
+```
 
 Costs are nonnegative with the supplied defaults. Environment overrides are parsed as numbers but not validated to preserve that property. There is no hard bound on detour length, slope model, signal-delay model, live congestion model, or Pareto-frontier search.
 
@@ -26,13 +26,13 @@ For a geometry with at most three vertices, every vertex is sampled. With more v
 
 A 120 m bucket index limits point searches. For source $k$, sample $q$, record $p_i$ with value $v_i$, and radius $r_k$, define:
 
-$$
-S_k(q)=\sum_{i:\,d(q,p_i)\leq r_k}\frac{v_i}{1+\max(1,d(q,p_i))/20}
-$$
+```math
+S_k(q)=\sum_{i: d(q,p_i)\leq r_k}\frac{v_i}{1+\max(1,d(q,p_i))/20}
+```
 
-$$
+```math
 s_k(e)=c\left(\frac{1}{12\lvert Q_e\rvert}\sum_{q\in Q_e}S_k(q)\right)
-$$
+```
 
 The divisor 12 is `SAFETY_SIGNAL_SCALE_DIVISOR`. It is a fixed scale followed by saturation, **not** dataset-wide min-max scaling or probability calibration. Different source units pass through the same scale.
 
@@ -64,9 +64,9 @@ The code checks `cycleway`, `cycleway:left`, `cycleway:right`, and `cycleway:bot
 
 For parsed lane count $n$, speed limit $v$ in km/h, and road-class base $h$:
 
-$$
+```math
 H=c\left(h+0.45\min(1,n/4)+0.40\min(1,v/50)-0.55O\right)
-$$
+```
 
 | OSM highway class | Base $h$ |
 | --- | ---: |
@@ -82,17 +82,17 @@ Absent lane/speed tags default to 1 lane and 30 km/h. Parsed values are bounded 
 
 For endpoint degrees in the directed multigraph:
 
-$$
+```math
 J=c\left(0.65\frac{\min(8,\deg u)+\min(8,\deg v)}{16}+0.35X\right)
-$$
+```
 
 Graph degree counts incoming/outgoing and parallel edges; it is a proxy for complexity, not the number of physical junction approaches.
 
 Cycling relief and lighting deficit are:
 
-$$
+```math
 B=c(0.25P+0.65O+0.20X_b),\qquad D=1-c(\ell)
-$$
+```
 
 Thus OSM infrastructure acts twice: directly on hostility and through the cycling bonus. Cycling counts are also a bonus, not a measured denominator of cyclist exposure.
 
@@ -100,42 +100,42 @@ Thus OSM infrastructure acts twice: directly on hostility and through the cyclin
 
 With prior mean $\mu=0.18$ and strength $\alpha=3.5$:
 
-$$
+```math
 f(o,x)=\frac{o+\alpha\mu}{\max(x,0.1)+\alpha}
-$$
+```
 
-$$
+```math
 \begin{aligned}
 A_g&=c(f(g,L/100+T+J))\\
 A_b&=c(f(b,L/120+0.6T))\\
 A_n&=c(f(a,L/140+T))
 \end{aligned}
-$$
+```
 
 Here $g,b,a$ are already normalized local signals. Length and traffic form a heuristic exposure proxy with mixed units; these are not accident counts divided by observed journeys. Smoothing avoids interpreting zero nearby observations as definitive zero risk. It also means a missing incident source need not produce a zero smoothed score.
 
 ## 5. Day and night risk
 
-$$
+```math
 R=c(0.30H+0.25c(0.6T+0.4I)+0.12J+0.20A_g+0.08A_b-0.16B)
-$$
+```
 
-$$
+```math
 N=c(R+0.28D+0.22A_n+0.20c(0.7I+0.3T)+0.10J)
-$$
+```
 
 These weights live in [safety_config.py](../backend/app/core/safety_config.py) under `day_weights` and `night_weights`, with `SAFETY_DAY_W_*` and `SAFETY_NIGHT_W_*` environment overrides. The sums are not normalized by the total weight; the resulting value is clipped. The stored `motorTrafficExposureScore` uses $c(0.5T+0.5I)$, which differs from both blends inside the risk equations.
 
 ## 6. Profile costs and configuration
 
-$$
+```math
 \begin{aligned}
 w_{\mathrm{fastest}}&=L[1+0.5\max(0,H-0.85)]\\
 w_{\mathrm{safe}}&=L[1+4.2R]\\
 w_{\mathrm{balanced}}&=L[1+2.1R]\\
 w_{\mathrm{night}}&=L[1+4.5R+2.4D+1.6N]
 \end{aligned}
-$$
+```
 
 | Environment variable | Default |
 | --- | ---: |

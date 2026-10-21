@@ -68,7 +68,7 @@ Every displayed profile coefficient was checked against `routing_profiles.py` an
 
 ## Links and rendering
 
-Local Markdown/image paths and fragment targets are checked as part of the documentation review. JSON contracts are parsed for syntax; they have not all been automatically validated against live payloads. The main README is reviewed on its GitHub branch for actual math, image, and Mermaid rendering before delivery.
+Local Markdown/image paths and fragment targets are checked as part of the documentation review. JSON contracts are parsed for syntax; they have not all been automatically validated against live payloads. GitHub rendering review caught an unsupported operator macro and Markdown spacing escaping; display equations were adjusted to native math fences and standard operators, then reviewed again. Images loaded at their expected dimensions; the Mermaid diagram was also checked in GitHub.
 
 External URLs depend on provider availability. The live app and Loom returned HTTP 200. The three problematic municipal catalog defaults (`IMD_CSV_URL`, `CROSSINGS_CSV_URL`, `BIKE_CROSSINGS_CSV_URL`) returned HTTP 200 with **text/html**, confirming that a successful HTTP request alone does not make them valid CSV inputs. Other upstream access failures are reported separately from local broken links.
 

@@ -44,7 +44,7 @@ These are observations from one run, not performance benchmarks. A repeat return
 
 *A crop of the actual night-route summary. It reports lighting quality and nighttime risk; it does not promise a well-lit path when the available evidence is unfavorable.*
 
-![Real neighborhood cyclability polygons with route alternatives overlaid](docs/assets/cyclability-map.jpg)
+![Real neighborhood cyclability polygons in the live application](docs/assets/cyclability-map.jpg)
 
 *The cyclability map colors real neighborhood polygons using the computed index.*
 
@@ -76,9 +76,9 @@ Brisa was submitted to **Madrid's 2026 Open Data Reuse Awards**. Competition res
 
 For graph $G=(V,E)$, snapped endpoints $s,t$, and profile $m$:
 
-$$
-P_m^* = \operatorname*{arg\,min}_{P:s\leadsto t}\sum_{e\in P}w_m(e)
-$$
+```math
+P_m^* = \arg\min_{P:s\leadsto t}\sum_{e\in P}w_m(e)
+```
 
 This is scalarized multi-criteria shortest-path routing. It does not enumerate a Pareto frontier, impose a maximum detour, or guarantee distinct alternatives.
 
@@ -88,14 +88,14 @@ Let $L(e)$ be length in meters, $H(e)$ road hostility, $R(e)$ daytime risk, $D(e
 
 The defaults in [routing_profiles.py](backend/app/core/routing_profiles.py), applied by [RouteService](backend/app/services/route_service.py), are:
 
-$$
+```math
 \begin{aligned}
-w_{\mathrm{fastest}}(e)&=L(e)\,[1+0.5\max(0,H(e)-0.85)]\\
-w_{\mathrm{safe}}(e)&=L(e)\,[1+4.2R(e)]\\
-w_{\mathrm{balanced}}(e)&=L(e)\,[1+2.1R(e)]\\
-w_{\mathrm{night}}(e)&=L(e)\,[1+4.5R(e)+2.4D(e)+1.6N(e)]
+w_{\mathrm{fastest}}(e)&=L(e) [1+0.5\max(0,H(e)-0.85)]\\
+w_{\mathrm{safe}}(e)&=L(e) [1+4.2R(e)]\\
+w_{\mathrm{balanced}}(e)&=L(e) [1+2.1R(e)]\\
+w_{\mathrm{night}}(e)&=L(e) [1+4.5R(e)+2.4D(e)+1.6N(e)]
 \end{aligned}
-$$
+```
 
 These costs are **penalized distance, not seconds**. `fastest` is a distance-led approximation with a small extreme-hostility penalty, not true travel-time optimization. Displayed durations use assumed speeds. All six multipliers are configurable through environment variables.
 
@@ -103,13 +103,13 @@ These costs are **penalized distance, not seconds**. `fastest` is a distance-led
 
 Write $c(x)=\min(1,\max(0,x))$. With the default safety weights:
 
-$$
+```math
 R=c\left(0.30H+0.25c(0.6T+0.4I)+0.12J+0.20A_g+0.08A_b-0.16B\right)
-$$
+```
 
-$$
+```math
 N=c\left(R+0.28D+0.22A_n+0.20c(0.7I+0.3T)+0.10J\right)
-$$
+```
 
 | Symbol | Meaning |
 | --- | --- |
