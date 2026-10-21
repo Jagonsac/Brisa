@@ -7,6 +7,7 @@ import { BicimadStationsLayer } from '../../bicimad/components/BicimadStationsLa
 import { getSafetyColor } from '../../safety/utils/safetyColors';
 import { madridMapConfig } from '../../../mocks/madridMapConfig';
 import { routeModeByApiMode } from '../../../shared/constants/routeModes';
+import { basemapConfig } from '../config/basemapConfig';
 import styles from './MapView.module.css';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -253,12 +254,7 @@ export function MapView({
         </div>
       )}
       <MapContainer center={madridMapConfig.center} zoom={madridMapConfig.zoom} className={styles.map} scrollWheelZoom zoomControl={false}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={20}
-        />
+        <TileLayer {...basemapConfig} />
 
         {showCyclabilityLayer && cyclabilityGeojson && (
           <GeoJSON
