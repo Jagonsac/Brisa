@@ -1,36 +1,32 @@
 # Contributing to Brisa
 
-¡Gracias por tu interés en contribuir a Brisa!
+Contributions to routing, data quality, accessibility, reproducibility, and documentation are welcome. Review the [README](README.md), [architecture](docs/architecture.md), [known issues](docs/known-issues.md), and [code of conduct](CODE_OF_CONDUCT.md) first.
 
-## Flujo recomendado
+## Workflow
 
-1. Abre un issue para discutir el cambio (bug, mejora o feature).
-2. Crea una rama desde `main`.
-3. Implementa cambios pequeños y enfocados.
-4. Ejecuta checks locales:
-   - Frontend: `npm run lint && npm run build`
-   - Backend: `cd backend && pytest`
-5. Actualiza documentación/contratos si cambia comportamiento público.
-6. Abre Pull Request con contexto claro y pasos de validación.
+1. For a substantial feature or model change, open an issue with the problem, evidence, and proposed scope. Small documentation corrections can go directly to a pull request.
+2. Branch from `main` and keep changes focused. Avoid mixing unrelated refactors with behavior changes.
+3. Keep GIS/scoring in backend services; keep provider normalization outside visual components.
+4. Update contracts and affected docs when public behavior changes.
+5. Run the relevant checks and report their actual outcome, including known failures.
 
-## Estándares
+```bash
+npm install
+npm run lint
+npm run build
+cd backend
+python -m pip install -r requirements.txt pytest pytest-asyncio
+PRECOMPUTE_CACHE_ON_STARTUP=false python -m pytest -q
+```
 
-- Mantén frontend y backend desacoplados por contratos.
-- No mover lógica GIS/scoring al frontend.
-- Prioriza legibilidad y modularidad.
-- Evita mezclar cambios no relacionados en un mismo PR.
+See [local setup](README.md#running-locally) for environment and GIS requirements. The existing suite has recorded failures; compare against [verification](docs/verification.md), and separate new regressions from upstream issues. Provider-backed changes need a representative manual check in addition to fixture tests.
 
-## Cambios de API
+## Good pull requests
 
-Si modificas request/response:
-- Actualiza `docs/contracts`.
-- Refleja cambios en `README.md`/`backend/README.md` si aplica.
+Explain the concrete problem, resulting behavior, relevant trade-offs, and verification. For UI changes, include real screenshots. For scoring changes, explain units, normalization, affected datasets, cache rebuild requirements, and limitations. Do not call heuristic scores validated without independent evidence.
 
-## Reporte de bugs
+Do not commit API keys, local `.env` files, downloaded city-wide caches, or unrelated generated artifacts. Maintain data and tile attribution. Document required configuration without including real credentials.
 
-Incluye:
-- comportamiento esperado vs actual
-- pasos de reproducción
-- entorno (SO, navegador, versión Python/Node)
-- logs o capturas relevantes
+## Reporting bugs
 
+Include expected/actual behavior, reproducible steps, OS/browser/Python/Node versions, and relevant redacted logs. For routing/data issues, include profile, public test endpoints, cache versions, and source record counts when possible. Avoid publishing private trip/location history. Report security concerns through [SECURITY.md](SECURITY.md).

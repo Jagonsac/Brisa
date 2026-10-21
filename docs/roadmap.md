@@ -1,39 +1,24 @@
-# Evolución del producto y roadmap
+# Roadmap
 
-## Estado actual
+The codebase implements a cycling planner, edge-based profile costs, map safety, neighborhood cyclability, station-location integration, BiciMAD legs, and optional AI interpretation. This describes implemented scope, not a claim of production reliability or validated safety. See [verification](verification.md) for observed runtime behavior and test results.
 
-Brisa ha completado nueve fases internas de desarrollo y cuenta con una base funcional integral para planificación ciclista en Madrid.
+## Near-term priorities
 
-## Capacidades entregadas (resumen unificado)
+| Priority | Work | Evidence of completion |
+| --- | --- | --- |
+| Delivered | Restore basemap access | PR #97 merged: key-free OSM default, optional CARTO key; production verification recorded separately |
+| High | Resolve the four existing test failures | Reconcile percentile/floor expectations, station-search assumptions, and hazard fixtures; retain meaningful assertions |
+| High | Validate municipal source ingestion | Direct resource URLs, schema checks, nonzero record diagnostics, and explicit missing-data warnings |
+| High | Correct misleading explanation text | Align BiciMAD availability and time-optimization wording with actual behavior |
+| High | Add integration and browser coverage | Exercise a representative trip across all profiles, map layers, partial failure, and BiciMAD legs |
+| Medium | Restore availability-aware BiciMAD ranking | Use fresh station status with deterministic proximity fallback and more than one feasible pair |
+| Medium | Improve scoring transparency | Audit identifier-weighted crossings, named park overrides, directed-edge aggregation, and exposure proxies |
+| Medium | Version inputs and caches comprehensively | Hash/fingerprint relevant configuration and source snapshots; document controlled rebuilds |
+| Medium | Measure and improve GIS runtime/memory | Publish reproducible measurements before claiming improvements |
+| Medium | Add public CI and release policy | Lint/build/backend checks, documented baseline, semantic versioning |
+| Later | External model calibration | Compare against independent observations; test sensitivity and uncertainty |
+| Later | Internationalization and accessibility | English/Spanish UI, keyboard workflows, and audited contrast/labels |
 
-1. **Experiencia base de mapa y UX de búsqueda.**
-2. **Integración de estaciones Bicimad con estrategias de fallback.**
-3. **Backend API estable para health, estaciones y rutas.**
-4. **Routing shortest-path real sobre OSMnx.**
-5. **Capa de seguridad (grid + resumen) y visualización en frontend.**
-6. **Routing multicriterio seguro/nocturno con explicaciones deterministas.**
-7. **Índice de ciclabilidad por barrio (ranking, detalle y comparación).**
-8. **Routing multimodal con Bicimad (segmentación por modo).**
-9. **Consolidación funcional y preparación para operación continua.**
+The optional AI layer remains an explanation feature; it is not a replacement for deterministic routing or model validation. Proposed items above are not delivered features.
 
-## Próxima etapa (open source y madurez)
-
-### Prioridad alta
-- Estabilizar documentación pública y guías de contribución.
-- Ampliar cobertura de tests de integración E2E frontend-backend.
-- Versionado semántico y política de releases.
-
-### Prioridad media
-- CI/CD pública (lint + build + tests backend) con checks obligatorios.
-- Observabilidad básica (latencias, errores por endpoint, salud de proveedores).
-- Optimización incremental de precálculos/caches GIS.
-- Reintroducir `station_status` en multimodal Bicimad como optimización no bloqueante (ranking por disponibilidad y replanificación), manteniendo fallback determinista por cercanía cuando falle el dato en vivo.
-
-### Prioridad baja
-- Internacionalización (ES/EN) de interfaz y documentación.
-- Mejoras de accesibilidad AA en paneles y controles del mapa.
-- Dataset complementario para enriquecer criterios de seguridad.
-
-## Historial detallado
-
-El detalle histórico por fase se conserva en `docs/slices/` como archivo de decisiones y contexto de implementación.
+Detailed historical development notes remain in [slices/](slices/README.md). They describe earlier stages and can differ from current behavior; code and the current technical guides take precedence.

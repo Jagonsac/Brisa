@@ -1,22 +1,21 @@
-# Código de Conducta
+# Code of conduct
 
-## Nuestro compromiso
+## Our commitment
 
-Nos comprometemos a mantener una comunidad abierta, inclusiva y respetuosa para todas las personas colaboradoras.
+We aim to maintain an open, inclusive, and respectful community for everyone contributing to Brisa.
 
-## Conducta esperada
+## Expected behavior
 
-- Comunicación respetuosa y constructiva.
-- Apertura a feedback técnico.
-- Colaboración orientada al bien del proyecto.
+- Communicate respectfully and constructively.
+- Be open to technical feedback.
+- Collaborate in the interests of the project.
 
-## Conducta inaceptable
+## Unacceptable behavior
 
-- Acoso, insultos o ataques personales.
-- Discriminación por cualquier condición personal.
-- Publicar información privada sin consentimiento.
+- Harassment, insults, or personal attacks.
+- Discrimination based on personal characteristics.
+- Publishing private information without consent.
 
-## Aplicación
+## Enforcement
 
-Las personas mantenedoras podrán moderar, editar o rechazar contribuciones y comentarios que incumplan este código.
-
+Maintainers may moderate, edit, or reject contributions and comments that violate this code.
